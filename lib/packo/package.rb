@@ -40,7 +40,9 @@ class Package
   end
 
   def build
-
+    @stages.stages.each {|stage|
+      stage.call      
+    }
   end
 
   def use (klass)

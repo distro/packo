@@ -12,6 +12,10 @@ package = Packo::Package.new('system/libraries/ncurses') {
 
     cxx { enabled!
       description = 'Enable C++ support'
+
+      on :configure do |conf|
+        conf.set('cxx', enabled?)
+      end
     }
 
     unicode { enabled!
@@ -28,7 +32,7 @@ package = Packo::Package.new('system/libraries/ncurses') {
       end
 
       on :configure do |conf|
-        conf.set('gpm', f.enabled?)
+        conf.set('gpm', enabled?)
       end
     }
 
@@ -43,5 +47,7 @@ package = Packo::Package.new('system/libraries/ncurses') {
 
   source = 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{VERSION}.tar.gz'
 }
+
+package.build
 
 puts package.inspect

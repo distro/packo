@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/stage'
+
 module Packo
 
 class Stages
@@ -34,10 +36,10 @@ class Stages
     off = (options[:before]) ? 0 : +1
 
     @stages.delete_if {|stage|
-      stage[:name] == name
+      stage.name == name
     }
     
-    @stages.insert(@stages.index(obj) || 0 + off, { :name => name, :method => method })
+    @stages.insert(@stages.index(obj) || 0 + off, Stage.new(name, method))
 
     @stages.compact!
   end

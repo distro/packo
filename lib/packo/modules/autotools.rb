@@ -24,6 +24,47 @@ module Packo
 module Modules
 
 class Autotools < Module
+  class Configuration
+    attr_reader :module
+
+    def initialize (mod)
+      @module = mod
+
+      @flags = {}
+    end
+
+    def enable (name)
+      set name, true
+    end
+
+    def disable (name)
+      set name, false
+    end
+
+    def set (name, value)
+      @flags[name] = value
+    end
+
+    def to_s
+      result = ''
+
+      @flags.each {|name, value|
+        case value
+          when true
+            result += "--enable-#{name} "
+
+          when false
+            result += "--disable-#{name} "
+
+          else
+            result += "--width-#{name}=#{value}"
+        end
+      }
+
+      return result
+    end
+  end
+
   def initialize (package)
     super(package)
 
