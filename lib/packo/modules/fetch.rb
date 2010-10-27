@@ -17,34 +17,21 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package/flavor'
+require 'packo/module'
 
 module Packo
 
-class Package
+module Modules
 
-class Flavors
-  attr_reader :package
-
+class Fetch < Module
   def initialize (package)
-    @package = package
-    @flavors = {}
+    super(package)
+
+    package.stages.add :fetch, { :after => :initialize }, self.method(:fetch)
   end
 
-  def method_missing (id, *args, &block)
-    @flavors[id] = Flavor.new(@package, id, &block)
-  end
-
-  def inspect
-    @flavors.sort {|a, b|
-      if a[1].enabled? && b[1].enabled?
-        0
-      elsif a[1].enabled? && !b[1].enabled?
-        -1
-      else
-        1
-      end
-    }.to_a.map {|flavor| (flavor[1].enabled? ? '' : '-') + flavor[0].to_s}.join(' ')
+  def fetch
+    package.stages.call :fetch, package.source
   end
 end
 

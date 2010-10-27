@@ -22,19 +22,20 @@ module Packo
 class Package
 
 class Flavor
-  attr_reader :package, :name
+  attr_reader :package, :name, :block
 
   attr_accessor :description
 
-  def initialize (package, name)
+  def initialize (package, name, &block)
     @package = package
     @name    = name
+    @block   = block
 
     @enabled = false
 
     self.merge(Packo::Package::Flavors::Defaults[@name]) rescue nil
 
-    yield self
+    self.instance_exec(self, &@block) if @block
   end
 
   def enabled?;  !!@enabled       end
@@ -50,6 +51,10 @@ class Flavor
 
     @enabled     = flavor.enabled?
     @description = flavor.description
+
+    if !@block
+      @block = flavor.block
+    end
   end
 end
 

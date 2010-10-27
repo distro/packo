@@ -25,7 +25,7 @@ module Packo
 class Package
   attr_reader :name, :categories, :version, :modules, :flavors, :stages, :data
 
-  def initialize (name, version=nil)
+  def initialize (name, version=nil, &block)
     tmp         = name.split('/')
     @name       = tmp.pop
     @categories = tmp
@@ -36,7 +36,7 @@ class Package
     @flavors = Packo::Package::Flavors.new(self)
     @data    = {}
 
-    yield self
+    self.instance_exec(self, &block) if block
   end
 
   def build
@@ -56,7 +56,11 @@ class Package
   end
 
   def method_missing (id, *args)
-    @data[id] = ((args.length > 1) ? args : args.first)
+    if args.length == 0
+      return @data[id]
+    else
+      @data[id] = ((args.length > 1) ? args : args.first)
+    end
   end
 
   def inspect

@@ -38,6 +38,8 @@ class Stages
     }
     
     @stages.insert(@stages.index(obj) || 0 + off, { :name => name, :method => method })
+
+    @stages.compact!
   end
 
   def register (what, callback)
