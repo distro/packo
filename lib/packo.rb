@@ -17,5 +17,42 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+module Packo
+  def self.env (name, value=nil)
+    if value.nil?
+      return ENV["PACKO_#{name}"] || ENV[name]
+    else
+      ENV["PACKO_#{name}"] = value.to_s
+    end
+  end
+
+  def self.interpolate (string, on)
+    on.instance_eval('"' + string + '"') rescue nil
+  end
+
+  def self.sh (*cmd, &block)
+    options = (Hash === cmd.last) ? cmd.pop : {}
+
+    if !block_given?
+      show_command = cmd.join(' ')
+      show_command = show_command[0, 42] + '...' unless $trace
+
+      block = lambda {|ok, status|
+        ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}]"
+      }
+    end
+
+    print "#{cmd.first} "
+    cmd[1 .. cmd.length].each {|cmd|
+      print %Q{"#{cmd}" }
+    }
+    print "\n"
+
+    result = Kernel.system(options[:env] || {}, *cmd, options)
+    status = $?
+
+    block.call(result, status)
+  end
+end
+
 require 'packo/package'
-require 'packo/modules'

@@ -107,9 +107,17 @@ class Autotools < Module
   def configure
     configuration = Configuration.new(self)
 
-    package.stages.call :configure, configuration
+    if (error = package.stages.call(:configure, configuration).find {|result| result.is_a? Exception})
+      puts error.to_s
+    end
 
-    puts configuration.inspect
+    Dir.chdir "#{Packo.env('WORKDIR')}/#{Packo.interpolate(package.directory.first, self)}"
+
+    do_configure configuration
+  end
+
+  def do_configure (conf)
+    Packo.sh "./configure #{conf.to_s}"
   end
 
   def compile

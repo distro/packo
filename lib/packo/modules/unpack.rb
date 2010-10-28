@@ -27,10 +27,15 @@ class Unpack < Module
   def initialize (package)
     super(package)
 
+    Packo.env('WORKDIR', '/tmp') if !Packo.env('WORKDIR')
+
     package.stages.add :unpack, self.method(:unpack), :after => :fetched, :strict => true
   end
 
   def unpack
+    package.distfiles.each {|file|
+      `tar xf "#{file}" -C #{Packo.env('WORKDIR')}`
+    }
   end
 end
 

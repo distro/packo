@@ -27,6 +27,8 @@ class Fetch < Module
   def initialize (package)
     super(package)
 
+    Packo.env('DISTDIR', '/tmp') if !Packo.env('DISTDIR')
+
     package.stages.add :fetch,    self.method(:fetch),    :after => :dependencies
     package.stages.add :fetching, self.method(:fetching), :after => :fetch
     package.stages.add :fetched,  self.method(:fetched),  :after => :fetching
@@ -45,13 +47,19 @@ class Fetch < Module
   def fetching
     version = package.version
 
+    distfiles = []
+
     package.source.each {|source|
       source = eval('"' + source + '"') rescue nil
 
       package.stages.call :fetching, source
 
-      `wget -c -O "/tmp/#{File.basename(source)}" "#{source}"`
+      distfiles << "#{Packo.env('DISTDIR')}/#{File.basename(source)}"
+
+      Packo.sh 'wget', '-c', '-O', distfiles.last, source
     }
+
+    package.distfiles *distfiles
   end
 
   def fetched

@@ -1,17 +1,17 @@
 #! /usr/bin/env ruby
 require 'packo'
 
+require 'packo/behaviors/gnu'
+
 Packo::Package.new('system/libraries/ncurses') {
-  use Packo::Modules::Fetch
-  use Packo::Modules::Unpack
-  use Packo::Modules::Patch
-  use Packo::Modules::Autotools
+  behavior Packo::Behaviors::GNU
 
   description 'console display library'
   homepage    'http://www.gnu.org/software/ncurses/', 'http://dickey.his.com/ncurses/'
   license     'MIT'
 
-  source 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{version}.tar.gz'
+  source    'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{package.version}.tar.gz'
+  directory 'ncurses-#{package.version}'
 
   flavors {
     binary; headers; doc; minimal; debug;
@@ -26,7 +26,7 @@ Packo::Package.new('system/libraries/ncurses') {
 
     unicode { enabled!
       on :configure do |conf|
-        conf.able('unicode', enabled?)
+        conf.enable('unicode', enabled?)
       end
     }
 

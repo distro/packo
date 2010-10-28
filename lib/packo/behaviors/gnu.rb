@@ -21,3 +21,13 @@ require 'packo/modules/fetch'
 require 'packo/modules/unpack'
 require 'packo/modules/patch'
 require 'packo/modules/autotools'
+
+module Packo
+
+module Behaviors
+
+GNU = [Packo::Modules::Fetch, Packo::Modules::Unpack, Packo::Modules::Patch, Packo::Modules::Autotools]
+
+end
+
+end

@@ -106,6 +106,12 @@ class Package
   def use (klass)
     @modules << klass.new(self)
   end
+  
+  def behavior (uses)
+    uses.each {|use|
+      self.use(use)
+    }
+  end
 
   def flavors (&block)
     @flavors.instance_eval &block
