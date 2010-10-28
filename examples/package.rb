@@ -24,11 +24,11 @@ package = Packo::Package.new('system/libraries/ncurses') {
       end
     }
 
-    gpm {
+    gpm { enabled!
       description = 'Add mouse support.'
 
-      on :initialize do
-        dependencies << 'gpm'
+      on :dependencies do |package|
+        package.dependencies << 'system/libraries/gpm' if enabled?
       end
 
       on :configure do |conf|
@@ -51,3 +51,4 @@ package = Packo::Package.new('system/libraries/ncurses') {
 package.build
 
 puts package.inspect
+puts package.dependencies.inspect

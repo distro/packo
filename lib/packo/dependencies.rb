@@ -17,55 +17,32 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/stage'
+require 'packo/dependency'
 
 module Packo
 
-class Stages
-  attr_reader :package, :stages, :callbacks
+class Dependencies
+  attr_reader :package, :dependencies
 
   def initialize (package)
     @package = package
 
-    @stages    = []
-    @callbacks = {}
+    @dependencies = []
   end
 
-  def add (name, options, method)
-    obj = options[:before] || options[:after]
-    off = (options[:before]) ? 0 : +1
-
-    @stages.delete_if {|stage|
-      stage.name == name
-    }
-    
-    @stages.insert(@stages.index(obj) || 0 + off, Stage.new(name, method))
-
-    @stages.compact!
+  def << (dependency)
+    @dependencies.push(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
+    @dependencies.compact!
   end
 
   def each (&block)
-    @stages.each {|stage|
-      block.call stage
+    @dependencies.each {|dependency|
+      block.call dependency
     }
   end
 
-  def register (what, callback)
-    (@callbacks[what.to_sym] ||= []) << callback
-  end
-
-  def call (what, *args)
-    result = []
-
-    (@callbacks[what.to_sym] ||= []).each {|callback|
-      begin
-        result << callback.call(*args)
-      rescue Exception => e
-        result << e
-      end
-    }
-
-    return result
+  def check
+    package.stages.call :dependencies, package
   end
 end
 

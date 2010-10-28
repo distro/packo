@@ -17,55 +17,32 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/stage'
+require 'packo/flavor'
 
 module Packo
 
-class Stages
-  attr_reader :package, :stages, :callbacks
+class Flavors
+  attr_reader :package
 
   def initialize (package)
     @package = package
-
-    @stages    = []
-    @callbacks = {}
+    @flavors = {}
   end
 
-  def add (name, options, method)
-    obj = options[:before] || options[:after]
-    off = (options[:before]) ? 0 : +1
-
-    @stages.delete_if {|stage|
-      stage.name == name
-    }
-    
-    @stages.insert(@stages.index(obj) || 0 + off, Stage.new(name, method))
-
-    @stages.compact!
+  def method_missing (id, *args, &block)
+    @flavors[id] = Flavor.new(@package, id, &block)
   end
 
-  def each (&block)
-    @stages.each {|stage|
-      block.call stage
-    }
-  end
-
-  def register (what, callback)
-    (@callbacks[what.to_sym] ||= []) << callback
-  end
-
-  def call (what, *args)
-    result = []
-
-    (@callbacks[what.to_sym] ||= []).each {|callback|
-      begin
-        result << callback.call(*args)
-      rescue Exception => e
-        result << e
+  def inspect
+    @flavors.sort {|a, b|
+      if a[1].enabled? && b[1].enabled?
+        0
+      elsif a[1].enabled? && !b[1].enabled?
+        -1
+      else
+        1
       end
-    }
-
-    return result
+    }.to_a.map {|flavor| (flavor[1].enabled? ? '' : '-') + flavor[0].to_s}.join(' ')
   end
 end
 

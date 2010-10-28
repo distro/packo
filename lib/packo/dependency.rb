@@ -19,45 +19,25 @@
 
 module Packo
 
-class Package
+class Dependency
+  attr_reader :name, :categories, :version, :flavors
 
-class Flavor
-  attr_reader :package, :name, :block
+  def self.parse (text)
+    parsed = Packo::Package.parse(text)
 
-  attr_accessor :description
-
-  def initialize (package, name, &block)
-    @package = package
-    @name    = name
-    @block   = block
-
-    @enabled = false
-
-    self.merge(Packo::Package::Flavors::Defaults[@name]) rescue nil
-
-    self.instance_exec(self, &@block) if @block
+    Dependency.new(parsed.name, parsed.categories, parsed.version, parsed.flavors)
   end
 
-  def enabled?;  !!@enabled       end
-  def enabled!;  @enabled = true  end
-  def disabled!; @enabled = false end
-
-  def on (what, &block)
-    @package.on(what, &block)
+  def initialize (name, categories, version, flavors)
+    @name       = name
+    @categories = categories
+    @version    = version
+    @flavors    = flavors
   end
 
-  def merge (flavor)
-    return if flavor.nil?
-
-    @enabled     = flavor.enabled?
-    @description = flavor.description
-
-    if !@block
-      @block = flavor.block
-    end
+  def to_s
+    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}[#{@flavors.inspect}]"
   end
-end
-
 end
 
 end

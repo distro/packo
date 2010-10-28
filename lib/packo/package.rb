@@ -17,13 +17,26 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'ostruct'
+
+require 'packo/dependencies'
 require 'packo/stages'
-require 'packo/package/flavors'
+require 'packo/flavors'
 
 module Packo
 
 class Package
-  attr_reader :name, :categories, :version, :modules, :flavors, :stages, :data
+  def self.parse (text)
+    result = OpenStruct.new
+
+    matches = text.match(/(.*?)(\[(.*?)])?$/)
+
+    matches[2] 
+
+    return result
+  end
+
+  attr_reader :name, :categories, :version, :modules, :dependencies, :flavors, :stages, :data
 
   def initialize (name, version=nil, &block)
     tmp         = name.split('/')
@@ -31,16 +44,19 @@ class Package
     @categories = tmp
     @version    = version
 
-    @modules = []
-    @stages  = Packo::Stages.new(self)
-    @flavors = Packo::Package::Flavors.new(self)
-    @data    = {}
+    @modules      = []
+    @dependencies = Packo::Dependencies.new(self)
+    @stages       = Packo::Stages.new(self)
+    @flavors      = Packo::Flavors.new(self)
+    @data         = {}
+
+    @stages.add :dependencies, { :before => nil }, @dependencies.method(:check)
 
     self.instance_exec(self, &block) if block
   end
 
   def build
-    @stages.stages.each {|stage|
+    @stages.each {|stage|
       stage.call      
     }
   end
@@ -66,7 +82,7 @@ class Package
   end
 
   def inspect
-    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version} {#{@flavors.inspect}}"
+    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}[#{@flavors.inspect}]"
   end
 end
 

@@ -17,37 +17,43 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package/flavor'
-
 module Packo
 
-class Package
+class Flavor
+  attr_reader :package, :name, :block
 
-class Flavors
-  attr_reader :package
+  attr_accessor :description
 
-  def initialize (package)
+  def initialize (package, name, &block)
     @package = package
-    @flavors = {}
+    @name    = name
+    @block   = block
+
+    @enabled = false
+
+    self.merge(Packo::Package::Flavors::Defaults[@name]) rescue nil
+
+    self.instance_exec(self, &@block) if @block
   end
 
-  def method_missing (id, *args, &block)
-    @flavors[id] = Flavor.new(@package, id, &block)
+  def enabled?;  !!@enabled       end
+  def enabled!;  @enabled = true  end
+  def disabled!; @enabled = false end
+
+  def on (what, &block)
+    @package.on(what, &block)
   end
 
-  def inspect
-    @flavors.sort {|a, b|
-      if a[1].enabled? && b[1].enabled?
-        0
-      elsif a[1].enabled? && !b[1].enabled?
-        -1
-      else
-        1
-      end
-    }.to_a.map {|flavor| (flavor[1].enabled? ? '' : '-') + flavor[0].to_s}.join(' ')
-  end
-end
+  def merge (flavor)
+    return if flavor.nil?
 
+    @enabled     = flavor.enabled?
+    @description = flavor.description
+
+    if !@block
+      @block = flavor.block
+    end
+  end
 end
 
 end
