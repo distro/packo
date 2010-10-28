@@ -33,19 +33,35 @@ class Fetch < Module
   end
 
   def fetch
+    version = package.version
+
+    package.source.each {|source|
+      source = eval('"' + source + '"') rescue nil
+
+      package.stages.call :fetch, source
+    }
   end
 
   def fetching
     version = package.version
 
-    source = eval('"' + package.source + '"') rescue nil
+    package.source.each {|source|
+      source = eval('"' + source + '"') rescue nil
 
-    package.stages.call :fetch, source
+      package.stages.call :fetching, source
 
-    `wget -c -O "/tmp/#{File.basename(source)}" "#{source}"`
+      `wget -c -O "/tmp/#{File.basename(source)}" "#{source}"`
+    }
   end
 
   def fetched
+    version = package.version
+
+    package.source.each {|source|
+      source = eval('"' + source + '"') rescue nil
+
+      package.stages.call :fetched, source
+    }
   end
 end
 

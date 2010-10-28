@@ -17,5 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package'
-require 'packo/modules'
+require 'packo/modules/fetch'
+require 'packo/modules/unpack'
+require 'packo/modules/patch'
+require 'packo/modules/autotools'

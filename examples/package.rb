@@ -1,11 +1,15 @@
 #! /usr/bin/env ruby
 require 'packo'
-require 'packo/modules/fetch'
-require 'packo/modules/autotools'
 
 Packo::Package.new('system/libraries/ncurses') {
   use Packo::Modules::Fetch
+  use Packo::Modules::Unpack
+  use Packo::Modules::Patch
   use Packo::Modules::Autotools
+
+  description 'console display library'
+  homepage    'http://www.gnu.org/software/ncurses/', 'http://dickey.his.com/ncurses/'
+  license     'MIT'
 
   source 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{version}.tar.gz'
 
@@ -16,14 +20,13 @@ Packo::Package.new('system/libraries/ncurses') {
       description = 'Enable C++ support'
 
       on :configure do |conf|
-        conf.set('cxx', enabled?)
-        puts conf.inspect
+        conf.with(['cxx', 'cxx-binding'], enabled?)
       end
     }
 
     unicode { enabled!
       on :configure do |conf|
-        conf.set('unicode', enabled?)
+        conf.able('unicode', enabled?)
       end
     }
 
@@ -35,7 +38,7 @@ Packo::Package.new('system/libraries/ncurses') {
       end
 
       on :configure do |conf|
-        conf.set('gpm', enabled?)
+        conf.with('gpm', enabled?)
       end
     }
 
@@ -43,15 +46,30 @@ Packo::Package.new('system/libraries/ncurses') {
       description = 'Add ADA support.'
 
       on :configure do |conf|
-        conf.set('ada', enabled?) 
+        conf.with('ada', enabled?) 
       end
     }
   }
+
+  on :configure do |conf|
+    conf.with ['shared', 'rcs-ids']
+    conf.with 'manpage-format', 'normal'
+    conf.without 'hashed-db'
+
+    conf.enable ['symlinks', 'const', 'colorfgbg', 'echo']
+
+    # ABI compatibility
+    conf.with 'chtype', 'long'
+    conf.with 'mmask-t', 'long'
+    conf.disable ['ext-colors', 'ext-mouse']
+    conf.without ['pthread', 'reentrant']
+  end
 }
 
-package = Packo::Package.new('system/libraries/ncurses', '5.7')
+package = Packo::Package.new('system/libraries/ncurses', '5.7') {
+  arch '~x86', '~amd64'
+}
 
 package.build
 
-#puts package.inspect
-#puts package.dependencies.inspect
+puts package.inspect

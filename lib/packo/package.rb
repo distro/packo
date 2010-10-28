@@ -119,7 +119,7 @@ class Package
     if args.length == 0
       return @data[id]
     else
-      @data[id] = ((args.length > 1) ? args : args.first)
+      @data[id] = args
     end
   end
 

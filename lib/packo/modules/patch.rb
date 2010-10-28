@@ -17,5 +17,23 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package'
-require 'packo/modules'
+require 'packo/module'
+
+module Packo
+
+module Modules
+
+class Patch < Module
+  def initialize (package)
+    super(package)
+
+    package.stages.add :patch, self.method(:patch), :before => :configure
+  end
+
+  def patch
+  end
+end
+
+end
+
+end

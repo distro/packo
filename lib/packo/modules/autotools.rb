@@ -30,34 +30,66 @@ class Autotools < Module
     def initialize (mod)
       @module = mod
 
-      @flags = {}
+      @enable = {}
+      @with   = {}
     end
 
-    def enable (name)
-      set name, true
+    def with (name, value=nil)
+      [name].flatten.each {|name|
+        if value === true || value === false
+          @with[name.to_s] = value
+        else
+          @with[name.to_s] = value || true
+        end
+      }
     end
 
-    def disable (name)
-      set name, false
+    def without (name, value=nil)
+      [name].flatten.each {|name|
+        if value === true || value === false
+          @with[name.to_s] = !value
+        else
+          @with[name.to_s] = false
+        end
+      }
     end
 
-    def set (name, value)
-      @flags[name] = value
+    def enable (name, value=nil)
+      [name].flatten.each {|name|
+        if value === true || value === false
+          @enable[name.to_s] = value
+        else
+          @enable[name.to_s] = value || true
+        end
+      }
+    end
+
+    def disable (name, value=nil)
+      [name].flatten.each {|name|
+        if value === true || value === false
+          @with[name.to_s] = !value
+        else
+          @with[name.to_s] = false
+        end
+      }
     end
 
     def to_s
       result = ''
 
-      @flags.each {|name, value|
+      @enable.each {|name, value|
         case value
-          when true
-            result += "--enable-#{name} "
+          when true;  result += "--enable-#{name} "
+          when false; result += "--disable-#{name} "
+          else;       result += "--enable-#{name}=#{value} "
+        end
+      }
 
-          when false
-            result += "--disable-#{name} "
-
-          else
-            result += "--width-#{name}=#{value}"
+      @with.each {|name, value|
+        case value
+          when true;  result += "--with-#{name} "
+          when false; result += "--without-#{name} "
+          else;       result += "--with-#{name}=#{value} "
         end
       }
 
@@ -69,12 +101,19 @@ class Autotools < Module
     super(package)
 
     package.stages.add :configure, self.method(:configure), :after => :fetched
+    package.stages.add :compile, self.method(:compile), :after => :configure
   end
 
   def configure
     configuration = Configuration.new(self)
 
     package.stages.call :configure, configuration
+
+    puts configuration.inspect
+  end
+
+  def compile
+    package.stages.call :compile
   end
 end
 

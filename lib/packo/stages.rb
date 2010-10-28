@@ -65,15 +65,15 @@ class Stages
           end
         elsif stage.options[:before]
           if (index = @stages.find_index {|s| s.name == stage.options[:before]})
-            @stages.insert(index, @stages.delete(stage))
+            @stages.insert(index, stage)
           end
         elsif stage.options[:after]
           if (index = @stages.find_index {|s| s.name == stage.options[:after]})
-            @stages.insert(index + 1, old.delete(stage))
+            @stages.insert(index + 1, stage)
           end
         else
           if index = @stages.reverse.find_index {|s| s.options[:at] == :beginning} || @stages.length + 1
-            @stages.insert(@stages.length - index + 1, old.delete(stage))
+            @stages.insert(@stages.length - index + 1, stage)
           end
         end
       }
@@ -114,6 +114,8 @@ class Stages
 
       old
     end
+
+    @stages.compact!
 
     @sorted = true
   end

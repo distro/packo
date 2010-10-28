@@ -17,5 +17,23 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package'
-require 'packo/modules'
+require 'packo/module'
+
+module Packo
+
+module Modules
+
+class Unpack < Module
+  def initialize (package)
+    super(package)
+
+    package.stages.add :unpack, self.method(:unpack), :after => :fetched, :strict => true
+  end
+
+  def unpack
+  end
+end
+
+end
+
+end
