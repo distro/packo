@@ -26,12 +26,28 @@ require 'packo/flavors'
 module Packo
 
 class Package
+  @@roots = {}
+
   def self.parse (text)
     result = OpenStruct.new
 
-    matches = text.match(/(.*?)(\[(.*?)])?$/)
+    matches = text.match(/^(.*?)(\[(.*?)\])?$/)
 
-    matches[2] 
+    result.flavors = Hash[(matches[3] || '').split(/\s*,\s*/).map {|flavor|
+      if flavor[0] == '-'
+        [flavor[1, flavor.length], false]
+      else
+        [(flavor[0] == '+' ? flavor[1, flavor.length] : flavor), true]
+      end
+    }]
+
+    matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
+
+    tmp               = matches[1].split('/')
+    result.name       = tmp.pop
+    result.categories = tmp
+
+    result.version = matches[3]
 
     return result
   end
@@ -44,13 +60,39 @@ class Package
     @categories = tmp
     @version    = version
 
-    @modules      = []
-    @dependencies = Packo::Dependencies.new(self)
-    @stages       = Packo::Stages.new(self)
-    @flavors      = Packo::Flavors.new(self)
-    @data         = {}
+    if !version
+      @@roots[(@categories + [@name]).join('/')] = self
+    end
 
-    @stages.add :dependencies, { :before => nil }, @dependencies.method(:check)
+    if !version || !(tmp = @@roots[(@categories + [@name]).join('/')])
+      @modules      = []
+      @dependencies = Packo::Dependencies.new(self)
+      @stages       = Packo::Stages.new(self)
+      @flavors      = Packo::Flavors.new(self)
+      @data         = {}
+    else
+      @modules      = tmp.instance_eval('@modules.clone')
+      @dependencies = tmp.instance_eval('@dependencies.clone')
+      @stages       = tmp.instance_eval('@stages.clone')
+      @flavors      = tmp.instance_eval('@flavors.clone')
+      @data         = tmp.instance_eval('@data.clone')
+
+      package = self
+
+      @modules.each {|mod|
+        mod.instance_eval('@package = package')
+      }
+
+      @dependencies.instance_eval('@package = package')
+
+      @flavors.instance_eval('@package = package')
+
+      @flavors.each {|flavor|
+        flavor.instance_eval('@package = package')
+      }
+    end
+
+    @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
 
     self.instance_exec(self, &block) if block
   end
@@ -82,7 +124,9 @@ class Package
   end
 
   def inspect
-    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}[#{@flavors.inspect}]"
+    tmp = @flavors.inspect
+
+    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{tmp}]" if !tmp.empty?}"
   end
 end
 

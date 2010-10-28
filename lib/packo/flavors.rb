@@ -33,6 +33,12 @@ class Flavors
     @flavors[id] = Flavor.new(@package, id, &block)
   end
 
+  def each (&block)
+    @flavors.each_value {|flavor|
+      block.call flavor
+    }
+  end
+
   def inspect
     @flavors.sort {|a, b|
       if a[1].enabled? && b[1].enabled?
@@ -42,7 +48,7 @@ class Flavors
       else
         1
       end
-    }.to_a.map {|flavor| (flavor[1].enabled? ? '' : '-') + flavor[0].to_s}.join(' ')
+    }.to_a.map {|flavor| (flavor[1].enabled? ? '' : '-') + flavor[0].to_s}.join(',')
   end
 end
 

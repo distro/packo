@@ -68,7 +68,7 @@ class Autotools < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :configure, { :before => :fetched }, self.method(:configure)
+    package.stages.add :configure, self.method(:configure), :after => :fetched
   end
 
   def configure

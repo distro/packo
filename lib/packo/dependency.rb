@@ -36,7 +36,17 @@ class Dependency
   end
 
   def to_s
-    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}[#{@flavors.inspect}]"
+    tmp = @flavors.sort {|a, b|
+      if a[1] && b[1]
+        0
+      elsif a[1] && !b[1]
+        -1
+      else
+        1
+      end
+    }.to_a.map {|flavor| (flavor[1] ? '' : '-') + flavor[0].to_s}.join(',')
+
+    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{tmp}]" if !tmp.empty?}"
   end
 end
 

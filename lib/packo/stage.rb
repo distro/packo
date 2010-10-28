@@ -20,15 +20,22 @@
 module Packo
 
 class Stage
-  attr_reader :name
+  attr_reader :name, :options
 
-  def initialize (name, method)
-    @name   = name
-    @method = method
+  def initialize (name, method, options)
+    @name    = name.to_sym
+    @method  = method
+    @options = options
   end
 
   def call (*args)
+    puts "#{self.inspect} #{args.inspect}"
+
     @method.call(*args) rescue nil
+  end
+
+  def inspect
+    "#<Stage: #{name} (#{@options.inspect})>"
   end
 end
 

@@ -27,11 +27,25 @@ class Fetch < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :fetch, { :after => :initialize }, self.method(:fetch)
+    package.stages.add :fetch,    self.method(:fetch),    :after => :dependencies
+    package.stages.add :fetching, self.method(:fetching), :after => :fetch
+    package.stages.add :fetched,  self.method(:fetched),  :after => :fetching
   end
 
   def fetch
-    package.stages.call :fetch, package.source
+  end
+
+  def fetching
+    version = package.version
+
+    source = eval('"' + package.source + '"') rescue nil
+
+    package.stages.call :fetch, source
+
+    `wget -c -O "/tmp/#{File.basename(source)}" "#{source}"`
+  end
+
+  def fetched
   end
 end
 

@@ -3,9 +3,11 @@ require 'packo'
 require 'packo/modules/fetch'
 require 'packo/modules/autotools'
 
-package = Packo::Package.new('system/libraries/ncurses') {
+Packo::Package.new('system/libraries/ncurses') {
   use Packo::Modules::Fetch
   use Packo::Modules::Autotools
+
+  source 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{version}.tar.gz'
 
   flavors {
     binary; headers; doc; minimal; debug;
@@ -15,6 +17,7 @@ package = Packo::Package.new('system/libraries/ncurses') {
 
       on :configure do |conf|
         conf.set('cxx', enabled?)
+        puts conf.inspect
       end
     }
 
@@ -24,7 +27,7 @@ package = Packo::Package.new('system/libraries/ncurses') {
       end
     }
 
-    gpm { enabled!
+    gpm {
       description = 'Add mouse support.'
 
       on :dependencies do |package|
@@ -44,11 +47,11 @@ package = Packo::Package.new('system/libraries/ncurses') {
       end
     }
   }
-
-  source = 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{VERSION}.tar.gz'
 }
+
+package = Packo::Package.new('system/libraries/ncurses', '5.7')
 
 package.build
 
-puts package.inspect
-puts package.dependencies.inspect
+#puts package.inspect
+#puts package.dependencies.inspect
