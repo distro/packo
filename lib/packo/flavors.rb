@@ -38,6 +38,14 @@ class Flavors
       block.call flavor
     }
   end
+  
+  def owner= (value)
+    @package = value
+
+    @flavors.each_value {|flavor|
+      flavor.owner = value
+    }
+  end
 
   def inspect
     @flavors.sort {|a, b|

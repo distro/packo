@@ -1,6 +1,5 @@
 #! /usr/bin/env ruby
 require 'packo'
-
 require 'packo/behaviors/gnu'
 
 Packo::Package.new('system/libraries/ncurses') {
@@ -10,8 +9,7 @@ Packo::Package.new('system/libraries/ncurses') {
   homepage    'http://www.gnu.org/software/ncurses/', 'http://dickey.his.com/ncurses/'
   license     'MIT'
 
-  source    'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{package.version}.tar.gz'
-  directory 'ncurses-#{package.version}'
+  source 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{package.version}.tar.gz'
 
   flavors {
     binary; headers; doc; minimal; debug;
@@ -20,26 +18,37 @@ Packo::Package.new('system/libraries/ncurses') {
       description = 'Enable C++ support'
 
       on :configure do |conf|
-        conf.with(['cxx', 'cxx-binding'], enabled?)
+        conf.with ['cxx', 'cxx-binding'], enabled?
       end
     }
 
     unicode { enabled!
-      on :unpack do |file|
-        
+      on :unpacked do |file|
+        if !File.exists? "#{package.workdir}/ncursesw"
+          FileUtils.cp_r "#{package.workdir}/ncurses-#{package.version}", "#{package.workdir}/ncursesw", :preserve => true
+        end
       end
 
-      on :compile do |conf|
-        return if !enabled?
+      on :compiled do |conf|
+        next if !enabled?
 
         conf = conf.clone
 
-        conf.enable('widec')
-        conf.set('includedir', '/usr/include/ncursesw')
+        conf.enable 'widec'
+        conf.set 'includedir', "#{package.distdir}/usr/include/ncursesw"
 
-        puts Dir.pwd
+        Dir.chdir "#{package.workdir}/ncursesw"
 
-        conf.module.do_compile
+        conf.module.do_configure(conf, false)
+        conf.module.do_compile(conf, false)
+
+        Dir.chdir "#{package.workdir}/ncurses-#{package.version}"
+      end
+
+      on :installed do |conf|
+        Dir.chdir "#{package.workdir}/ncursesw"
+
+        conf.module.do_install(nil, false)
       end
     }
 
@@ -51,7 +60,7 @@ Packo::Package.new('system/libraries/ncurses') {
       end
 
       on :configure do |conf|
-        conf.with('gpm', enabled?)
+        conf.with 'gpm', enabled?
       end
     }
 
@@ -59,10 +68,19 @@ Packo::Package.new('system/libraries/ncurses') {
       description = 'Add ADA support.'
 
       on :configure do |conf|
-        conf.with('ada', enabled?) 
+        conf.with 'ada', enabled?
       end
     }
   }
+
+  on :initialize do
+    package.workdir = "#{package.directory}/work"
+    package.distdir = "#{package.directory}/dist"
+  end
+
+  on :unpacked, 10 do
+    Dir.chdir "#{package.workdir}/ncurses-#{package.version}"
+  end
 
   on :configure do |conf|
     conf.with ['shared', 'rcs-ids']

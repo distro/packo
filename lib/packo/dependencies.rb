@@ -44,6 +44,10 @@ class Dependencies
   def check
     package.stages.call :dependencies, package
   end
+
+  def owner= (value)
+    @package = value
+  end
 end
 
 end

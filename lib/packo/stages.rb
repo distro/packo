@@ -17,12 +17,49 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/stage'
-
 module Packo
 
 class Stages
   def self.max; 23 end
+
+  class Stage
+    attr_reader :name, :options
+  
+    def initialize (name, method, options)
+      @name    = name.to_sym
+      @method  = method
+      @options = options
+    end
+  
+    def call (*args)
+      @method.call(*args) rescue nil
+    end
+  
+    def inspect
+      "#<Stage: #{name} (#{@options.inspect})>"
+    end
+  end
+
+  class Callback
+    attr_accessor :binding
+
+    attr_reader :name, :priority
+
+    def initialize (name, priority, callback, binding=nil)
+      @name     = name
+      @priority = priority
+      @callback = callback
+      @binding  = binding
+    end
+
+    def call (*args)
+      if binding
+        binding.instance_exec(*args, &@callback)
+      else
+        @callback.call(*args)
+      end
+    end
+  end
 
   attr_reader :package, :stages, :callbacks
 
@@ -128,8 +165,12 @@ class Stages
     }
   end
 
-  def register (what, callback)
-    (@callbacks[what.to_sym] ||= []) << callback
+  def register (what, priority, callback, binding=nil)
+    (@callbacks[what.to_sym] ||= []) << Callback.new(what, priority, callback, binding || @package)
+
+    @callbacks[what.to_sym].sort! {|a, b|
+      a.priority <=> b.priority
+    }
   end
 
   def call (what, *args)
@@ -144,6 +185,18 @@ class Stages
     }
 
     return result
+  end
+
+  def owner= (value)
+    @package = value
+
+    @callbacks.each_value {|callbacks|
+      callbacks.each {|callback|
+        if callback.binding.is_a? Package
+          callback.binding = @package
+        end
+      }
+    }
   end
 end
 

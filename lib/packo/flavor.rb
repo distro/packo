@@ -40,8 +40,8 @@ class Flavor
   def enabled!;  @enabled = true  end
   def disabled!; @enabled = false end
 
-  def on (what, &block)
-    @package.on(what, &block)
+  def on (what, priority=0, &block)
+    @package.stages.register(what, priority, block, self)
   end
 
   def merge (flavor)
@@ -53,6 +53,10 @@ class Flavor
     if !@block
       @block = flavor.block
     end
+  end
+
+  def owner= (value)
+    @package = value
   end
 end
 

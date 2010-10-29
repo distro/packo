@@ -77,19 +77,21 @@ class Package
       @flavors      = tmp.instance_eval('@flavors.clone')
       @data         = tmp.instance_eval('@data.clone')
 
-      package = self
-
       @modules.each {|mod|
-        mod.instance_eval('@package = package')
+        mod.owner = self
       }
 
-      @dependencies.instance_eval('@package = package')
+      @dependencies.owner = self
+      @stages.owner       = self
+      @flavors.owner      = self
 
-      @flavors.instance_eval('@package = package')
+      self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
 
-      @flavors.each {|flavor|
-        flavor.instance_eval('@package = package')
-      }
+      FileUtils.mkpath "#{self.directory}/"
+      FileUtils.mkpath "#{self.directory}/work"
+      FileUtils.mkpath "#{self.directory}/dist"
+
+      @stages.call :initialize, self
     end
 
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
@@ -117,8 +119,8 @@ class Package
     @flavors.instance_eval &block
   end
 
-  def on (what, &block)
-    @stages.register(what, block)
+  def on (what, priority=0, &block)
+    @stages.register(what, priority, block)
   end
 
   def method_missing (id, *args)
@@ -130,6 +132,8 @@ class Package
       @data[id] = (args.length > 1) ? args : args.first
     end
   end
+
+  def package; self end
 
   def inspect
     tmp = @flavors.inspect

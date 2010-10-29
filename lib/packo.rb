@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'fileutils'
+
 module Packo
   def self.env (name, value=nil)
     if value.nil?
@@ -44,7 +46,11 @@ module Packo
 
     print "#{cmd.first} "
     cmd[1 .. cmd.length].each {|cmd|
-      print %Q{"#{cmd}" }
+      if cmd.match(/[ ']/)
+        print %Q{"#{cmd}" }
+      else
+        print "#{cmd} "
+      end
     }
     print "\n"
 
@@ -52,6 +58,36 @@ module Packo
     status = $?
 
     block.call(result, status)
+  end
+
+  def self.debug (argument, options={})
+    if !ENV['DEBUG']
+      return
+    end
+
+    if ENV['DEBUG'].to_i < (options[:level] || 1)
+      return
+    end
+
+    output = "[#{Time.new}] From: #{caller[0, options[:deep] || 1].join("\n")}\n"
+  
+    if argument.is_a?(Exception)
+      output << "#{argument.class}: #{argument.message}\n"
+      output << argument.backtrace.collect {|stack|
+        stack
+      }.join("\n")
+      output << "\n\n"
+    elsif argument.is_a?(String)
+      output << "#{argument}\n"
+    else
+      output << "#{argument.inspect}\n"
+    end
+  
+    if options[:separator]
+      output << options[:separator]
+    end
+
+    puts output
   end
 end
 

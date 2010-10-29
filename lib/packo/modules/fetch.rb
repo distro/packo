@@ -41,7 +41,7 @@ class Fetch < Module
       source = eval('"' + source + '"') rescue nil
 
       if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
-        puts error.to_s
+        Packo.debug error
         return
       end
 
@@ -49,7 +49,7 @@ class Fetch < Module
 
       if Packo.sh 'wget', '-c', '-O', distfiles.last, source
         if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
-          puts error.to_s
+          Packo.debug error
           return
         end
       end

@@ -114,37 +114,71 @@ class Autotools < Module
     super(package)
 
     package.stages.add :configure, self.method(:configure), :after => :fetch
-    package.stages.add :compile, self.method(:compile), :after => :configure
+    package.stages.add :compile,   self.method(:compile),   :after => :configure
+    package.stages.add :install,   self.method(:install),   :after => :compile
   end
 
   def configure
     @configuration = Configuration.new(self)
 
+    FileUtils.mkpath "#{package.distdir}/usr"
+
+    @configuration.set 'prefix',        "#{package.distdir}/usr"
+    @configuration.set 'mandir',        "#{package.distdir}/usr/share/man"
+    @configuration.set 'infodir',       "#{package.distdir}/usr/share/info"
+    @configuration.set 'datadir',       "#{package.distdir}/usr/share"
+    @configuration.set 'sysconfdir',    "#{package.distdir}/etc"
+    @configuration.set 'localstatedir', "#{package.distdir}/var/lib"
+    @configuration.set 'libdir',        "#{package.distdir}/usr/lib"
+
     if (error = package.stages.call(:configure, @configuration).find {|result| result.is_a? Exception})
-      puts error.to_s
+      Packo.debug error
       return
     end
 
     do_configure
   end
 
-  def do_configure
-    if !File.exists? 'Makefile'
-      Packo.sh "./configure #{@configuration.to_s}"
+  def do_configure (conf=nil, fire=true)
+    if !File.exists? 'configure'
+      Packo.sh 'autoconf'
     end
+
+    if !File.exists? 'Makefile'
+      Packo.sh "./configure #{conf || @configuration}"
+    end
+
+    package.stages.call(:configured, conf || @configuration) if fire
   end
 
   def compile
     if (error = package.stages.call(:compile, @configuration).find {|result| result.is_a? Exception})
-      puts error.to_s
+      Packo.debug error
       return
     end
 
     do_compile
   end
 
-  def do_compile
+  def do_compile (conf=nil, fire=true)
     Packo.sh 'make'
+
+    package.stages.call(:compiled, conf || @configuration) if fire
+  end
+
+  def install
+    if (error = package.stages.call(:install, @configuration).find {|result| result.is_a? Exception})
+      Packo.debug error
+      return
+    end
+
+    do_install
+  end
+
+  def do_install (conf=nil, fire=true)
+    Packo.sh 'make install'
+
+    package.stages.call(:installed, conf || @configuration) if fire
   end
 end
 
