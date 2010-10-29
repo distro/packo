@@ -29,47 +29,33 @@ class Fetch < Module
 
     Packo.env('DISTDIR', '/tmp') if !Packo.env('DISTDIR')
 
-    package.stages.add :fetch,    self.method(:fetch),    :after => :dependencies
-    package.stages.add :fetching, self.method(:fetching), :after => :fetch
-    package.stages.add :fetched,  self.method(:fetched),  :after => :fetching
+    package.stages.add :fetch, self.method(:fetch), :after => :dependencies
   end
 
   def fetch
     version = package.version
 
-    package.source.each {|source|
-      source = eval('"' + source + '"') rescue nil
-
-      package.stages.call :fetch, source
-    }
-  end
-
-  def fetching
-    version = package.version
-
     distfiles = []
 
-    package.source.each {|source|
+    [package.source].flatten.each {|source|
       source = eval('"' + source + '"') rescue nil
 
-      package.stages.call :fetching, source
+      if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
+        puts error.to_s
+        return
+      end
 
       distfiles << "#{Packo.env('DISTDIR')}/#{File.basename(source)}"
 
-      Packo.sh 'wget', '-c', '-O', distfiles.last, source
+      if Packo.sh 'wget', '-c', '-O', distfiles.last, source
+        if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
+          puts error.to_s
+          return
+        end
+      end
     }
 
-    package.distfiles *distfiles
-  end
-
-  def fetched
-    version = package.version
-
-    package.source.each {|source|
-      source = eval('"' + source + '"') rescue nil
-
-      package.stages.call :fetched, source
-    }
+    package.distfiles distfiles
   end
 end
 

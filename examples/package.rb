@@ -25,8 +25,21 @@ Packo::Package.new('system/libraries/ncurses') {
     }
 
     unicode { enabled!
-      on :configure do |conf|
-        conf.enable('unicode', enabled?)
+      on :unpack do |file|
+        
+      end
+
+      on :compile do |conf|
+        return if !enabled?
+
+        conf = conf.clone
+
+        conf.enable('widec')
+        conf.set('includedir', '/usr/include/ncursesw')
+
+        puts Dir.pwd
+
+        conf.module.do_compile
       end
     }
 

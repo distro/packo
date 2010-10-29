@@ -29,13 +29,27 @@ class Unpack < Module
 
     Packo.env('WORKDIR', '/tmp') if !Packo.env('WORKDIR')
 
-    package.stages.add :unpack, self.method(:unpack), :after => :fetched, :strict => true
+    package.stages.add :unpack, self.method(:unpack), :after => :fetch, :strict => true
   end
 
   def unpack
+    puts package.distfiles.inspect
+
     package.distfiles.each {|file|
-      `tar xf "#{file}" -C #{Packo.env('WORKDIR')}`
+      if (error = package.stages.call(:unpack, file).find {|result| result.is_a? Exception})
+        puts error.to_s
+        return
+      end
+
+      Packo.sh 'tar', 'xf', file, '-k', '-C', Packo.env('WORKDIR')
+
+      if (error = package.stages.call(:unpacked, file).find {|result| result.is_a? Exception})
+        puts error.to_s
+        return
+      end
     }
+
+    Dir.chdir "#{Packo.env('WORKDIR')}/#{Packo.interpolate(package.directory, self)}"
   end
 end
 

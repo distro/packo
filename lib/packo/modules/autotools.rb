@@ -32,6 +32,7 @@ class Autotools < Module
 
       @enable = {}
       @with   = {}
+      @other  = {}
     end
 
     def with (name, value=nil)
@@ -74,6 +75,14 @@ class Autotools < Module
       }
     end
 
+    def set (name, value)
+      @other[name.to_s] = value.to_s
+    end
+
+    def get (name)
+      @other[name.to_s]
+    end
+
     def to_s
       result = ''
 
@@ -93,6 +102,10 @@ class Autotools < Module
         end
       }
 
+      @other.each {|name, value|
+        result += "--#{name}='#{value}' "
+      }
+
       return result
     end
   end
@@ -100,28 +113,38 @@ class Autotools < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :configure, self.method(:configure), :after => :fetched
+    package.stages.add :configure, self.method(:configure), :after => :fetch
     package.stages.add :compile, self.method(:compile), :after => :configure
   end
 
   def configure
-    configuration = Configuration.new(self)
+    @configuration = Configuration.new(self)
 
-    if (error = package.stages.call(:configure, configuration).find {|result| result.is_a? Exception})
+    if (error = package.stages.call(:configure, @configuration).find {|result| result.is_a? Exception})
       puts error.to_s
+      return
     end
 
-    Dir.chdir "#{Packo.env('WORKDIR')}/#{Packo.interpolate(package.directory.first, self)}"
-
-    do_configure configuration
+    do_configure
   end
 
-  def do_configure (conf)
-    Packo.sh "./configure #{conf.to_s}"
+  def do_configure
+    if !File.exists? 'Makefile'
+      Packo.sh "./configure #{@configuration.to_s}"
+    end
   end
 
   def compile
-    package.stages.call :compile
+    if (error = package.stages.call(:compile, @configuration).find {|result| result.is_a? Exception})
+      puts error.to_s
+      return
+    end
+
+    do_compile
+  end
+
+  def do_compile
+    Packo.sh 'make'
   end
 end
 

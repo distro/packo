@@ -122,10 +122,12 @@ class Package
   end
 
   def method_missing (id, *args)
+		id = id.to_s.sub(/=$/, '').to_sym
+
     if args.length == 0
       return @data[id]
     else
-      @data[id] = args
+      @data[id] = (args.length > 1) ? args : args.first
     end
   end
 
