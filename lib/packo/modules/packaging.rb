@@ -24,6 +24,11 @@ module Modules
 class Packaging < Module
 	def initialize (package)
 		super(package)
+
+    package.stages.add :package, self.method(:package), :after => :install
+	end
+
+	def package
 	end
 end
 

@@ -12,8 +12,6 @@ Packo::Package.new('system/libraries/ncurses') {
   source 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{package.version}.tar.gz'
 
   flavors {
-    binary; headers; doc; minimal; debug;
-
     cxx { enabled!
       description = 'Enable C++ support'
 
@@ -24,6 +22,8 @@ Packo::Package.new('system/libraries/ncurses') {
 
     unicode { enabled!
       on :unpacked do |file|
+        next if !enabled?
+
         if !File.exists? "#{package.workdir}/ncursesw"
           FileUtils.cp_r "#{package.workdir}/ncurses-#{package.version}", "#{package.workdir}/ncursesw", :preserve => true
         end
