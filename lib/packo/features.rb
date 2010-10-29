@@ -17,28 +17,49 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/feature'
+
 module Packo
 
-class Flavors
+class Features
   attr_reader :package
 
   def initialize (package)
     @package = package
-
-    Packo.env('FLAVOR', 'headers documentation') if !Packo.env('FLAVOR')
+    @features = {}
   end
 
-  def binary?;        !!Packo.env('FLAVOR').include?('binary')        end
-  def headers?;       !!Packo.env('FLAVOR').include?('headers')       end
-  def documentation?; !!Packo.env('FLAVOR').include?('documentation') end
-  def debug?;         !!Packo.env('FLAVOR').include?('debug')         end
-  def minimal?;       !!Packo.env('FLAVOR').include?('minimal')       end
+  def method_missing (id, *args, &block)
+    @features[id] = Feature.new(@package, id, &block)
+  end
+
+  def each (&block)
+    @features.each_value {|feature|
+      block.call feature
+    }
+  end
+  
+  def owner= (value)
+    @package = value
+
+    @features.each_value {|feature|
+      feature.owner = value
+    }
+  end
 
   def to_s (pack=false)
     if pack
-      "#{'binary.' if binary?}#{'headers.' if headers?}#{'documentation.' if documentation?}#{'debug.' if debug?}#{'minimal.' if minimal?}".sub(/.$/, '')
+      @features.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
     else
-      "#{'binary ' if binary?}#{'headers ' if headers?}#{'documentation ' if documentation?}#{'debug ' if debug?}#{'minimal ' if minimal?}".sub(/.$/, '')
+      @features.sort {|a, b|
+        if a[1].enabled? && b[1].enabled?
+          0
+        elsif a[1].enabled? && !b[1].enabled?
+          -1
+        else
+          1
+        end
+      }.to_a.map {|feature| (feature[1].enabled? ? '' : '-') + feature[0].to_s}.join(',')
     end
   end
 end

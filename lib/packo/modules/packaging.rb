@@ -25,10 +25,26 @@ class Packaging < Module
 	def initialize (package)
 		super(package)
 
-    package.stages.add :package, self.method(:package), :after => :install
+    package.stages.add :pack, self.method(:pack), :after => :install
 	end
 
-	def package
+	def pack
+    if (error = package.stages.call(:pack).find {|result| result.is_a? Exception})
+      Packo.debug error
+      return
+    end
+
+    Dir.chdir package.directory
+
+    file = File.new('package.xml', 'w')
+    file.write(package.to_xml)
+    file.close
+
+    name = "#{package.to_s(true)}.pko"
+
+    Packo.sh 'tar', 'cjf', name, 'dist/', 'package.xml'
+
+    package.stages.call(:packed, "#{package.directory}/#{name}")
 	end
 end
 

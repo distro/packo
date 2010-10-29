@@ -21,6 +21,7 @@ require 'ostruct'
 
 require 'packo/dependencies'
 require 'packo/stages'
+require 'packo/features'
 require 'packo/flavors'
 
 module Packo
@@ -31,15 +32,17 @@ class Package
   def self.parse (text)
     result = OpenStruct.new
 
-    matches = text.match(/^(.*?)(\[(.*?)\])?$/)
+    matches = text.match(/^(.*?)(\[(.*?)\])?(\{(.*?)\})?$/)
 
-    result.flavors = Hash[(matches[3] || '').split(/\s*,\s*/).map {|flavor|
-      if flavor[0] == '-'
-        [flavor[1, flavor.length], false]
+    result.features = Hash[(matches[3] || '').split(/\s*,\s*/).map {|feature|
+      if feature[0] == '-'
+        [feature[1, feature.length], false]
       else
-        [(flavor[0] == '+' ? flavor[1, flavor.length] : flavor), true]
+        [(feature[0] == '+' ? feature[1, feature.length] : feature), true]
       end
     }]
+
+    result.flavors = (matches[5] || '').split(/\s*,\s*/)
 
     matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
 
@@ -52,7 +55,7 @@ class Package
     return result
   end
 
-  attr_reader :name, :categories, :version, :modules, :dependencies, :flavors, :stages, :data
+  attr_reader :name, :categories, :version, :modules, :dependencies, :features, :flavors, :stages, :data
 
   def initialize (name, version=nil, &block)
     tmp         = name.split('/')
@@ -68,22 +71,24 @@ class Package
       @modules      = []
       @dependencies = Packo::Dependencies.new(self)
       @stages       = Packo::Stages.new(self)
-      @flavors      = Packo::Flavors.new(self)
+      @features      = Packo::Features.new(self)
       @data         = {}
     else
       @modules      = tmp.instance_eval('@modules.clone')
       @dependencies = tmp.instance_eval('@dependencies.clone')
       @stages       = tmp.instance_eval('@stages.clone')
-      @flavors      = tmp.instance_eval('@flavors.clone')
+      @features     = tmp.instance_eval('@features.clone')
       @data         = tmp.instance_eval('@data.clone')
 
       @modules.each {|mod|
         mod.owner = self
       }
 
+      @flavors = Flavors.new(self)
+
       @dependencies.owner = self
       @stages.owner       = self
-      @flavors.owner      = self
+      @features.owner      = self
 
       self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
 
@@ -115,8 +120,8 @@ class Package
     }
   end
 
-  def flavors (&block)
-    @flavors.instance_eval &block
+  def features (&block)
+    @features.instance_eval &block
   end
 
   def on (what, priority=0, &block)
@@ -135,10 +140,39 @@ class Package
 
   def package; self end
 
-  def inspect
-    tmp = @flavors.inspect
+  def to_xml
+    <<XML
 
-    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{tmp}]" if !tmp.empty?}"
+<?xml version="1.0" encoding="utf-8"?>
+
+<package>
+    <name>#{@name}</name>
+    <version>#{@version}</version>
+  
+    <categories>
+#{@categories.map {|category|
+  "        <category>#{category}</category>"
+}.join("\n")}
+    </categories>
+
+    <dependencies>
+#{@dependencies.select {|dependency|
+  !dependency.build?
+}.map {|dependency|
+  dependency.to_s
+}.join("\n")}
+    </dependencies>
+</package>
+
+XML
+  end
+
+  def to_s (pack=false)
+    if pack && @version
+      "#{@name}-#{@version}-#{@flavors.to_s(true)}-#{@features.to_s(true)}"
+    else
+      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{@features.to_s}]" if !@features.to_s.empty?}"
+    end
   end
 end
 

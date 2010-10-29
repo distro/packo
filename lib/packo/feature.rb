@@ -19,7 +19,7 @@
 
 module Packo
 
-class Flavor
+class Feature
   attr_reader :package, :name, :block
 
   attr_accessor :description
@@ -31,7 +31,7 @@ class Flavor
 
     @enabled = false
 
-    self.merge(Packo::Package::Flavors::Defaults[@name]) rescue nil
+    self.merge(Packo::Package::Features::Defaults[@name]) rescue nil
 
     self.instance_exec(self, &@block) if @block
   end
@@ -44,14 +44,14 @@ class Flavor
     @package.stages.register(what, priority, block, self)
   end
 
-  def merge (flavor)
-    return if flavor.nil?
+  def merge (feature)
+    return if feature.nil?
 
-    @enabled     = flavor.enabled?
-    @description = flavor.description
+    @enabled     = feature.enabled?
+    @description = feature.description
 
     if !@block
-      @block = flavor.block
+      @block = feature.block
     end
   end
 

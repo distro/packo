@@ -30,7 +30,7 @@ module Behaviors
 GNU = [
 	Packo::Modules::Fetch, Packo::Modules::Unpack,
 	Packo::Modules::Patch, Packo::Modules::Autotools,
-	Packo::Module::Packaging
+	Packo::Modules::Packaging
 ]
 
 end

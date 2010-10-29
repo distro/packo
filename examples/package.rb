@@ -11,7 +11,7 @@ Packo::Package.new('system/libraries/ncurses') {
 
   source 'http://ftp.gnu.org/pub/gnu/ncurses/ncurses-#{package.version}.tar.gz'
 
-  flavors {
+  features {
     cxx { enabled!
       description = 'Enable C++ support'
 
@@ -56,7 +56,7 @@ Packo::Package.new('system/libraries/ncurses') {
       description = 'Add mouse support.'
 
       on :dependencies do |package|
-        package.dependencies << 'system/libraries/gpm' if enabled?
+        package.dependencies << 'system/libraries/gpm!' if enabled?
       end
 
       on :configure do |conf|

@@ -21,25 +21,21 @@ require 'packo/dependency'
 
 module Packo
 
-class Dependencies
-  attr_reader :package, :dependencies
+class Dependencies < Array
+  attr_reader :package
 
   def initialize (package)
     @package = package
-
-    @dependencies = []
   end
 
-  def << (dependency)
-    @dependencies.push(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
-    @dependencies.compact!
+  alias __push push
+
+  def push (dependency)
+    __push(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
+    self.compact!
   end
 
-  def each (&block)
-    @dependencies.each {|dependency|
-      block.call dependency
-    }
-  end
+  alias << push
 
   def check
     package.stages.call :dependencies, package

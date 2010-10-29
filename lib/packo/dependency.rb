@@ -20,23 +20,33 @@
 module Packo
 
 class Dependency
-  attr_reader :name, :categories, :version, :flavors
-
   def self.parse (text)
+    build = true
+
+    if text[text.length - 1] == '!'
+      text[text.length - 1] = ''
+      build = false
+    end
+
     parsed = Packo::Package.parse(text)
 
-    Dependency.new(parsed.name, parsed.categories, parsed.version, parsed.flavors)
+    Dependency.new(parsed.name, parsed.categories, parsed.version, parsed.features, build)
   end
 
-  def initialize (name, categories, version, flavors)
+  attr_reader :name, :categories, :version, :features
+
+  def initialize (name, categories, version, features, build=true)
     @name       = name
     @categories = categories
     @version    = version
-    @flavors    = flavors
+    @features   = features
+    @build      = build
   end
 
+  def build?; @build end
+
   def to_s
-    tmp = @flavors.sort {|a, b|
+    tmp = @features.sort {|a, b|
       if a[1] && b[1]
         0
       elsif a[1] && !b[1]
@@ -44,7 +54,7 @@ class Dependency
       else
         1
       end
-    }.to_a.map {|flavor| (flavor[1] ? '' : '-') + flavor[0].to_s}.join(',')
+    }.to_a.map {|feature| (flavor[1] ? '' : '-') + flavor[0].to_s}.join(',')
 
     "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{tmp}]" if !tmp.empty?}"
   end
