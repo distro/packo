@@ -55,7 +55,7 @@ class Package
     return result
   end
 
-  attr_reader :name, :categories, :version, :modules, :dependencies, :features, :flavors, :stages, :data
+  attr_reader :name, :categories, :version, :modules, :dependencies, :features, :flavors, :stages
 
   def initialize (name, version=nil, &block)
     tmp         = name.split('/')
@@ -71,14 +71,18 @@ class Package
       @modules      = []
       @dependencies = Packo::Dependencies.new(self)
       @stages       = Packo::Stages.new(self)
-      @features      = Packo::Features.new(self)
+      @features     = Packo::Features.new(self)
       @data         = {}
+      @pre          = []
+      @post         = []
     else
       @modules      = tmp.instance_eval('@modules.clone')
       @dependencies = tmp.instance_eval('@dependencies.clone')
       @stages       = tmp.instance_eval('@stages.clone')
       @features     = tmp.instance_eval('@features.clone')
       @data         = tmp.instance_eval('@data.clone')
+      @pre          = tmp.instance_eval('@pre.clone')
+      @post         = tmp.instance_eval('@post.clone')
 
       @modules.each {|mod|
         mod.owner = self
@@ -88,7 +92,7 @@ class Package
 
       @dependencies.owner = self
       @stages.owner       = self
-      @features.owner      = self
+      @features.owner     = self
 
       self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
 
@@ -128,6 +132,22 @@ class Package
     @stages.register(what, priority, block)
   end
 
+  def pre (name=nil, content=nil)
+    if !name || !content
+      @pre
+    else
+      @pre << { :name => name, :content => content }
+    end
+  end
+
+  def post (name=nil, content=nil)
+    if !name || !content
+      @post
+    else
+      @post << { :name => name, :content => content }
+    end
+  end
+
   def method_missing (id, *args)
 		id = id.to_s.sub(/=$/, '').to_sym
 
@@ -156,10 +176,8 @@ class Package
     </categories>
 
     <dependencies>
-#{@dependencies.select {|dependency|
-  !dependency.build?
-}.map {|dependency|
-  dependency.to_s
+#{@dependencies.each {|dependency|
+  "        <dependency type='#{(dependency.build? ? 'build' : 'runtime'}'>#{dependency.to_s}</dependency>"
 }.join("\n")}
     </dependencies>
 </package>

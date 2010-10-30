@@ -35,11 +35,13 @@ class Flavors
   def minimal?;       !!Packo.env('FLAVOR').include?('minimal')       end
 
   def to_s (pack=false)
-    if pack
-      "#{'binary.' if binary?}#{'headers.' if headers?}#{'documentation.' if documentation?}#{'debug.' if debug?}#{'minimal.' if minimal?}".sub(/.$/, '')
-    else
-      "#{'binary ' if binary?}#{'headers ' if headers?}#{'documentation ' if documentation?}#{'debug ' if debug?}#{'minimal ' if minimal?}".sub(/.$/, '')
-    end
+    result = ''
+
+    ['binary', binary?, 'headers', headers?, 'documentation', documentation?, 'debug', debug?, 'minimal', minimal?].each_slice(2) {|flavor|
+      result << flavor[0] + (pack ? '.' : ',') if flavor[1]
+    }
+
+    return result[0, result.length - 1]
   end
 end
 

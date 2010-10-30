@@ -40,9 +40,23 @@ class Packaging < Module
     file.write(package.to_xml)
     file.close
 
+    FileUtils.mkpath "#{package.directory}/pre"
+    package.pre.each {|pre|
+      file = File.new("pre/#{pre[:name]}", 'w')
+      file.write(pre[:content])
+      file.close
+    }
+
+    FileUtils.mkpath "#{package.directory}/post"
+    package.post.each {|post|
+      file = File.new("post/#{post[:name]}", 'w')
+      file.write(post[:content])
+      file.close
+    }
+
     name = "#{package.to_s(true)}.pko"
 
-    Packo.sh 'tar', 'cjf', name, 'dist/', 'package.xml'
+    Packo.sh 'tar', 'cjf', name, 'dist/', 'pre/', 'post/', 'package.xml'
 
     package.stages.call(:packed, "#{package.directory}/#{name}")
 	end
