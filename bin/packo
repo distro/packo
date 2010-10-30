@@ -19,3 +19,14 @@
 #++
 
 require 'packo'
+require 'optimus'
+
+Packo.env('FLAVOR', 'headers documentation') if !Packo.env('FLAVOR')
+
+  def binary?;        !!Packo.env('FLAVOR').include?('binary')        end
+  def headers?;       !!Packo.env('FLAVOR').include?('headers')       end
+  def documentation?; !!Packo.env('FLAVOR').include?('documentation') end
+  def debug?;         !!Packo.env('FLAVOR').include?('debug')         end
+  def minimal?;       !!Packo.env('FLAVOR').include?('minimal')       end
+
+

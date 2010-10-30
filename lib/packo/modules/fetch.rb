@@ -27,8 +27,6 @@ class Fetch < Module
   def initialize (package)
     super(package)
 
-    Packo.env('DISTDIR', '/tmp') if !Packo.env('DISTDIR')
-
     package.stages.add :fetch, self.method(:fetch), :after => :dependencies
   end
 
@@ -45,7 +43,7 @@ class Fetch < Module
         return
       end
 
-      distfiles << "#{Packo.env('DISTDIR')}/#{File.basename(source)}"
+      distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
 
       if Packo.sh 'wget', '-c', '-O', distfiles.last, source
         if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})

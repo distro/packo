@@ -25,14 +25,30 @@ class Flavors
   def initialize (package)
     @package = package
 
-    Packo.env('FLAVOR', 'headers documentation') if !Packo.env('FLAVOR')
+    @binary        = false
+    @headers       = true
+    @documentation = true
+    @debug         = false
+    @minimal       = false
   end
 
-  def binary?;        !!Packo.env('FLAVOR').include?('binary')        end
-  def headers?;       !!Packo.env('FLAVOR').include?('headers')       end
-  def documentation?; !!Packo.env('FLAVOR').include?('documentation') end
-  def debug?;         !!Packo.env('FLAVOR').include?('debug')         end
-  def minimal?;       !!Packo.env('FLAVOR').include?('minimal')       end
+  def binary?;        @binary        end
+  def headers?;       @headers       end
+  def documentation?; @documentation end
+  def debug?;         @debug         end
+  def minimal?;       @minimal       end
+
+  def binary!;        @binary        = true end
+  def headers!;       @headers       = true end
+  def documentation!; @documentation = true end
+  def debug!;         @debug         = true end
+  def minimal!;       @minimal       = true end
+
+  def not_binary!;        @binary        = false end
+  def not_headers!;       @headers       = false end
+  def not_documentation!; @documentation = false end
+  def not_debug!;         @debug         = false end
+  def not_minimal!;       @minimal       = false end
 
   def to_s (pack=false)
     result = ''
