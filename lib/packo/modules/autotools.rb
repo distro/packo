@@ -116,6 +116,13 @@ class Autotools < Module
     package.stages.add :configure, self.method(:configure), :after => :fetch
     package.stages.add :compile,   self.method(:compile),   :after => :configure
     package.stages.add :install,   self.method(:install),   :after => :compile
+
+    if package.type == 'library'
+      package.post 'ld-config-update.sh', %{
+        #! /bin/sh
+        ldconfig
+      }
+    end
   end
 
   def configure

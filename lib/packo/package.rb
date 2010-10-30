@@ -136,7 +136,7 @@ class Package
     if !name || !content
       @pre
     else
-      @pre << { :name => name, :content => content }
+      @pre << { :name => name, :content => content.lines.map {|line| line.strip}.join("\n") }
     end
   end
 
@@ -144,7 +144,7 @@ class Package
     if !name || !content
       @post
     else
-      @post << { :name => name, :content => content }
+      @post << { :name => name, :content => content.lines.map {|line| line.strip}.join("\n") }
     end
   end
 
@@ -177,7 +177,7 @@ class Package
 
     <dependencies>
 #{@dependencies.each {|dependency|
-  "        <dependency type='#{(dependency.build? ? 'build' : 'runtime'}'>#{dependency.to_s}</dependency>"
+  "        <dependency type='#{dependency.build? ? 'build' : 'runtime'}'>#{dependency.to_s}</dependency>"
 }.join("\n")}
     </dependencies>
 </package>

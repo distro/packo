@@ -42,14 +42,14 @@ class Packaging < Module
 
     FileUtils.mkpath "#{package.directory}/pre"
     package.pre.each {|pre|
-      file = File.new("pre/#{pre[:name]}", 'w')
+      file = File.new("pre/#{pre[:name]}", 'w', 0777)
       file.write(pre[:content])
       file.close
     }
 
     FileUtils.mkpath "#{package.directory}/post"
     package.post.each {|post|
-      file = File.new("post/#{post[:name]}", 'w')
+      file = File.new("post/#{post[:name]}", 'w', 0777)
       file.write(post[:content])
       file.close
     }
