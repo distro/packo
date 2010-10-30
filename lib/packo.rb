@@ -22,7 +22,7 @@ require 'fileutils'
 module Packo
   def self.env (name, value=nil)
     if value.nil?
-      return ENV["PACKO_#{name}"] || ENV[name]
+      return ENV["PACKO_#{name}"] || ENV[name.to_s]
     else
       ENV["PACKO_#{name}"] = value.to_s
     end

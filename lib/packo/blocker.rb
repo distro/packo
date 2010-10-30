@@ -19,7 +19,7 @@
 
 module Packo
 
-class Dependency
+class Blocker
   def self.parse (text)
     runtime = true
 
@@ -37,7 +37,7 @@ class Dependency
 
     parsed = Packo::Package.parse(text)
 
-    Dependency.new(parsed.name, parsed.categories, parsed.version, parsed.features, validity, runtime)
+    Blocker.new(parsed.name, parsed.categories, parsed.version, parsed.features, validity, runtime)
   end
 
   attr_reader :name, :categories, :version, :features, :validity

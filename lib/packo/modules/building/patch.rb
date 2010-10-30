@@ -23,38 +23,19 @@ module Packo
 
 module Modules
 
-class Fetch < Module
+module Building
+
+class Patch < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :fetch, self.method(:fetch), :after => :dependencies
+    package.stages.add :patch, self.method(:patch), :before => :configure
   end
 
-  def fetch
-    version = package.version
-
-    distfiles = []
-
-    [package.source].flatten.each {|source|
-      source = eval('"' + source + '"') rescue nil
-
-      if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
-        Packo.debug error
-        return
-      end
-
-      distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
-
-      if Packo.sh 'wget', '-c', '-O', distfiles.last, source
-        if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
-          Packo.debug error
-          return
-        end
-      end
-    }
-
-    package.distfiles distfiles
+  def patch
   end
+end
+
 end
 
 end

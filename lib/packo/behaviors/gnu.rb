@@ -17,20 +17,20 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/modules/fetch'
-require 'packo/modules/unpack'
-require 'packo/modules/patch'
-require 'packo/modules/autotools'
-require 'packo/modules/packaging'
+require 'packo/modules/fetching/wget'
+require 'packo/modules/misc/unpack'
+require 'packo/modules/building/patch'
+require 'packo/modules/building/autotools'
+require 'packo/modules/packaging/pko'
 
 module Packo
 
 module Behaviors
 
 GNU = [
-	Packo::Modules::Fetch, Packo::Modules::Unpack,
-	Packo::Modules::Patch, Packo::Modules::Autotools,
-	Packo::Modules::Packaging
+	Packo::Modules::Fetching::Wget, Packo::Modules::Misc::Unpack,
+	Packo::Modules::Building::Patch, Packo::Modules::Building::Autotools,
+	Packo::Modules::Packaging::PKO
 ]
 
 end

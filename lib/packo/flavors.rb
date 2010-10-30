@@ -30,6 +30,7 @@ class Flavors
     @documentation = true
     @debug         = false
     @minimal       = false
+    @vanilla       = false
   end
 
   def binary?;        @binary        end
@@ -37,18 +38,21 @@ class Flavors
   def documentation?; @documentation end
   def debug?;         @debug         end
   def minimal?;       @minimal       end
+  def vanilla?;       @vanilla       end
 
   def binary!;        @binary        = true end
   def headers!;       @headers       = true end
   def documentation!; @documentation = true end
   def debug!;         @debug         = true end
   def minimal!;       @minimal       = true end
+  def vanilla!;       @vanilla       = true end
 
   def not_binary!;        @binary        = false end
   def not_headers!;       @headers       = false end
   def not_documentation!; @documentation = false end
   def not_debug!;         @debug         = false end
   def not_minimal!;       @minimal       = false end
+  def not_vanilla!;       @vanilla       = false end
 
   def to_s (pack=false)
     result = ''

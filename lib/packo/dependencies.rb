@@ -33,6 +33,8 @@ class Dependencies < Array
   def push (dependency)
     __push(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
     self.compact!
+
+    self
   end
 
   alias << push

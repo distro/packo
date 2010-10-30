@@ -20,6 +20,7 @@
 require 'ostruct'
 
 require 'packo/dependencies'
+require 'packo/blockers'
 require 'packo/stages'
 require 'packo/features'
 require 'packo/flavors'
@@ -55,7 +56,7 @@ class Package
     return result
   end
 
-  attr_reader :name, :categories, :version, :modules, :dependencies, :features, :flavors, :stages
+  attr_reader :name, :categories, :version, :modules, :dependencies, :blockers, :features, :flavors, :stages
 
   def initialize (name, version=nil, &block)
     tmp         = name.split('/')
@@ -70,6 +71,7 @@ class Package
     if !version || !(tmp = @@roots[(@categories + [@name]).join('/')])
       @modules      = []
       @dependencies = Packo::Dependencies.new(self)
+      @blockers     = Packo::Blockers.new(self)
       @stages       = Packo::Stages.new(self)
       @features     = Packo::Features.new(self)
       @data         = {}
@@ -78,6 +80,7 @@ class Package
     else
       @modules      = tmp.instance_eval('@modules.clone')
       @dependencies = tmp.instance_eval('@dependencies.clone')
+      @blockers     = tmp.instance_eval('@blockers.clone')
       @stages       = tmp.instance_eval('@stages.clone')
       @features     = tmp.instance_eval('@features.clone')
       @data         = tmp.instance_eval('@data.clone')
@@ -91,6 +94,7 @@ class Package
       @flavors = Flavors.new(self)
 
       @dependencies.owner = self
+      @blockers.owner     = self
       @stages.owner       = self
       @features.owner     = self
 
@@ -104,6 +108,7 @@ class Package
     end
 
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
+    @stages.add :blockers, @blockers.method(:check), :at => :beginning
 
     self.instance_exec(self, &block) if block
   end
@@ -177,7 +182,7 @@ class Package
 
     <dependencies>
 #{@dependencies.each {|dependency|
-  "        <dependency type='#{dependency.build? ? 'build' : 'runtime'}'>#{dependency.to_s}</dependency>"
+  "        <dependency type='#{dependency.runtime? ? 'runtime' : 'build'}'>#{dependency.to_s}</dependency>"
 }.join("\n")}
     </dependencies>
 </package>

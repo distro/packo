@@ -23,6 +23,8 @@ module Packo
 
 module Modules
 
+module Building
+
 class Autotools < Module
   class Configuration
     attr_reader :module
@@ -187,6 +189,8 @@ class Autotools < Module
 
     package.stages.call(:installed, conf || @configuration) if fire
   end
+end
+
 end
 
 end

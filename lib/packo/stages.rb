@@ -20,7 +20,7 @@
 module Packo
 
 class Stages
-  def self.max; 23 end
+  @@cycles = 23
 
   class Stage
     attr_reader :name, :options
@@ -29,6 +29,10 @@ class Stages
       @name    = name.to_sym
       @method  = method
       @options = options
+
+      if @options[:at] && @options[:strict].nil?
+        @options[:strict] = true
+      end
     end
   
     def call (*args)
@@ -117,7 +121,7 @@ class Stages
     else
       old, @stages, cycles = @stages, [], 0
 
-      while old.length > 0 && cycles < Stages.max
+      while old.length > 0 && cycles < @@cycles
         old.clone.each {|stage|
           if target = stage.options[:at]
             if target == :beginning

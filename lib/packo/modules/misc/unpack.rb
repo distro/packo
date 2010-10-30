@@ -23,6 +23,8 @@ module Packo
 
 module Modules
 
+module Misc
+
 class Unpack < Module
   def initialize (package)
     super(package)
@@ -45,6 +47,8 @@ class Unpack < Module
       end
     }
   end
+end
+
 end
 
 end

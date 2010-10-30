@@ -21,7 +21,9 @@ module Packo
 
 module Modules
 
-class Packaging < Module
+module Packaging
+
+class PKO < Module
 	def initialize (package)
 		super(package)
 
@@ -60,6 +62,8 @@ class Packaging < Module
 
     package.stages.call(:packed, "#{package.directory}/#{name}")
 	end
+end
+
 end
 
 end

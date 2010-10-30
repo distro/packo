@@ -20,13 +20,199 @@
 
 require 'packo'
 require 'optimus'
+require 'sqlite3'
+require 'rexml/document'
 
-Packo.env('FLAVOR', 'headers documentation') if !Packo.env('FLAVOR')
+class Application
+  attr_reader :command, :options
 
-  def binary?;        !!Packo.env('FLAVOR').include?('binary')        end
-  def headers?;       !!Packo.env('FLAVOR').include?('headers')       end
-  def documentation?; !!Packo.env('FLAVOR').include?('documentation') end
-  def debug?;         !!Packo.env('FLAVOR').include?('debug')         end
-  def minimal?;       !!Packo.env('FLAVOR').include?('minimal')       end
+  def initialize
+    @command = ARGV.shift
+    
+    case command
+      when 'build'
+        @options = Optimus.new {|o|
+          o.set(
+            :type => :array,
+    
+            :long  => 'tree',
+            :short => 'T',
+    
+            :default => '/usr/packo'
+          )
+    
+          o.set(
+            :long => 'tmp',
+            :short => 't',
+    
+            :default => '/tmp'
+          )
 
+          o.set(
+            :long  => 'cache',
+            :short => 'c',
 
+            :default => '/var/lib/packo/cache'
+          )
+        }
+    
+      when 'install'
+        @options = Optimus.new {|o|
+           o.set(
+            :long  => 'cache',
+            :short => 'c',
+
+            :default => '/var/lib/packo/cache'
+          )   
+        }
+    
+      when 'cache'
+        @options = Optimus.new {|o|
+          o.set(
+            :type => :array,
+    
+            :long  => 'tree',
+            :short => 'T',
+    
+            :default => '/usr/packo'
+          )
+    
+          o.set(
+            :long  => 'output',
+            :short => 'o',
+    
+            :default => '/var/lib/packo/cache'
+          )
+        }
+    end
+
+    if command == 'cache'
+      @db = SQLite3::Database.new(@options.params[:output])
+    else
+      @db = SQLite3::Database.new(@options.params[:cache])
+    end
+
+    @db.results_as_hash = true
+  end
+
+  def run!
+    method = self.method("cmd_#{@command}".to_sym)
+
+    if !method
+      self.help!
+      exit 1
+    end
+
+    method.call
+  end
+
+  def help!
+
+  end
+
+  class Package
+    def self.envify (package)
+      Packo.env('FLAVOR', 'headers documentation') if !Packo.env('FLAVOR')
+  
+      package.flavors.binary!            if Packo.env('FLAVOR').include?('binary')
+      package.flavors.not_headers!       if !Packo.env('FLAVOR').include?('headers')
+      package.flavors.not_documentation! if !Packo.env('FLAVOR').include?('documentation')
+      package.flavors.debug!             if Packo.env('FLAVOR').include?('debug')
+      package.flavors.minimal!           if Packo.env('FLAVOR').include?('minimal')
+      package.flavors.vanilla!           if Packo.env('FLAVOR').include?('vanilla')
+    end
+  end
+
+  class Tree
+    def self.name (dom)
+      dom.elements.each('/tree/name') {|e| e.name == 'name'}.first.text rescue nil
+    end
+
+    attr_reader :id, :path
+
+    def initialize (db, id, path, dom)
+      @db   = db
+      @id   = id
+      @path = path
+      @dom  = dom
+    end
+
+    def update
+      _populate([@path])
+
+      @db.commit rescue nil    
+    end
+
+    private
+
+    def _populate (what)
+      what.select {|what| File.directory? what}.each {|what|
+        if File.file? "#{what}/#{File.basename(what)}.rbuild"
+          Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
+            version = version.match(/-(\d.*?)\.rbuild$/)[1]
+
+            @db.execute('INSERT OR IGNORE INTO packages VALUES(?, ?, ?, ?)', [
+              File.basename(what), version, File.dirname(what.sub(%r{#{Regexp.escape(@path)}/}, '')), @id
+            ])
+          }
+        else
+          _populate(Dir.entries(what).map {|e| if e != '.' && e != '..' then "#{what}/#{e}" end}.compact)
+        end
+      }
+    end
+  end
+
+  private
+
+  def cmd_build
+
+  end
+
+  def cmd_install
+  end
+
+  def cmd_cache
+    def populate (db, tree)
+
+    end
+
+    FileUtils.mkpath(File.dirname(@options.params[:output]))
+  
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS trees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+  
+        name TEXT,
+        path TEXT,
+  
+        UNIQUE (name)
+      )
+    })
+  
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS packages (
+        name       TEXT,
+        version    TEXT,
+        categories TEXT,
+  
+        tree INTEGER,
+  
+        UNIQUE (name, version, categories)
+      )
+    })
+
+    @options.params[:tree].each {|tree|
+      dom = REXML::Document.new(File.new("#{tree}/tree.xml"))
+  
+      @db.execute('INSERT OR IGNORE INTO trees VALUES(NULL, ?, ?)', [Tree.name(dom), File.realpath(tree)])
+      id = @db.execute('SELECT * FROM trees WHERE name = ?', Tree.name(dom)).first['id']
+  
+      Tree.new(@db, id, tree, dom).update
+    }
+  
+    @db.commit rescue nil
+  end
+end
+
+app = Application.new
+app.run!
