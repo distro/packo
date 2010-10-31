@@ -33,15 +33,6 @@ class Application
       when 'build'
         @options = Optimus.new {|o|
           o.set(
-            :type => :array,
-    
-            :long  => 'tree',
-            :short => 'T',
-    
-            :default => '/usr/packo'
-          )
-    
-          o.set(
             :long => 'tmp',
             :short => 't',
     
@@ -71,7 +62,7 @@ class Application
           o.set(
             :type => :array,
     
-            :long  => 'tree',
+            :long  => 'trees',
             :short => 'T',
     
             :default => '/usr/packo'
@@ -84,14 +75,21 @@ class Application
             :default => '/var/lib/packo/cache'
           )
         }
+
+      when 'search'
+        @options = Optimus.new {|o|
+          o.set(
+            :long  => 'cache',
+            :short => 'c',
+
+            :default => '/var/lib/packo/cache'
+          )
+        }
+
     end
 
-    if command == 'cache'
-      @db = SQLite3::Database.new(@options.params[:output])
-    else
-      @db = SQLite3::Database.new(@options.params[:cache])
-    end
-
+    FileUtils.mkpath(File.dirname(@options.params[:cache] || @options.params[:output]))
+    @db = SQLite3::Database.new(@options.params[:cache] || @options.params[:output])
     @db.results_as_hash = true
   end
 
@@ -110,6 +108,36 @@ class Application
 
   end
 
+  module Helpers
+    def self.colorize (text, fg, bg=nil, attr=nil)
+      colors = {
+        :DEFAULT => 9,
+        nil      => 9,
+  
+        :BLACK   => 0,
+        :RED     => 1,
+        :GREEN   => 2,
+        :YELLOW  => 3,
+        :BLUE    => 4,
+        :MAGENTA => 5,
+        :CYAN    => 6,
+        :WHITE   => 7
+      }
+  
+      attributes = {
+        :DEFAULT => 0,
+        nil      => 0,
+  
+        :BOLD      => 1,
+        :UNDERLINE => 4,
+        :BLINK     => 5,
+        :REVERSE   => 7
+      }
+
+      "\e[#{attributes[attr]};3#{colors[fg]};4#{colors[bg]}m#{text}\e[0m"
+    end
+  end
+
   class Package
     def self.envify (package)
       Packo.env('FLAVOR', 'headers documentation') if !Packo.env('FLAVOR')
@@ -120,21 +148,65 @@ class Application
       package.flavors.debug!             if Packo.env('FLAVOR').include?('debug')
       package.flavors.minimal!           if Packo.env('FLAVOR').include?('minimal')
       package.flavors.vanilla!           if Packo.env('FLAVOR').include?('vanilla')
+
+      (Packo.env('FEATURES') || '').split(/\s+/).each {|feature|
+        feature = Packo::Feature.parse(feature)
+
+        package.features {
+          self[feature.name].merge(feature) if self[feature.name]
+        }
+      }
+
+      package
+    end
+
+    attr_reader :name, :version, :categories, :tree
+
+    def initialize (name, version, categories, tree=nil)
+      @name       = name
+      @version    = version
+      @categories = (categories || '').split('/')
+      @tree       = tree
+    end
+
+    def == (package)
+      self.name == package.name && self.categories == package.categories
+    end
+
+    def to_s
+      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
     end
   end
 
   class Tree
+    def self.all (db)
+      db.execute('SELECT * FROM trees').map {|tree|
+        Tree.new(db, tree['name'])
+      }
+    end
+
     def self.name (dom)
       dom.elements.each('/tree/name') {|e| e.name == 'name'}.first.text rescue nil
     end
 
+    def self.create (db, dom, path)
+      name = Tree.name(dom)
+
+      db.execute('INSERT OR IGNORE INTO trees VALUES(NULL, ?, ?)', [name, path])
+
+      Tree.new(db, name)
+    end
+
     attr_reader :id, :path
 
-    def initialize (db, id, path, dom)
+    def initialize (db, name)
       @db   = db
-      @id   = id
-      @path = path
-      @dom  = dom
+      @name = name
+
+      result = @db.execute('SELECT * FROM trees WHERE name = ?', name).first
+
+      @id   = result['id']
+      @path = result['path']
     end
 
     def update
@@ -143,13 +215,47 @@ class Application
       @db.commit rescue nil    
     end
 
+    def search (package, precise=false)
+      package = Packo::Package.parse(package)
+
+      if !precise
+        @db.execute(%{
+          SELECT *
+
+          FROM packages
+
+          WHERE
+            tree = ?
+            #{'AND name LIKE ?' if package.name}
+            #{'AND version LIKE ?' if package.version}
+            #{'AND categories LIKE ?' if !package.categories.empty?}
+        }, [@id,
+          (package.name ? "%#{package.name}%" : nil),
+          (package.version ? "%#{package.version}%" : nil),
+          (!package.categories.empty? ? "%#{package.categories.join('/')}%" : nil)
+        ].compact)
+      else
+        @db.execute(%{
+          SELECT *
+
+          FROM packages
+
+          WHERE
+            tree = ?
+            #{'AND name = ?' if package.name}
+            #{'AND version = ?' if package.version}
+            #{'AND categories = ?' if !package.categories.empty?}
+        }, [@id, package.name, package.version, package.categories.join('/')].compact)
+      end
+    end
+
     private
 
     def _populate (what)
       what.select {|what| File.directory? what}.each {|what|
         if File.file? "#{what}/#{File.basename(what)}.rbuild"
-          Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
-            version = version.match(/-(\d.*?)\.rbuild$/)[1]
+          Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
+            version = version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
 
             @db.execute('INSERT OR IGNORE INTO packages VALUES(?, ?, ?, ?)', [
               File.basename(what), version, File.dirname(what.sub(%r{#{Regexp.escape(@path)}/}, '')), @id
@@ -165,19 +271,49 @@ class Application
   private
 
   def cmd_build
+    @options.arguments.map {|package|
+      tmp = []
 
+      Tree.all(@db).each {|tree|
+        tree.search(package, true).each {|pkg|
+          tmp << Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+        }
+      }
+
+      if (multiple = tmp.uniq).length > 1
+        puts 'Multiple packages with the same name, be more precise.'
+        exit 2
+      end
+
+      tmp.last
+    }.each {|package|
+      path = "#{package.tree.path}/#{package.categories.join('/')}/#{package.name}"
+
+      load "#{path}/#{package.name}.rbuild"
+      load "#{path}/#{package.name}-#{package.version}.rbuild"
+
+      package = Package.envify(Packo::Packages[package.to_s])
+
+      puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Building #{package}"
+
+      package.build {|stage|
+        puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Executing #{stage.name}."
+      }
+    }
   end
 
   def cmd_install
   end
 
+  def cmd_search
+    Tree.all(@db).each {|tree|
+      tree.search(@options.arguments.first || '').each {|package|
+        puts Package.new(package['name'], package['version'], package['categories']).to_s
+      }
+    }
+  end
+
   def cmd_cache
-    def populate (db, tree)
-
-    end
-
-    FileUtils.mkpath(File.dirname(@options.params[:output]))
-  
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS trees (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -201,13 +337,8 @@ class Application
       )
     })
 
-    @options.params[:tree].each {|tree|
-      dom = REXML::Document.new(File.new("#{tree}/tree.xml"))
-  
-      @db.execute('INSERT OR IGNORE INTO trees VALUES(NULL, ?, ?)', [Tree.name(dom), File.realpath(tree)])
-      id = @db.execute('SELECT * FROM trees WHERE name = ?', Tree.name(dom)).first['id']
-  
-      Tree.new(@db, id, tree, dom).update
+    @options.params[:trees].each {|tree|
+      Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
     }
   
     @db.commit rescue nil

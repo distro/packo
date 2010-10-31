@@ -20,16 +20,27 @@
 module Packo
 
 class Feature
+  def self.parse (text)
+    enabled = true
+
+    if (tmp = text[0]) && (tmp == '-' || tmp == '+')
+      text[0] = ''
+
+      enabled = false if tmp == '-'
+    end
+
+    Feature.new(nil, text, enabled)
+  end
+
   attr_reader :package, :name, :block
 
   attr_accessor :description
 
-  def initialize (package, name, &block)
+  def initialize (package, name, enabled=false, &block)
     @package = package
     @name    = name
+    @enabled = enabled
     @block   = block
-
-    @enabled = false
 
     self.merge(Packo::Package::Features::Defaults[@name]) rescue nil
 

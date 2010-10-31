@@ -30,7 +30,7 @@ class Stages
       @method  = method
       @options = options
 
-      if @options[:at] && @options[:strict].nil?
+      if (@options[:at] || @options[:after] == :beginning || @options[:before] == :ending) && @options[:strict].nil?
         @options[:strict] = true
       end
     end
@@ -93,18 +93,18 @@ class Stages
     end
 
     if strict
-      @stages.select {|stage|
+      stages = @stages.select {|stage|
         stage.options[:strict]
-      }.each {|stage|
+      }
+      
+      stages.each {|stage|
+        if (!stage.options[:before] && !stage.options[:after]) || stage.options[:before] == :end || stage.options[:after] == :beginning
+          next
+        end
+
         @stages.delete(stage)
 
-        if target = stage.options[:at]
-          if target == :beginning
-            @stages.unshift stage
-          elsif target == :end
-            @stages.push stage
-          end
-        elsif stage.options[:before]
+        if stage.options[:before]
           if (index = @stages.find_index {|s| s.name == stage.options[:before]})
             @stages.insert(index, stage)
           end
@@ -112,10 +112,36 @@ class Stages
           if (index = @stages.find_index {|s| s.name == stage.options[:after]})
             @stages.insert(index + 1, stage)
           end
-        else
-          if index = @stages.reverse.find_index {|s| s.options[:at] == :beginning} || @stages.length + 1
-            @stages.insert(@stages.length - index + 1, stage)
-          end
+        end
+      }
+
+      stages.each {|stage|
+        if !stage.options[:at]
+          next
+        end
+
+        @stages.delete(stage)
+
+        if stage.options[:at] == :beginning
+          @stages.unshift stage
+        elsif stage.options[:at] == :end
+          @stages.push stage
+        end
+      }
+
+      stages.each {|stage|
+        if stage.options[:before] != :end && stage.options[:after] != :beginning
+          next
+        end
+
+        @stages.delete(stage)
+
+        if stage.options[:after] == :beginning
+          index = @stages.reverse.find_index {|s| s.options[:at] == :beginning} || @stages.length + 1
+          @stages.insert(@stages.length - index, stage)
+        elsif stage.options[:before] == :end
+          index = @stages.find_index {|s| s.options[:at] == :end} || @stages.length
+          @stages.insert(index, stage)
         end
       }
     else
@@ -131,12 +157,12 @@ class Stages
             end
 
             old.delete(stage)
-          elsif stage.options[:before]
+          elsif stage.options[:before] && stage.options[:before] != :end
             if (index = @stages.find_index {|s| s.name == stage.options[:before]})
               @stages.insert(index, old.delete(stage))
               old.delete(stage)
             end
-          elsif stage.options[:after]
+          elsif stage.options[:after] && stage.options[:after] != :beginning
             if (index = @stages.find_index {|s| s.name == stage.options[:after]})
               @stages.insert(index + 1, old.delete(stage))
               old.delete(stage)

@@ -30,7 +30,7 @@ class SourceForge < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :fetch, self.method(:fetch), :after => :dependencies
+    package.stages.add :fetch, self.method(:fetch), :after => :beginning
   end
 
   def fetch

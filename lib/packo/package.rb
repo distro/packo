@@ -19,6 +19,8 @@
 
 require 'ostruct'
 
+require 'packo/packages'
+
 require 'packo/dependencies'
 require 'packo/blockers'
 require 'packo/stages'
@@ -28,8 +30,6 @@ require 'packo/flavors'
 module Packo
 
 class Package
-  @@roots = {}
-
   def self.parse (text)
     result = OpenStruct.new
 
@@ -47,9 +47,11 @@ class Package
 
     matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
 
-    tmp               = matches[1].split('/')
-    result.name       = tmp.pop
-    result.categories = tmp
+    result.categories = matches[1].split('/')
+
+    if matches[1][matches[1].length - 1] != '/'
+      result.name = result.categories.pop
+    end
 
     result.version = matches[3]
 
@@ -64,11 +66,9 @@ class Package
     @categories = tmp
     @version    = version
 
-    if !version
-      @@roots[(@categories + [@name]).join('/')] = self
-    end
+    Packages["#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"] = self
 
-    if !version || !(tmp = @@roots[(@categories + [@name]).join('/')])
+    if !version || !(tmp = Packages[(@categories + [@name]).join('/')])
       @modules      = []
       @dependencies = Packo::Dependencies.new(self)
       @blockers     = Packo::Blockers.new(self)
@@ -115,6 +115,8 @@ class Package
 
   def build
     @stages.each {|stage|
+      yield stage if block_given?
+
       stage.call      
     }
   end

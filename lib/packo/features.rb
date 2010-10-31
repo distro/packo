@@ -33,6 +33,10 @@ class Features
     @features[id] = Feature.new(@package, id, &block)
   end
 
+  def [] (name)
+    @features[name.to_sym]
+  end
+
   def each (&block)
     @features.each_value {|feature|
       block.call feature

@@ -29,7 +29,7 @@ class Wget < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :fetch, self.method(:fetch), :after => :dependencies
+    package.stages.add :fetch, self.method(:fetch), :after => :beginning
   end
 
   def fetch
@@ -47,11 +47,13 @@ class Wget < Module
 
       distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
 
-      if Packo.sh 'wget', '-c', '-O', distfiles.last, source
-        if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
-          Packo.debug error
-          return
-        end
+      if !Packo.sh 'wget', '-c', '-O', distfiles.last, source
+        raise RuntimeError.new('wget failed')
+      end
+
+      if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
+        Packo.debug error
+        return
       end
     }
 

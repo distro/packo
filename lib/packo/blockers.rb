@@ -21,7 +21,7 @@ require 'packo/blocker'
 
 module Packo
 
-class Dependencies < Array
+class Blockers < Array
   attr_reader :package
 
   def initialize (package)
@@ -33,7 +33,6 @@ class Dependencies < Array
   def push (blocker)
     __push(blocker.is_a?(Blocker) ? blocker : Blocker.parse(blocker))
     self.compact!
-
     self
   end
 
@@ -41,6 +40,7 @@ class Dependencies < Array
 
   def check
     package.stages.call :blockers, package
+    package.stages.call :blockers!, package
   end
 
   def owner= (value)
