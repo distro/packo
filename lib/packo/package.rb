@@ -19,8 +19,6 @@
 
 require 'ostruct'
 
-require 'packo/packages'
-
 require 'packo/dependencies'
 require 'packo/blockers'
 require 'packo/stages'
@@ -28,6 +26,10 @@ require 'packo/features'
 require 'packo/flavors'
 
 module Packo
+
+Packages = Class.new(Hash) {
+
+}.new
 
 class Package
   def self.parse (text)
@@ -58,13 +60,14 @@ class Package
     return result
   end
 
-  attr_reader :name, :categories, :version, :modules, :dependencies, :blockers, :features, :flavors, :stages
+  attr_reader :name, :categories, :version, :slot, :modules, :dependencies, :blockers, :features, :flavors, :stages
 
-  def initialize (name, version=nil, &block)
+  def initialize (name, version=nil, slot=nil, &block)
     tmp         = name.split('/')
     @name       = tmp.pop
     @categories = tmp
     @version    = version
+    @slot       = slot
 
     Packages["#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"] = self
 
@@ -199,7 +202,7 @@ XML
 
   def to_s (pack=false)
     if pack && @version
-      "#{@name}-#{@version}-#{@flavors.to_s(true)}-#{@features.to_s(true)}"
+      "#{@name}-#{@version}-#{@flavors.to_s(true)}-#{@features.to_s(true)}#{".#{@slot}" if @slot}"
     else
       "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{@features.to_s}]" if !@features.to_s.empty?}"
     end
