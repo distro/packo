@@ -17,9 +17,56 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/blocker'
-
 module Packo
+
+class Blocker
+  def self.parse (text)
+    runtime = true
+
+    if text[text.length - 1] == '!'
+      text[text.length - 1] = ''
+      runtime = false
+    end
+
+    if matches = text.match(/^([<>]?=?)/)
+      validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
+      text.sub!(/^([<>]?=?)/, '')
+    else
+      validity = nil
+    end
+
+    parsed = Packo::Package.parse(text)
+
+    Blocker.new(parsed.name, parsed.categories, parsed.version, parsed.features, validity, runtime)
+  end
+
+  attr_reader :name, :categories, :version, :features, :validity
+
+  def initialize (name, categories, version, features, validity=nil, runtime=true)
+    @name       = name
+    @categories = categories
+    @version    = version
+    @features   = features
+    @validity   = validity
+    @runtime    = runtime
+  end
+
+  def runtime?; @runtime end
+
+  def to_s
+    tmp = @features.sort {|a, b|
+      if a[1] && b[1]
+        0
+      elsif a[1] && !b[1]
+        -1
+      else
+        1
+      end
+    }.to_a.map {|feature| (flavor[1] ? '' : '-') + flavor[0].to_s}.join(',')
+
+    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{tmp}]" if !tmp.empty?}"
+  end
+end
 
 class Blockers < Array
   attr_reader :package

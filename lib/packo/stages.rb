@@ -36,7 +36,7 @@ class Stages
     end
   
     def call (*args)
-      @method.call(*args) rescue nil
+      @method.call(*args)
     end
   
     def inspect

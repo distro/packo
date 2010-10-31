@@ -47,7 +47,7 @@ class Wget < Module
 
       distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
 
-      if !Packo.sh 'wget', '-c', '-O', distfiles.last, source
+      if !Packo.sh('wget', '-c', '-O', distfiles.last, source)
         raise RuntimeError.new('wget failed')
       end
 

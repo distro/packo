@@ -39,7 +39,7 @@ class SourceForge < Module
     name    = matches[1]
     version = matches[2]
 
-    body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files/#{name}/#{version}/#{name}-#{version}.tar.bz2"))
+    body   = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files/#{name}/#{version}/#{name}-#{version}.tar.bz2/download"))
     source = URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
 
     if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
@@ -47,13 +47,15 @@ class SourceForge < Module
       return
     end
 
-    package.distfiles ["#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
+    package.distfiles ["#{package.fetchdir || '/tmp'}/#{File.basename(source).sub(/\?.*$/, '')}"]
 
-    if Packo.sh 'wget', '-c', '-O', package.distfiles.last, source
-      if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
-        Packo.debug error
-        return
-      end
+    if !Packo.sh('wget', '-c', '-O', package.distfiles.last, source)
+      raise RuntimeError.new('wget failed')
+    end
+
+    if (error = package.stages.call(:fetched, source, package.distfiles.last).find {|result| result.is_a? Exception})
+      Packo.debug error
+      return
     end
   end
 end

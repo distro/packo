@@ -99,6 +99,8 @@ class Package
       @features.owner     = self
 
       self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
+      self.workdir   = "#{package.directory}/work"
+      self.distdir   = "#{package.directory}/dist"
 
       FileUtils.mkpath "#{self.directory}/"
       FileUtils.mkpath "#{self.directory}/work"
