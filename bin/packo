@@ -30,6 +30,7 @@ class Application < Optitron::CLI
 
   desc 'Builds packages'
   opt 'tmp', 'The path to the temporary directory', :default => Packo.env('TMP') || '/tmp'
+  opt 'output', 'The directory where to save packages', :default => Packo.env('TMP') || '/tmp'
   def build (*names)
     names.map {|package|
       tmp = []
@@ -55,6 +56,12 @@ class Application < Optitron::CLI
       package = Package.envify(Packo::Packages[package.to_s])
 
       puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Building #{package}"
+
+      output = File.realpath(params['output'])
+
+      package.on :packed do |path|
+        FileUtils.cp path, output, :verbose => true, :preserve => true
+      end
 
       package.build {|stage|
         puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Executing #{stage.name}."

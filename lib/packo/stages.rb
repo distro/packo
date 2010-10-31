@@ -196,7 +196,7 @@ class Stages
   end
 
   def register (what, priority, callback, binding=nil)
-    (@callbacks[what.to_sym] ||= []) << Callback.new(what, priority, callback, binding || @package)
+    (@callbacks[what.to_sym] ||= []) << Callback.new(what, priority, callback, binding)
 
     @callbacks[what.to_sym].sort! {|a, b|
       a.priority <=> b.priority

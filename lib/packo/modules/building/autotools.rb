@@ -150,15 +150,11 @@ class Autotools < Module
 
   def do_configure (conf=nil, fire=true)
     if !File.exists? 'configure'
-      if !Packo.sh('autoconf')
-        raise RuntimeError.new('autoconf failed')
-      end
+      Packo.sh 'autoconf'
     end
 
     if !File.exists? 'Makefile'
-      if !Packo.sh("./configure #{conf || @configuration}")
-        raise RuntimeError.new('./configure failed')
-      end
+      Packo.sh "./configure #{conf || @configuration}"
     end
 
     package.stages.call(:configured, conf || @configuration) if fire

@@ -49,9 +49,7 @@ class SourceForge < Module
 
     package.distfiles ["#{package.fetchdir || '/tmp'}/#{File.basename(source).sub(/\?.*$/, '')}"]
 
-    if !Packo.sh('wget', '-c', '-O', package.distfiles.last, source)
-      raise RuntimeError.new('wget failed')
-    end
+    Packo.sh 'wget', '-c', '-O', package.distfiles.last, source
 
     if (error = package.stages.call(:fetched, source, package.distfiles.last).find {|result| result.is_a? Exception})
       Packo.debug error

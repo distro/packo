@@ -112,7 +112,10 @@ class Package
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
     @stages.add :blockers, @blockers.method(:check), :at => :beginning
 
+
+    @default_to_self = true
     self.instance_exec(self, &block) if block
+    @default_to_self = false
   end
 
   def build
@@ -137,8 +140,8 @@ class Package
     @features.instance_eval &block
   end
 
-  def on (what, priority=0, &block)
-    @stages.register(what, priority, block)
+  def on (what, priority=0, binding=nil, &block)
+    @stages.register(what, priority, block, binding || @default_to_self ? self : nil)
   end
 
   def pre (name=nil, content=nil)
