@@ -43,7 +43,7 @@ class Application
             :long  => 'cache',
             :short => 'c',
 
-            :default => '/var/lib/packo/cache'
+            :default => Packo.env('CACHE') || '/var/lib/packo/cache'
           )
         }
     
@@ -53,7 +53,7 @@ class Application
             :long  => 'cache',
             :short => 'c',
 
-            :default => '/var/lib/packo/cache'
+            :default => Packo.env('CACHE') || '/var/lib/packo/cache'
           )   
         }
     
@@ -65,14 +65,14 @@ class Application
             :long  => 'trees',
             :short => 'T',
     
-            :default => '/usr/packo'
+            :default => Packo.env('TREES') || '/usr/packo'
           )
     
           o.set(
             :long  => 'output',
             :short => 'o',
     
-            :default => '/var/lib/packo/cache'
+            :default => Packo.env('CACHE') || '/var/lib/packo/cache'
           )
         }
 
@@ -82,7 +82,7 @@ class Application
             :long  => 'cache',
             :short => 'c',
 
-            :default => '/var/lib/packo/cache'
+            :default => Packo.env('CACHE') || '/var/lib/packo/cache'
           )
         }
 

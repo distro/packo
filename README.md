@@ -6,10 +6,22 @@ to be even more flexible and easy to work with.
 
 Some stuff has been done.
 
-    $ packo cache -T /path/to/organo/tree -c /where/you/want/the/cache
-    $ packo build -c /where/you/want/the/cache fluxbox
+    $ export PACKO_CACHE=/where/you/want/the/cache
+    $ packo cache -T /path/to/organo/tree
 
-This should build fluxbox.
+This creates the cache, it's an sqlite database with all the packages in all the trees.
+
+Once you have a cache you can do some other stuff, like searching.
+
+    $ packo search x11/
+
+This searches all packages that have x11 in their category.
+
+You can also build packages into .pko files.
+
+    $ packo build fluxbox
+
+This will build fluxbox.
 
 Installation hasn't been implemented yet, but we need just build functions for now.
 
