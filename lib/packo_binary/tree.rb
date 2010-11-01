@@ -84,7 +84,7 @@ class Tree
           #{'AND name = ?' if package.name}
           #{'AND version = ?' if package.version}
           #{'AND categories = ?' if !package.categories.empty?}
-      }, [@id, package.name, package.version, package.categories.join('/')].compact)
+      }, [@id, package.name, package.version, (package.categories.empty? ? nil : package.categories.join('/'))].compact)
     end
   end
 

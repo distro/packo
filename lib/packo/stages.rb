@@ -17,53 +17,13 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/stages/stage'
+require 'packo/stages/callback'
+
 module Packo
 
 class Stages
   @@cycles = 23
-
-  class Stage
-    attr_reader :name, :options
-  
-    def initialize (name, method, options)
-      @name    = name.to_sym
-      @method  = method
-      @options = options
-
-      if (@options[:at] || @options[:after] == :beginning || @options[:before] == :ending) && @options[:strict].nil?
-        @options[:strict] = true
-      end
-    end
-  
-    def call (*args)
-      @method.call(*args)
-    end
-  
-    def inspect
-      "#<Stage: #{name} (#{@options.inspect})>"
-    end
-  end
-
-  class Callback
-    attr_accessor :binding
-
-    attr_reader :name, :priority
-
-    def initialize (name, priority, callback, binding=nil)
-      @name     = name
-      @priority = priority
-      @callback = callback
-      @binding  = binding
-    end
-
-    def call (*args)
-      if binding
-        binding.instance_exec(*args, &@callback)
-      else
-        @callback.call(*args)
-      end
-    end
-  end
 
   attr_reader :package, :stages, :callbacks
 

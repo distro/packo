@@ -63,9 +63,13 @@ class Application < Optitron::CLI
         FileUtils.cp path, output, :verbose => true, :preserve => true
       end
 
-      package.build {|stage|
-        puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Executing #{stage.name}."
-      }
+			begin
+	      package.build {|stage|
+  	      puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Executing #{stage.name}."
+    	  }
+			rescue Exception => e
+				Packo.debug e
+			end
     }
   end
 

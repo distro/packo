@@ -18,6 +18,9 @@
 #++
 
 require 'ostruct'
+require 'versionomy'
+
+require 'packo/packages'
 
 require 'packo/dependencies'
 require 'packo/blockers'
@@ -26,10 +29,6 @@ require 'packo/features'
 require 'packo/flavors'
 
 module Packo
-
-Packages = Class.new(Hash) {
-
-}.new
 
 class Package
   def self.parse (text)
@@ -66,7 +65,7 @@ class Package
     tmp         = name.split('/')
     @name       = tmp.pop
     @categories = tmp
-    @version    = version
+    @version    = version.is_a?(Versionomy) ? version : Versionomy.parse(version.to_s) if version
     @slot       = slot
 
     Packages["#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"] = self
@@ -125,7 +124,7 @@ class Package
     @stages.each {|stage|
       yield stage if block_given?
 
-      stage.call      
+      stage.call
     }
   end
 
@@ -140,7 +139,11 @@ class Package
   end
 
   def features (&block)
-    @features.instance_eval &block
+    if !block
+      @features
+    else
+      @features.instance_eval &block
+    end
   end
 
   def on (what, priority=0, binding=nil, &block)

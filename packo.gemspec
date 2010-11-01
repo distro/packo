@@ -12,5 +12,6 @@ Gem::Specification.new {|s|
     s.has_rdoc     = true
 
     s.add_dependency('optitron')
-    s.add_dependency('sqlite3')
+    s.add_dependency('sqlite3-ruby')
+    s.add_dependency('versionomy')
 }

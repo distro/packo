@@ -61,11 +61,11 @@ module Packo
   end
 
   def self.debug (argument, options={})
-    if !ENV['DEBUG']
+    if !Packo.env('DEBUG')
       return
     end
 
-    if ENV['DEBUG'].to_i < (options[:level] || 1)
+    if Packo.env('DEBUG').to_i < (options[:level] || 1)
       return
     end
 

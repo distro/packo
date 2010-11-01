@@ -17,35 +17,32 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/dependency'
-
 module Packo
 
-class Dependencies < Array
-  attr_reader :package
+class Stages
 
-  def initialize (package)
-    @package = package
+class Stage
+  attr_reader :name, :options
+
+  def initialize (name, method, options)
+    @name    = name.to_sym
+    @method  = method
+    @options = options
+
+    if (@options[:at] || @options[:after] == :beginning || @options[:before] == :ending) && @options[:strict].nil?
+      @options[:strict] = true
+    end
   end
 
-  alias __push push
-
-  def push (dependency)
-    __push(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
-    self.compact!
-    self
+  def call (*args)
+    @method.call(*args)
   end
 
-  alias << push
-
-  def check
-    package.stages.call :dependencies, package
-    package.stages.call :dependencies!, package
+  def inspect
+    "#<Stage: #{name} (#{@options.inspect})>"
   end
+end
 
-  def owner= (value)
-    @package = value
-  end
 end
 
 end

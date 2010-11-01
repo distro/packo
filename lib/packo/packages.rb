@@ -17,35 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/dependency'
-
 module Packo
 
-class Dependencies < Array
-  attr_reader :package
+Packages = Class.new(Hash) {
 
-  def initialize (package)
-    @package = package
-  end
-
-  alias __push push
-
-  def push (dependency)
-    __push(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
-    self.compact!
-    self
-  end
-
-  alias << push
-
-  def check
-    package.stages.call :dependencies, package
-    package.stages.call :dependencies!, package
-  end
-
-  def owner= (value)
-    @package = value
-  end
-end
+}.new
 
 end
