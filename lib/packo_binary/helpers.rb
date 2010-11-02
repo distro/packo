@@ -18,7 +18,7 @@
 #++
 
 module Helpers
-  def self.colorize (text, fg, bg=nil, attr=nil)
+  def colorize (text, fg, bg=nil, attr=nil)
     colors = {
       :DEFAULT => 9,
       nil      => 9,
@@ -44,5 +44,17 @@ module Helpers
     }
 
     "\e[#{attributes[attr]};3#{colors[fg]};4#{colors[bg]}m#{text}\e[0m"
+  end
+
+  def info (text)
+    puts "#{colorize('*', :GREEN, :DEFAULT, :BOLD)} #{text}"
+  end
+
+  def warn (text)
+    puts "#{colorize('*', :YELLOW)} #{text}"
+  end
+
+  def fatal (text)
+    puts "#{colorize('*', :RED)} #{text}"
   end
 end

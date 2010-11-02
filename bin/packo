@@ -26,6 +26,8 @@ require 'rexml/document'
 require 'packo_binary'
 
 class Application < Optitron::CLI
+  include Helpers
+
   class_opt 'cache', 'The path to the cache file', :default => Packo.env('CACHE') || '/var/lib/packo/cache'
 
   desc 'Builds packages'
@@ -137,30 +139,18 @@ class Application < Optitron::CLI
     @params = params
 
     if File.directory? params['cache']
-      puts "#{Helpers.colorize('*', :RED)} #{params['cache']} is a directory"
+      puts "#{colorize('*', :RED)} #{params['cache']} is a directory"
     end
 
     begin
       FileUtils.mkpath(File.dirname(params['cache']))
     rescue
-      puts "#{Helpers.colorize('*', :RED)} Could not create #{File.dirname(params['cache'])}"
+      puts "#{colorize('*', :RED)} Could not create #{File.dirname(params['cache'])}"
       exit 42
     end
 
     @db = SQLite3::Database.new(params['cache'])
     @db.results_as_hash = true
-  end
-
-  def info (text)
-    puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} #{text}"
-  end
-
-  def warn (text)
-    puts "#{Helpers.colorize('*', :YELLOW)} #{text}"
-  end
-
-  def fatal (text)
-    puts "#{Helpers.colorize('*', :RED)} #{text}"
   end
 end
 
