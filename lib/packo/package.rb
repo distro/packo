@@ -18,7 +18,6 @@
 #++
 
 require 'ostruct'
-require 'versionomy'
 
 require 'packo/packages'
 
@@ -59,7 +58,7 @@ class Package
     return result
   end
 
-  attr_reader :name, :categories, :version, :slot, :modules, :dependencies, :blockers, :features, :flavors, :stages
+  attr_reader :name, :categories, :version, :slot, :modules, :dependencies, :blockers, :stages
 
   def initialize (name, version=nil, slot=nil, &block)
     tmp         = name.split('/')
@@ -76,6 +75,7 @@ class Package
       @blockers     = Packo::Blockers.new(self)
       @stages       = Packo::Stages.new(self)
       @features     = Packo::Features.new(self)
+      @flavors      = Packo::Flavors.new(self)
       @data         = {}
       @pre          = []
       @post         = []
@@ -85,6 +85,7 @@ class Package
       @blockers     = tmp.instance_eval('@blockers.clone')
       @stages       = tmp.instance_eval('@stages.clone')
       @features     = tmp.instance_eval('@features.clone')
+      @flavors      = tmp.instance_eval('@flavors.clone')
       @data         = tmp.instance_eval('@data.clone')
       @pre          = tmp.instance_eval('@pre.clone')
       @post         = tmp.instance_eval('@post.clone')
@@ -99,6 +100,7 @@ class Package
       @blockers.owner     = self
       @stages.owner       = self
       @features.owner     = self
+      @flavors.owner      = self
 
       self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
       self.workdir   = "#{package.directory}/work"
@@ -143,6 +145,14 @@ class Package
       @features
     else
       @features.instance_eval &block
+    end
+  end
+
+  def flavors (&block)
+    if !block
+      @flavors
+    else
+      @flavors.instance_eval &block
     end
   end
 
@@ -205,7 +215,7 @@ XML
 
   def to_s (pack=false)
     if pack && @version
-      "#{@name}-#{@version}-#{@flavors.to_s(true)}-#{@features.to_s(true)}#{".#{@slot}" if @slot}"
+      "#{@name}-#{@version}#{"+#{@flavors.to_s(true)}" if !@flavors.to_s(true).empty?}#{"-#{@features.to_s(true)}" if !@features.to_s(true).empty?}#{".#{@slot}" if @slot}"
     else
       "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{@features.to_s}]" if !@features.to_s.empty?}"
     end

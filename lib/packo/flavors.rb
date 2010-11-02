@@ -27,35 +27,41 @@ class Flavors
   def initialize (package)
     @package = package
 
-    @names = [:binary, :headers, :documentation, :debug, :minimal, :vanilla]
-
-    @values = {
-      :headers => true,
-      :documentation => true
-    }
-
-    @callbacks = {}
+    @flavors = {}
   end
 
   def method_missing (name, *args, &block)
     if (tmp = name.match(/^(.*?)\?$/))
-      @values[tmp[1].to_sym]
-    elsif (tmp = name.match(/^(not_)?(.*?)\?$/))
-      @values[tmp[2].to_sym] = !tmp[2]
+      (@flavors[tmp[1].to_sym] ||= Flavor.new(@package, tmp[1].to_sym, false)).enabled?
+    elsif (tmp = name.match(/^(not_)?(.*?)!$/))
+      @flavors[tmp[2].to_sym] ||= Flavor.new(@package, tmp[2].to_sym, false)
+
+      if tmp[1].nil?
+        @flavors[tmp[2].to_sym].enabled!
+      else
+        @flavors[tmp[2].to_sym].disabled!
+      end
     else
-      @values[name]    = true
-      @callbacks[name] = block
+      @flavors[name] = Flavor.new(@package, name, &block)
     end
+  end
+
+  def owner= (value)
+    @package = value
+
+    @flavors.each_value {|flavor|
+      flavor.owner = value
+    }
   end
 
   def to_s (pack=false)
     result = ''
 
-    @values.each {|name, value|
-      result << name.to_s + (pack ? '.' : ',') if value
+    @flavors.each {|name, value|
+      result << name.to_s + (pack ? '.' : ',') if value.enabled?
     }
 
-    return result[0, result.length - 1]
+    return result[0, result.length - 1] || ''
   end
 end
 

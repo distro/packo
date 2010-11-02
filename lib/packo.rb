@@ -17,9 +17,12 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'versionomy'
 require 'fileutils'
 
 module Packo
+  Version = Versionomy.parse('0.0.1')
+
   def self.env (name, value=nil)
     if value.nil?
       return ENV["PACKO_#{name}"] || ENV[name.to_s]

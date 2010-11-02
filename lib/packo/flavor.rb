@@ -30,8 +30,6 @@ class Flavor
     @enabled = enabled
     @block   = block
 
-    self.merge(Packo::Package::Features::Defaults[@name]) rescue nil
-
     self.instance_exec(self, &@block) if @block
   end
 

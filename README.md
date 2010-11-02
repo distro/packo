@@ -6,7 +6,7 @@ to be even more flexible and easy to work with.
 
 Some stuff has been done.
 
-    $ export PACKO_CACHE=/where/you/want/the/cache
+    $ export PACKO_CACHE=/where/you/want/the/cache # this has to be a file, not a directory
     $ packo cache /path/to/organo/tree
 
 This creates the cache, it's an sqlite database with all the packages in all the trees.

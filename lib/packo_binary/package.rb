@@ -52,7 +52,11 @@ class Package
     self.name == package.name && self.categories == package.categories
   end
 
-  def to_s
-    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
+  def to_s (name=false)
+		if name
+			(@categories + [@name]).join('/')
+		else
+	    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
+		end
   end
 end

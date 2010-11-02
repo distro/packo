@@ -125,6 +125,17 @@ class Autotools < Module
         ldconfig
       }
     end
+
+		package.on :initialize do |package|
+			package.define_method :autoreconf do
+				Packo.sh 'aclocal'
+				Packo.sh 'autoconf'
+			end
+
+			package.define_method :make do |*args|
+				Packo.sh 'make', *args
+			end
+		end
   end
 
   def configure
@@ -170,7 +181,7 @@ class Autotools < Module
   end
 
   def do_compile (conf=nil, fire=true)
-    Packo.sh 'make'
+		package.make "-j#{Packo.env('MAKE_JOBS')}"
 
     package.stages.call(:compiled, conf || @configuration) if fire
   end

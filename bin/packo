@@ -1,4 +1,5 @@
 #! /usr/bin/env ruby
+# encoding: utf-8
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
@@ -34,6 +35,8 @@ class Application < Optitron::CLI
   opt 'tmp', 'The path to the temporary directory', :default => Packo.env('TMP') || '/tmp'
   opt 'output', 'The directory where to save packages', :default => Packo.env('TMP') || '/tmp'
   def build (*names)
+    Packo.env('TMP', params['tmp'])
+
     names.map {|package|
       tmp = []
 
@@ -78,12 +81,51 @@ class Application < Optitron::CLI
         FileUtils.cp path, output, :verbose => true, :preserve => true
       end
 
+      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s
+        info "Cleaning #{package} because flavors/features changed."
+
+        clean(package.to_s)
+
+        file = File.new("#{package.directory}/.build", 'w')
+        file.write package.to_s
+        file.close
+      end
+
       begin
         package.build {|stage|
           info "Executing #{stage.name}"
         }
       rescue Exception => e
         Packo.debug e, :force => true
+      end
+    }
+  end
+
+  desc 'Clean a package'
+  opt 'tmp', 'The path to the temporary directory', :default => Packo.env('TMP') || '/tmp'
+  def clean (*names)
+    names.map {|package|
+      tmp = []
+
+      Tree.all(@db).each {|tree|
+        tree.search(package, true).each {|pkg|
+          tmp << Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+        }
+      }
+
+      if (multiple = tmp.uniq).length > 1
+        puts 'Multiple packages with the same name, be more precise.'
+        exit 2
+      end
+
+      tmp.last
+    }.each {|package|
+      begin
+        path = "#{params['tmp']}/#{package.to_s(true)}/#{package.version}"
+
+        FileUtils.rm_r "#{path}/work"; FileUtils.mkpath "#{path}/work"
+        FileUtils.rm_r "#{path}/dist"; FileUtils.mkpath "#{path}/dist"
+      rescue Exception => e
       end
     }
   end
@@ -133,6 +175,11 @@ class Application < Optitron::CLI
     }
   
     @db.commit rescue nil
+  end
+
+  desc 'Output version'
+  def version
+    puts "packø #{Packo::Version}"
   end
 
   def params= (params)
