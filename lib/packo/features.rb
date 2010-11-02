@@ -29,12 +29,20 @@ class Features
     @features = {}
   end
 
-  def method_missing (id, *args, &block)
+  def method_missing (name, *args, &block)
 		if block
-	    @features[id] = Feature.new(@package, id, &block)
+	    @features[name] = Feature.new(@package, name, &block)
 		else
-			@features[id] || Feature.new(@package, id, false)
+			@features[name] || Feature.new(@package, name, false)
 		end
+  end
+
+  def set (name, &block)
+	  @features[name.to_sym] = Feature.new(@package, name.to_sym, &block)
+  end
+
+  def get (name)
+		@features[name.to_sym] || Feature.new(@package, name.to_sym, false)
   end
 
   def each (&block)

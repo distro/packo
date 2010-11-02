@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/flavor'
+
 module Packo
 
 class Flavors
@@ -25,40 +27,32 @@ class Flavors
   def initialize (package)
     @package = package
 
-    @binary        = false
-    @headers       = true
-    @documentation = true
-    @debug         = false
-    @minimal       = false
-    @vanilla       = false
+    @names = [:binary, :headers, :documentation, :debug, :minimal, :vanilla]
+
+    @values = {
+      :headers => true,
+      :documentation => true
+    }
+
+    @callbacks = {}
   end
 
-  def binary?;        @binary        end
-  def headers?;       @headers       end
-  def documentation?; @documentation end
-  def debug?;         @debug         end
-  def minimal?;       @minimal       end
-  def vanilla?;       @vanilla       end
-
-  def binary!;        @binary        = true end
-  def headers!;       @headers       = true end
-  def documentation!; @documentation = true end
-  def debug!;         @debug         = true end
-  def minimal!;       @minimal       = true end
-  def vanilla!;       @vanilla       = true end
-
-  def not_binary!;        @binary        = false end
-  def not_headers!;       @headers       = false end
-  def not_documentation!; @documentation = false end
-  def not_debug!;         @debug         = false end
-  def not_minimal!;       @minimal       = false end
-  def not_vanilla!;       @vanilla       = false end
+  def method_missing (name, *args, &block)
+    if (tmp = name.match(/^(.*?)\?$/))
+      @values[tmp[1].to_sym]
+    elsif (tmp = name.match(/^(not_)?(.*?)\?$/))
+      @values[tmp[2].to_sym] = !tmp[2]
+    else
+      @values[name]    = true
+      @callbacks[name] = block
+    end
+  end
 
   def to_s (pack=false)
     result = ''
 
-    ['binary', binary?, 'headers', headers?, 'documentation', documentation?, 'debug', debug?, 'minimal', minimal?].each_slice(2) {|flavor|
-      result << flavor[0] + (pack ? '.' : ',') if flavor[1]
+    @values.each {|name, value|
+      result << name.to_s + (pack ? '.' : ',') if value
     }
 
     return result[0, result.length - 1]

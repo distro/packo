@@ -17,42 +17,35 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/module'
-
 module Packo
 
-module Modules
+class Flavor
+  attr_reader :package, :name, :block
 
-module Misc
+  attr_accessor :description
 
-class Unpack < Module
-  def initialize (package)
-    super(package)
+  def initialize (package, name, enabled=false, &block)
+    @package = package
+    @name    = name
+    @enabled = enabled
+    @block   = block
 
-    package.stages.add :unpack, self.method(:unpack), :after => :fetch, :strict => true
+    self.merge(Packo::Package::Features::Defaults[@name]) rescue nil
+
+    self.instance_exec(self, &@block) if @block
   end
 
-  def unpack
-    package.distfiles.each {|file|
-      if (error = package.stages.call(:unpack, file).find {|result| result.is_a? Exception})
-        Packo.debug error
-        return
-      end
+  def enabled?;  !!@enabled       end
+  def enabled!;  @enabled = true  end
+  def disabled!; @enabled = false end
 
-      Packo.sh 'tar', 'xf', file, '-k', '-C', Packo.interpolate('#{package.directory}/work', self)
-
-      Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
-
-      if (error = package.stages.call(:unpacked, file).find {|result| result.is_a? Exception})
-        Packo.debug error
-        return
-      end
-    }
+  def on (what, priority=0, &block)
+    @package.stages.register(what, priority, block, self)
   end
-end
 
-end
-
+  def owner= (value)
+    @package = value
+  end
 end
 
 end

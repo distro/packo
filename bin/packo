@@ -50,12 +50,25 @@ class Application < Optitron::CLI
     }.each {|package|
       path = "#{package.tree.path}/#{package.categories.join('/')}/#{package.name}"
 
-      load "#{path}/#{package.name}.rbuild"
-      load "#{path}/#{package.name}-#{package.version}.rbuild"
+      begin
+        load "#{path}/#{package.name}.rbuild"
+        load "#{path}/#{package.name}-#{package.version}.rbuild"
+      rescue LoadError
+        warn 'One of the rbuilds could not be found'
+      end
 
-      package = Package.envify(Packo::Packages[package.to_s])
+      if !Packo::Packages[(package.categories + [package.name]).join('/')]
+        warn 'The package does not have a parent'
+      end
 
-      puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Building #{package}"
+      package = Package.envify(Packo::Packages[package.to_s]) rescue nil
+
+      if !package
+        fatal 'Package could not be instantiated'
+        exit 23
+      end
+
+      info "Building #{package}"
 
       output = File.realpath(params['output'])
 
@@ -63,13 +76,13 @@ class Application < Optitron::CLI
         FileUtils.cp path, output, :verbose => true, :preserve => true
       end
 
-			begin
-	      package.build {|stage|
-  	      puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} Executing #{stage.name}."
-    	  }
-			rescue Exception => e
-				Packo.debug e
-			end
+      begin
+        package.build {|stage|
+          info "Executing #{stage.name}"
+        }
+      rescue Exception => e
+        Packo.debug e, :force => true
+      end
     }
   end
 
@@ -123,9 +136,31 @@ class Application < Optitron::CLI
   def params= (params)
     @params = params
 
-    FileUtils.mkpath(File.dirname(params['cache']))
+    if File.directory? params['cache']
+      puts "#{Helpers.colorize('*', :RED)} #{params['cache']} is a directory"
+    end
+
+    begin
+      FileUtils.mkpath(File.dirname(params['cache']))
+    rescue
+      puts "#{Helpers.colorize('*', :RED)} Could not create #{File.dirname(params['cache'])}"
+      exit 42
+    end
+
     @db = SQLite3::Database.new(params['cache'])
     @db.results_as_hash = true
+  end
+
+  def info (text)
+    puts "#{Helpers.colorize('*', :GREEN, :DEFAULT, :BOLD)} #{text}"
+  end
+
+  def warn (text)
+    puts "#{Helpers.colorize('*', :YELLOW)} #{text}"
+  end
+
+  def fatal (text)
+    puts "#{Helpers.colorize('*', :RED)} #{text}"
   end
 end
 

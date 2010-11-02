@@ -21,13 +21,6 @@ module Packo
 
 class Blocker
   def self.parse (text)
-    runtime = true
-
-    if text[text.length - 1] == '!'
-      text[text.length - 1] = ''
-      runtime = false
-    end
-
     if matches = text.match(/^([<>]?=?)/)
       validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
       text.sub!(/^([<>]?=?)/, '')
@@ -37,21 +30,18 @@ class Blocker
 
     parsed = Packo::Package.parse(text)
 
-    Blocker.new(parsed.name, parsed.categories, parsed.version, parsed.features, validity, runtime)
+    Blocker.new(parsed.name, parsed.categories, parsed.version, parsed.features, validity)
   end
 
   attr_reader :name, :categories, :version, :features, :validity
 
-  def initialize (name, categories, version, features, validity=nil, runtime=true)
+  def initialize (name, categories, version, features, validity=nil)
     @name       = name
     @categories = categories
     @version    = version
     @features   = features
     @validity   = validity
-    @runtime    = runtime
   end
-
-  def runtime?; @runtime end
 
   def to_s
     tmp = @features.sort {|a, b|

@@ -26,7 +26,7 @@ module Modules
 
 module Fetching
 
-class SourceForge < Module
+class GNU < Module
   def initialize (package)
     super(package)
 
@@ -39,9 +39,24 @@ class SourceForge < Module
     name    = matches[1]
     version = matches[2]
 
-    body   = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files"))
-    body   = Net::HTTP.get(URI.parse(body.match(%r{href="(.*?#{name}/files/#{name}/#{version}/.*?/download")})))
-    source = URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
+    body   = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/"))
+
+    packs = body.scan(%r{href="(#{name}-#{version}.*?)"}).flatten.map {|pack|
+      URI.decode(pack)
+    }.select {|pack|
+      !pack.match(/\.sig$/)
+    }
+
+    pack = nil
+    ['xz', 'bz2', 'gz'].each {|compression|
+      pack = packs.find {|pack|
+        pack.match(/#{compression}$/)
+      }
+
+      break if pack
+    }
+
+    source = "http://ftp.gnu.org/gnu/#{name}/#{pack}"
 
     if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
       Packo.debug error
