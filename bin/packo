@@ -293,7 +293,7 @@ class Application < Optitron::CLI
         }
   
         file = File.new("#{path}/manifest.xml", 'w')
-        manifest.write file, 4
+        manifest.write file
         file.close
 
         info "Digested #{packages.first} (#{file.path})"

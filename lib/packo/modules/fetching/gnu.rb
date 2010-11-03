@@ -59,7 +59,7 @@ class GNU < Module
       
           "http://ftp.gnu.org/gnu/#{name}/#{pack}"
         end
-      }
+      }.new(package)
     end
   end
 
