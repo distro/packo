@@ -101,28 +101,31 @@ class Package
       @stages.owner       = self
       @features.owner     = self
       @flavors.owner      = self
-
-      self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
-      self.workdir   = "#{package.directory}/work"
-      self.distdir   = "#{package.directory}/dist"
-
-      FileUtils.mkpath "#{self.directory}/"
-      FileUtils.mkpath "#{self.directory}/work"
-      FileUtils.mkpath "#{self.directory}/dist"
-
-      @stages.call :initialize, self
     end
 
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
     @stages.add :blockers, @blockers.method(:check), :at => :beginning
 
+    self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
+    self.workdir   = "#{package.directory}/work"
+    self.distdir   = "#{package.directory}/dist"
 
     @default_to_self = true
+    @stages.call :initialize, self
     self.instance_exec(self, &block) if block
+    @stages.call :initialized, self
     @default_to_self = false
   end
 
+  def create
+    FileUtils.mkpath "#{self.directory}/"
+    FileUtils.mkpath "#{self.directory}/work"
+    FileUtils.mkpath "#{self.directory}/dist"
+  rescue; end
+
   def build
+    self.create
+
     @stages.each {|stage|
       yield stage if block_given?
 

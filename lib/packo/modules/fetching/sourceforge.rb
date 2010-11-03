@@ -31,17 +31,26 @@ class SourceForge < Module
     super(package)
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
+
+    package.on :initialize do |package|
+      package.fetch = Class.new(Module::Helper) {
+        def url (name=nil)
+          matches = Packo.interpolate(name || package.source, self).match(%r{^(.*?)/(.*?)$})
+
+          name    = matches[1]
+          version = matches[2]
+
+          body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files"))
+          body = Net::HTTP.get(URI.parse(body.match(%r{href="(.*?#{name}/files/#{name}/#{version}/.*?/download")})))
+          
+          URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
+        end
+      }.new(package)
+    end
   end
 
   def fetch
-    matches = Packo.interpolate(package.source, self).match(%r{^(.*?)/(.*?)$})
-
-    name    = matches[1]
-    version = matches[2]
-
-    body   = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files"))
-    body   = Net::HTTP.get(URI.parse(body.match(%r{href="(.*?#{name}/files/#{name}/#{version}/.*?/download")})))
-    source = URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
+    source = package.fetch.url
 
     if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
       Packo.debug error

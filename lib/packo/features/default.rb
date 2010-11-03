@@ -17,41 +17,17 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/module'
+require 'packo/feature'
 
 module Packo
 
-module Modules
+class Features
 
-module Misc
-
-class Unpack < Module
-  def initialize (package)
-    super(package)
-
-    package.stages.add :unpack, self.method(:unpack), :after => :fetch, :strict => true
+Default = Class.new(Hash) {
+  def define (name, &block)
+    self[name.to_sym] = Feature.new(nil, name, &block)
   end
-
-  def unpack
-    package.distfiles.each {|file|
-      if (error = package.stages.call(:unpack, file).find {|result| result.is_a? Exception})
-        Packo.debug error
-        next
-      end
-
-      Packo.sh 'tar', 'xf', file, '-k', '-C', Packo.interpolate('#{package.directory}/work', self)
-
-      Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
-
-      if (error = package.stages.call(:unpacked, file).find {|result| result.is_a? Exception})
-        Packo.debug error
-        next
-      end
-    }
-  end
-end
-
-end
+}.new
 
 end
 

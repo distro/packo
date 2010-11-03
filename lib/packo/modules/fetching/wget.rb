@@ -30,6 +30,20 @@ class Wget < Module
     super(package)
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
+
+    package.on :initialize do |package|
+      package.fetch = Class.new(Module::Helper) {
+        def url (source)
+          if source.is_a? Integer
+            Packo.interpolate(package.source[source], package)
+          elsif source.is_a? String
+            Packo.interpolate(source, package)
+          else
+            Packo.interpolate(package.source.first, package)
+          end
+        end
+      }.new(package)
+    end
   end
 
   def fetch
@@ -38,11 +52,11 @@ class Wget < Module
     distfiles = []
 
     [package.source].flatten.each {|source|
-      source = Packo.interpolate(source, self)
+      source = package.fetch.url(source)
 
       if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
         Packo.debug error
-        return
+        next
       end
 
       distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
@@ -51,7 +65,7 @@ class Wget < Module
 
       if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
         Packo.debug error
-        return
+        next
       end
     }
 

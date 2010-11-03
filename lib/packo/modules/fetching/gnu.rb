@@ -31,32 +31,40 @@ class GNU < Module
     super(package)
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
+
+    package.on :initialize do |package|
+      package.fetch = Class.new(Module::Helper) {
+        def url (name=nil)
+          matches = Packo.interpolate(name || package.source, self).match(%r{^(.*?)/(.*?)$})
+      
+          name    = matches[1]
+          version = matches[2]
+      
+          body = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/"))
+      
+          packs = body.scan(%r{href="(#{name}-#{version}.*?)"}).flatten.map {|pack|
+            URI.decode(pack)
+          }.select {|pack|
+            !pack.match(/\.sig$/)
+          }
+      
+          pack = nil
+          ['xz', 'bz2', 'gz'].each {|compression|
+            pack = packs.find {|pack|
+              pack.match(/#{compression}$/)
+            }
+      
+            break if pack
+          }
+      
+          "http://ftp.gnu.org/gnu/#{name}/#{pack}"
+        end
+      }
+    end
   end
 
   def fetch
-    matches = Packo.interpolate(package.source, self).match(%r{^(.*?)/(.*?)$})
-
-    name    = matches[1]
-    version = matches[2]
-
-    body   = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/"))
-
-    packs = body.scan(%r{href="(#{name}-#{version}.*?)"}).flatten.map {|pack|
-      URI.decode(pack)
-    }.select {|pack|
-      !pack.match(/\.sig$/)
-    }
-
-    pack = nil
-    ['xz', 'bz2', 'gz'].each {|compression|
-      pack = packs.find {|pack|
-        pack.match(/#{compression}$/)
-      }
-
-      break if pack
-    }
-
-    source = "http://ftp.gnu.org/gnu/#{name}/#{pack}"
+    source = package.fetch.url
 
     if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
       Packo.debug error

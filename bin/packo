@@ -23,6 +23,7 @@ require 'packo'
 require 'optitron'
 require 'sqlite3'
 require 'rexml/document'
+require 'digest/sha1'
 
 require 'packo_binary'
 
@@ -47,7 +48,7 @@ class Application < Optitron::CLI
       }
 
       if (multiple = tmp.uniq).length > 1
-        puts 'Multiple packages with the same name, be more precise.'
+        fatal 'Multiple packages with the same name, be more precise.'
         exit 2
       end
 
@@ -114,7 +115,7 @@ class Application < Optitron::CLI
       }
 
       if (multiple = tmp.uniq).length > 1
-        puts 'Multiple packages with the same name, be more precise.'
+        fatal 'Multiple packages with the same name, be more precise.'
         exit 2
       end
 
@@ -145,7 +146,8 @@ class Application < Optitron::CLI
     }
   end
 
-  desc 'Creates the cache file'
+  desc 'Updates the cache file'
+  opt 'wipe', 'Wipes the cache before updating it', :type => :boolean, :default => false
   def cache (*trees)
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS trees (
@@ -163,6 +165,8 @@ class Application < Optitron::CLI
         name       TEXT,
         version    TEXT,
         categories TEXT,
+
+        description TEXT,
   
         tree INTEGER,
   
@@ -170,11 +174,116 @@ class Application < Optitron::CLI
       )
     })
 
+    if params['wipe']
+      FileUtils.rm(params['cache']) rescue nil
+
+      @db = SQLite3::Database.new(params['cache'])
+      @db.results_as_hash = true
+    end
+
     trees.each {|tree|
       Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
     }
   
     @db.commit rescue nil
+  end
+
+  desc 'Create a manifest for the given packages'
+  def digest (*names)
+    names.map {|package|
+      tmp = []
+
+      Tree.all(@db).each {|tree|
+        tree.search(package, true).each {|pkg|
+          tmp << Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+        }
+      }
+
+      if (multiple = tmp.uniq).length > 1
+        fatal 'Multiple packages with the same name, be more precise.'
+        exit 2
+      end
+
+      tmp
+    }.each {|packages|
+      info "Digesting #{packages.first}"
+
+      packages.group_by {|package|
+        package.tree
+      }.each {|tree, packages|
+        manifest = REXML::Document.new
+        manifest.add_element REXML::Element.new('manifest')
+        manifest.root.attributes['version'] = '1.0'
+  
+        path = "#{tree.path}/#{packages.first.categories.join('/')}/#{packages.first.name}"
+  
+        begin
+          load "#{path}/#{packages.first.name}.rbuild"
+        rescue LoadError
+          warn 'The root rbuild could not be found'
+        end
+        
+        packages.each {|package|
+          info "doing #{package.version}..."
+  
+          begin
+            load "#{path}/#{package.name}-#{package.version}.rbuild"
+          rescue LoadError
+            warn "Failed to load #{package}"
+            next
+          end
+  
+          package = Package.envify(Packo::Packages[package.to_s]) rescue nil
+  
+          if !package
+            fatal 'Package could not be instantiated'
+            exit 23
+          end
+  
+          dom                          = REXML::Element.new('package')
+          dom.attributes['name']       = package.name
+          dom.attributes['categories'] = package.categories.join('/')
+          dom.attributes['version']    = package.version
+          dom.attributes['slot']       = package.slot
+  
+          features = REXML::Element.new('features')
+          package.features.each {|feature|
+            tmp      = REXML::Element.new('feature')
+            tmp.text = feature.name
+  
+            features.add_element tmp
+          }
+  
+          package.on :unpack, -9001 do
+            package.stages.stop!
+  
+            raise 'YOU SHALL NOT PASS'
+          end
+  
+          package.build
+  
+          files = REXML::Element.new('files')
+          package.distfiles.each {|file|
+            tmp                    = REXML::Element.new('file')
+            tmp.attributes['name'] = File.basename(file)
+            tmp.text               = Digest::SHA1.hexdigest(File.read(file))
+  
+            files.add_element tmp
+          }
+          
+          dom.add_element features
+          dom.add_element files
+  
+          manifest.root.add_element dom
+        }
+  
+        file = File.new("#{path}/manifest.xml", 'w')
+        manifest.write file, 4
+        file.close
+
+        info "Digested #{packages.first} (#{file.path})"
+      }
+    }
   end
 
   desc 'Output version'
@@ -191,8 +300,8 @@ class Application < Optitron::CLI
 
     begin
       FileUtils.mkpath(File.dirname(params['cache']))
-    rescue
-      puts "#{colorize('*', :RED)} Could not create #{File.dirname(params['cache'])}"
+    rescue Exception => e
+      fatal "Could not create #{File.dirname(params['cache'])}"
       exit 42
     end
 

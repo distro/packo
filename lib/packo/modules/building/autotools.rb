@@ -127,14 +127,45 @@ class Autotools < Module
     end
 
 		package.on :initialize do |package|
-			package.define_method :autoreconf do
-				Packo.sh 'aclocal'
-				Packo.sh 'autoconf'
-			end
+			package.autotools = Class.new(Module::Helper) {
+				def configure (conf)
+      		Packo.sh "./configure #{conf}"
+				end
 
-			package.define_method :make do |*args|
-				Packo.sh 'make', *args
-			end
+				def autogen
+					self.autoreconf
+					self.autoheader
+					self.automake
+				end
+
+				def autoreconf (version=nil)
+					Packo.sh "autoreconf#{"-#{version}" if version}"
+				end
+
+				def autoconf (version=nil)
+					Packo.sh "autoconf#{"-#{version}" if version}"
+				end
+
+				def autoheader (version=nil)
+					Packo.sh "autoheader#{"-#{version}" if version}"
+				end
+
+				def automake (version=nil)
+					Packo.sh "automake#{"-#{version}" if version}"
+				end
+
+				def autoupdate (version=nil)
+					Packo.sh "autoupdate#{"-#{version}" if version}"
+				end
+
+				def make (*args)
+					Packo.sh 'make', *args
+				end
+
+				def install (path=nil, *args)
+					Packo.sh 'make', "DESTDIR=#{path || package.distdir}", *args
+				end
+			}.new(package)
 		end
   end
 
@@ -156,19 +187,15 @@ class Autotools < Module
       return
     end
 
-    do_configure
-  end
-
-  def do_configure (conf=nil, fire=true)
     if !File.exists? 'configure'
-      Packo.sh 'autoconf'
+			package.autotools.autoreconf
     end
 
     if !File.exists? 'Makefile'
-      Packo.sh "./configure #{conf || @configuration}"
+			package.autotools.configure(@configuration)
     end
 
-    package.stages.call(:configured, conf || @configuration) if fire
+    package.stages.call(:configured, @configuration)
   end
 
   def compile
@@ -177,13 +204,9 @@ class Autotools < Module
       return
     end
 
-    do_compile
-  end
-
-  def do_compile (conf=nil, fire=true)
 		package.make "-j#{Packo.env('MAKE_JOBS')}"
 
-    package.stages.call(:compiled, conf || @configuration) if fire
+    package.stages.call(:compiled, @configuration)
   end
 
   def install
@@ -192,13 +215,9 @@ class Autotools < Module
       return
     end
 
-    do_install
-  end
+    package.autotools.install(package.distdir)
 
-  def do_install (conf=nil, fire=true)
-    Packo.sh 'make install'
-
-    package.stages.call(:installed, conf || @configuration) if fire
+    package.stages.call(:installed, @configuration)
   end
 end
 

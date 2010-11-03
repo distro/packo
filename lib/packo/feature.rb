@@ -42,7 +42,7 @@ class Feature
     @enabled = enabled
     @block   = block
 
-    self.merge(Packo::Package::Features::Defaults[@name]) rescue nil
+    self.merge(Packo::Features::Default[@name]) rescue nil
 
     self.instance_exec(self, &@block) if @block
   end
@@ -61,9 +61,7 @@ class Feature
     @enabled     = feature.enabled?
     @description = feature.description
 
-    if !@block
-      @block = feature.block
-    end
+    self.instance_exec(self, &feature.block) if feature.block
   end
 
   def owner= (value)

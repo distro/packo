@@ -147,11 +147,16 @@ class Stages
     @sorted = true
   end
 
+  def stop!;    @stopped = true;  end
+  def restart!; @stopped = false; end
+
   def each (&block)
     self.sort!
 
     @stages.each {|stage|
       block.call stage
+
+      break if @stopped
     }
   end
 

@@ -45,6 +45,10 @@ class Features
 		@features[name.to_sym] || Feature.new(@package, name.to_sym, false)
   end
 
+  def delete (name)
+    @features.delete(name.to_sym)
+  end
+
   def each (&block)
     @features.each_value {|feature|
       block.call feature
