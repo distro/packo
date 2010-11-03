@@ -200,7 +200,7 @@ class Autotools < Module
       return
     end
 
-    package.autotools.make "-j#{Packo.env('MAKE_JOBS')}"
+    package.autotools.make "-j#{Packo.env('MAKE_JOBS') || 1}"
 
     package.stages.call(:compiled, @configuration)
   end
