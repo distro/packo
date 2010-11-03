@@ -31,9 +31,9 @@ class Flavors
   end
 
   def method_missing (name, *args, &block)
-    if (tmp = name.match(/^(.*?)\?$/))
+    if (tmp = name.to_s.match(/^(.*?)\?$/))
       (@flavors[tmp[1].to_sym] ||= Flavor.new(@package, tmp[1].to_sym, false)).enabled?
-    elsif (tmp = name.match(/^(not_)?(.*?)!$/))
+    elsif (tmp = name.to_s.match(/^(not_)?(.*?)!$/))
       @flavors[tmp[2].to_sym] ||= Flavor.new(@package, tmp[2].to_sym, false)
 
       if tmp[1].nil?

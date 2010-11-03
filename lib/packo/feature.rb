@@ -59,7 +59,7 @@ class Feature
     return if feature.nil?
 
     @enabled     = feature.enabled?
-    @description = feature.description
+    @description = feature.description if feature.description
 
     self.instance_exec(self, &feature.block) if feature.block
   end

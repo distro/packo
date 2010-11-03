@@ -19,20 +19,23 @@
 
 class Package
   def self.envify (package)
-    Packo.env('FLAVOR', 'headers documentation') if !Packo.env('FLAVOR')
+    if !package
+      return
+    end
 
-    package.flavors.binary!            if Packo.env('FLAVOR').include?('binary')
-    package.flavors.not_headers!       if !Packo.env('FLAVOR').include?('headers')
-    package.flavors.not_documentation! if !Packo.env('FLAVOR').include?('documentation')
-    package.flavors.debug!             if Packo.env('FLAVOR').include?('debug')
-    package.flavors.minimal!           if Packo.env('FLAVOR').include?('minimal')
-    package.flavors.vanilla!           if Packo.env('FLAVOR').include?('vanilla')
+    ['binary', 'headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
+      if Packo.env('FLAVORS').include?(flavor)
+        package.flavors.send "#{flavor}!"
+      else
+        package.flavors.send "not_#{flavor}!"
+      end
+    }
 
     (Packo.env('FEATURES') || '').split(/\s+/).each {|feature|
       feature = Packo::Feature.parse(feature)
 
       package.features {
-        self[feature.name].merge(feature) if self[feature.name]
+        self.get(feature.name).merge(feature) if self.get(feature.name)
       }
     }
 

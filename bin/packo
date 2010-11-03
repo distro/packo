@@ -56,6 +56,17 @@ class Application < Optitron::CLI
     }.each {|package|
       path = "#{package.tree.path}/#{package.categories.join('/')}/#{package.name}"
 
+      manifest = REXML::Document.new(File.new("#{path}/manifest.xml"))
+
+      files = {}
+      manifest.elements.each('//files/file') {|e|
+        files[e.attributes['name']] = e.text
+      }
+
+      manifest.elements.each('//features/feature') {|e|
+        begin; load "#{Packo.env('PROFILE')}/features/#{e.text}"; rescue LoadError; end
+      }
+
       begin
         load "#{path}/#{package.name}.rbuild"
         load "#{path}/#{package.name}-#{package.version}.rbuild"
@@ -67,7 +78,7 @@ class Application < Optitron::CLI
         warn 'The package does not have a parent'
       end
 
-      package = Package.envify(Packo::Packages[package.to_s]) rescue nil
+      package = Package.envify(Packo::Packages[package.to_s])
 
       if !package
         fatal 'Package could not be instantiated'
@@ -90,6 +101,10 @@ class Application < Optitron::CLI
         file = File.new("#{package.directory}/.build", 'w')
         file.write package.to_s
         file.close
+      end
+
+      package.on :dependencies! do
+        puts package.dependencies.inspect
       end
 
       begin
@@ -233,7 +248,7 @@ class Application < Optitron::CLI
             next
           end
   
-          package = Package.envify(Packo::Packages[package.to_s]) rescue nil
+          package = Package.envify(Packo::Packages[package.to_s])
   
           if !package
             fatal 'Package could not be instantiated'
@@ -289,6 +304,11 @@ class Application < Optitron::CLI
   desc 'Output version'
   def version
     puts "packø #{Packo::Version}"
+  end
+
+  def initialize
+    Packo.env('PROFILE', '/etc/packo.profile') if !Packo.env('PROFILE')
+    Packo.env('FLAVORS', 'headers documentation') if !Packo.env('FLAVORS')
   end
 
   def params= (params)
