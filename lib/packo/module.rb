@@ -20,13 +20,13 @@
 module Packo
 
 class Module
-	class Helper
-		attr_accessor :package
+  class Helper
+    attr_accessor :package
 
-		def initialize (package)
-			@package = package
-		end
-	end
+    def initialize (package)
+      @package = package
+    end
+  end
 
   attr_reader :package
 

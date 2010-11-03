@@ -28,9 +28,9 @@ module Packo
 module Behaviors
 
 GNU = [
-	Packo::Modules::Fetching::Wget, Packo::Modules::Misc::Unpack,
-	Packo::Modules::Building::Patch, Packo::Modules::Building::Autotools,
-	Packo::Modules::Packaging::PKO
+  Packo::Modules::Fetching::Wget, Packo::Modules::Misc::Unpack,
+  Packo::Modules::Building::Patch, Packo::Modules::Building::Autotools,
+  Packo::Modules::Packaging::PKO
 ]
 
 end

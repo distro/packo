@@ -53,10 +53,10 @@ class Package
   end
 
   def to_s (name=false)
-		if name
-			(@categories + [@name]).join('/')
-		else
-	    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
-		end
+    if name
+      (@categories + [@name]).join('/')
+    else
+      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
+    end
   end
 end

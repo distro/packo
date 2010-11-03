@@ -24,13 +24,13 @@ module Modules
 module Packaging
 
 class PKO < Module
-	def initialize (package)
-		super(package)
+  def initialize (package)
+    super(package)
 
     package.stages.add :pack, self.method(:pack), :after => :install
-	end
+  end
 
-	def pack
+  def pack
     if (error = package.stages.call(:pack).find {|result| result.is_a? Exception})
       Packo.debug error
       return
@@ -61,7 +61,7 @@ class PKO < Module
     Packo.sh 'tar', 'cjf', name, 'dist/', 'pre/', 'post/', 'package.xml'
 
     package.stages.call(:packed, "#{package.directory}/#{name}")
-	end
+  end
 end
 
 end

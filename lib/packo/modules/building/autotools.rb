@@ -126,47 +126,47 @@ class Autotools < Module
       }
     end
 
-		package.on :initialize do |package|
-			package.autotools = Class.new(Module::Helper) {
-				def configure (conf)
-      		Packo.sh "./configure #{conf}"
-				end
+    package.on :initialize do |package|
+      package.autotools = Class.new(Module::Helper) {
+        def configure (conf)
+          Packo.sh "./configure #{conf}"
+        end
 
-				def autogen
-					self.autoreconf
-					self.autoheader
-					self.automake
-				end
+        def autogen
+          self.autoreconf
+          self.autoheader
+          self.automake
+        end
 
-				def autoreconf (version=nil)
-					Packo.sh "autoreconf#{"-#{version}" if version}"
-				end
+        def autoreconf (version=nil)
+          Packo.sh "autoreconf#{"-#{version}" if version}"
+        end
 
-				def autoconf (version=nil)
-					Packo.sh "autoconf#{"-#{version}" if version}"
-				end
+        def autoconf (version=nil)
+          Packo.sh "autoconf#{"-#{version}" if version}"
+        end
 
-				def autoheader (version=nil)
-					Packo.sh "autoheader#{"-#{version}" if version}"
-				end
+        def autoheader (version=nil)
+          Packo.sh "autoheader#{"-#{version}" if version}"
+        end
 
-				def automake (version=nil)
-					Packo.sh "automake#{"-#{version}" if version}"
-				end
+        def automake (version=nil)
+          Packo.sh "automake#{"-#{version}" if version}"
+        end
 
-				def autoupdate (version=nil)
-					Packo.sh "autoupdate#{"-#{version}" if version}"
-				end
+        def autoupdate (version=nil)
+          Packo.sh "autoupdate#{"-#{version}" if version}"
+        end
 
-				def make (*args)
-					Packo.sh 'make', *args
-				end
+        def make (*args)
+          Packo.sh 'make', *args
+        end
 
-				def install (path=nil, *args)
-					Packo.sh 'make', "DESTDIR=#{path || package.distdir}", *args
-				end
-			}.new(package)
-		end
+        def install (path=nil, *args)
+          Packo.sh 'make', "DESTDIR=#{path || package.distdir}", *args
+        end
+      }.new(package)
+    end
   end
 
   def configure
@@ -188,11 +188,11 @@ class Autotools < Module
     end
 
     if !File.exists? 'configure'
-			package.autotools.autoreconf
+      package.autotools.autoreconf
     end
 
     if !File.exists? 'Makefile'
-			package.autotools.configure(@configuration)
+      package.autotools.configure(@configuration)
     end
 
     package.stages.call(:configured, @configuration)
@@ -204,7 +204,7 @@ class Autotools < Module
       return
     end
 
-		package.make "-j#{Packo.env('MAKE_JOBS')}"
+    package.make "-j#{Packo.env('MAKE_JOBS')}"
 
     package.stages.call(:compiled, @configuration)
   end

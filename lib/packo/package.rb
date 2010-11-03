@@ -180,7 +180,7 @@ class Package
   end
 
   def method_missing (id, *args)
-		id = id.to_s.sub(/=$/, '').to_sym
+    id = id.to_s.sub(/=$/, '').to_sym
 
     if args.length == 0
       return @data[id]
