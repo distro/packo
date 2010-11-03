@@ -18,6 +18,7 @@
 #++
 
 require 'packo/feature'
+require 'packo/features/default'
 
 module Packo
 

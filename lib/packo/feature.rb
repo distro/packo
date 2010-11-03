@@ -34,15 +34,15 @@ class Feature
 
   attr_reader :package, :name, :block
 
-  attr_accessor :description
-
   def initialize (package, name, enabled=false, &block)
     @package = package
     @name    = name
     @enabled = enabled
     @block   = block
 
-    self.merge(Packo::Features::Default[@name]) rescue nil
+    if Packo::Features::Default[@name]
+      self.instance_exec(self, &Packo::Features::Default[@name])
+    end
 
     self.instance_exec(self, &@block) if @block
   end
@@ -51,17 +51,12 @@ class Feature
   def enabled!;  @enabled = true  end
   def disabled!; @enabled = false end
 
-  def on (what, priority=0, &block)
-    @package.stages.register(what, priority, block, self)
+  def description (value=nil)
+    value ? @description = value : @description
   end
 
-  def merge (feature)
-    return if feature.nil?
-
-    @enabled     = feature.enabled?
-    @description = feature.description if feature.description
-
-    self.instance_exec(self, &feature.block) if feature.block
+  def on (what, priority=0, &block)
+    @package.stages.register(what, priority, block, self)
   end
 
   def owner= (value)

@@ -25,7 +25,7 @@ class Features
 
 Default = Class.new(Hash) {
   def define (name, &block)
-    self[name.to_sym] = Feature.new(nil, name, &block)
+    self[name.to_sym] = block
   end
 }.new
 
