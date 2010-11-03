@@ -139,6 +139,7 @@ class Autotools < Module
         end
 
         def autoreconf (version=nil)
+          Packo.sh 'aclocal'
           Packo.sh "autoreconf#{"-#{version}" if version}"
         end
 

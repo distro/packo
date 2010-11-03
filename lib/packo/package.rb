@@ -220,7 +220,7 @@ XML
     if pack && @version
       "#{@name}-#{@version}#{"+#{@flavors.to_s(true)}" if !@flavors.to_s(true).empty?}#{"-#{@features.to_s(true)}" if !@features.to_s(true).empty?}#{".#{@slot}" if @slot}"
     else
-      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{@features.to_s}]" if !@features.to_s.empty?}"
+      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavors.to_s}}" if !@flavors.to_s.empty?}"
     end
   end
 end
