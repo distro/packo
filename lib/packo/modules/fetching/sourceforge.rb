@@ -35,13 +35,13 @@ class SourceForge < Module
     package.on :initialize do |package|
       package.fetch = Class.new(Module::Helper) {
         def url (name=nil)
-          matches = Packo.interpolate(name || package.source, self).match(%r{^(.*?)/(.*?)$})
+          matches = Packo.interpolate(name || package.source, package).match(%r{^(.*?)/(.*?)$})
 
           name    = matches[1]
           version = matches[2]
 
-          body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files"))
-          body = Net::HTTP.get(URI.parse(body.match(%r{href="(.*?#{name}/files/#{name}/#{version}/.*?/download")})))
+          body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files/"))
+          body = Net::HTTP.get(URI.parse(body.match(%r{href="(.*?#{name}/files/#{name}/#{version}/.*?/download)"})[1]))
           
           URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
         end

@@ -70,9 +70,9 @@ class Autotools < Module
     def disable (name, value=nil)
       [name].flatten.each {|name|
         if value === true || value === false
-          @with[name.to_s] = !value
+          @enable[name.to_s] = !value
         else
-          @with[name.to_s] = false
+          @enable[name.to_s] = false
         end
       }
     end
@@ -162,8 +162,8 @@ class Autotools < Module
           Packo.sh 'make', *args
         end
 
-        def install (path=nil, *args)
-          Packo.sh 'make', "DESTDIR=#{path || package.distdir}", *args
+        def install (path=nil)
+          self.make 'install'
         end
       }.new(package)
     end
@@ -174,13 +174,8 @@ class Autotools < Module
 
     FileUtils.mkpath "#{package.distdir}/usr"
 
-    @configuration.set 'prefix',        "#{package.distdir}/usr"
-    @configuration.set 'mandir',        "#{package.distdir}/usr/share/man"
-    @configuration.set 'infodir',       "#{package.distdir}/usr/share/info"
-    @configuration.set 'datadir',       "#{package.distdir}/usr/share"
-    @configuration.set 'sysconfdir',    "#{package.distdir}/etc"
-    @configuration.set 'localstatedir', "#{package.distdir}/var/lib"
-    @configuration.set 'libdir',        "#{package.distdir}/usr/lib"
+    @configuration.set 'prefix', "#{package.distdir}/usr"
+    @configuration.set 'datarootdir', "#{package.distdir}/usr/share"
 
     if (error = package.stages.call(:configure, @configuration).find {|result| result.is_a? Exception})
       Packo.debug error
@@ -204,7 +199,7 @@ class Autotools < Module
       return
     end
 
-    package.make "-j#{Packo.env('MAKE_JOBS')}"
+    package.autotools.make "-j#{Packo.env('MAKE_JOBS')}"
 
     package.stages.call(:compiled, @configuration)
   end
@@ -215,7 +210,7 @@ class Autotools < Module
       return
     end
 
-    package.autotools.install(package.distdir)
+    package.autotools.install
 
     package.stages.call(:installed, @configuration)
   end

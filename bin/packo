@@ -35,6 +35,7 @@ class Application < Optitron::CLI
   desc 'Builds packages'
   opt 'tmp', 'The path to the temporary directory', :default => Packo.env('TMP') || '/tmp'
   opt 'output', 'The directory where to save packages', :default => Packo.env('TMP') || '/tmp'
+  opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false
   def build (*names)
     Packo.env('TMP', params['tmp'])
 
@@ -93,18 +94,18 @@ class Application < Optitron::CLI
         FileUtils.cp path, output, :verbose => true, :preserve => true
       end
 
-      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s
+      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s || params['wipe']
         info "Cleaning #{package} because flavors/features changed."
 
         clean(package.to_s)
 
-        file = File.new("#{package.directory}/.build", 'w')
-        file.write package.to_s
-        file.close
-      end
+        package.create!
 
-      package.on :dependencies! do
-        puts package.dependencies.inspect
+        begin
+          file = File.new("#{package.directory}/.build", 'w')
+          file.write package.to_s
+          file.close
+        rescue; end
       end
 
       begin

@@ -23,6 +23,8 @@ class Package
       return
     end
 
+    package.arch = Packo.env('ARCH')
+
     ['binary', 'headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
       if Packo.env('FLAVORS').include?(flavor)
         package.flavors.send "#{flavor}!"

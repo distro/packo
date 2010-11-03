@@ -117,14 +117,14 @@ class Package
     @default_to_self = false
   end
 
-  def create
+  def create!
     FileUtils.mkpath "#{self.directory}/"
     FileUtils.mkpath "#{self.directory}/work"
     FileUtils.mkpath "#{self.directory}/dist"
   rescue; end
 
   def build
-    self.create
+    self.create!
 
     @stages.each {|stage|
       yield stage if block_given?
