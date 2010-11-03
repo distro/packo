@@ -49,7 +49,7 @@ class Tree
   end
 
   def update
-    _populate([@path])
+    _populate([@path], @path)
 
     @db.commit rescue nil    
   end
@@ -90,18 +90,31 @@ class Tree
 
   private
 
-  def _populate (what)
+  def _populate (what, root=nil)
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
           version = version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
 
-          @db.execute('INSERT OR IGNORE INTO packages VALUES(?, ?, ?, ?)', [
-            File.basename(what), version, File.dirname(what.sub(%r{#{Regexp.escape(@path)}/}, '')), @id
+          begin
+            load "#{what}/#{File.basename(what)}.rbuild"
+            load "#{what}/#{File.basename(what)}-#{version}.rbuild"
+          rescue LoadError
+          end
+
+          categories = File.dirname(what[(root || '').length + 1, what.length])
+
+          @db.execute('INSERT OR IGNORE INTO packages VALUES(?, ?, ?, ?, ?)', [
+            File.basename(what), version, File.dirname(what.sub(%r{#{Regexp.escape(@path)}/}, '')),
+            (Packo::Packages["#{categories}/#{File.basename(what)}-#{version}"].description rescue nil) || '',
+            @id
           ])
+
+          Packo::Packages.delete "#{categories}/#{File.basename(what)}"
+          Packo::Packages.delete "#{categories}/#{File.basename(what)}-#{version}"
         }
       else
-        _populate(Dir.entries(what).map {|e| if e != '.' && e != '..' then "#{what}/#{e}" end}.compact)
+        _populate(Dir.entries(what).map {|e| if e != '.' && e != '..' then "#{what}/#{e}" end}.compact, root)
       end
     }
   end

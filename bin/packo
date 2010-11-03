@@ -149,6 +149,13 @@ class Application < Optitron::CLI
   desc 'Updates the cache file'
   opt 'wipe', 'Wipes the cache before updating it', :type => :boolean, :default => false
   def cache (*trees)
+    if params['wipe']
+      FileUtils.rm(params['cache']) rescue nil
+
+      @db = SQLite3::Database.new(params['cache'])
+      @db.results_as_hash = true
+    end
+
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS trees (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,13 +180,6 @@ class Application < Optitron::CLI
         UNIQUE (name, version, categories)
       )
     })
-
-    if params['wipe']
-      FileUtils.rm(params['cache']) rescue nil
-
-      @db = SQLite3::Database.new(params['cache'])
-      @db.results_as_hash = true
-    end
 
     trees.each {|tree|
       Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
@@ -295,7 +295,8 @@ class Application < Optitron::CLI
     @params = params
 
     if File.directory? params['cache']
-      puts "#{colorize('*', :RED)} #{params['cache']} is a directory"
+      fatal "#{params['cache']} is a directory"
+      exit 42
     end
 
     begin
