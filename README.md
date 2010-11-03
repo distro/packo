@@ -7,6 +7,10 @@ to be even more flexible and easy to work with.
 Some stuff has been done.
 
     $ export PACKO_CACHE=/where/you/want/the/cache # this has to be a file, not a directory
+    $ export PACKO_PROFILE=/where/you/have/your/profile # if you downloaded organo/tree it's organo/tree/profiles/default
+
+Then you can start doing some things.
+
     $ packo cache /path/to/organo/tree
 
 This creates the cache, it's an sqlite database with all the packages in all the trees.
