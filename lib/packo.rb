@@ -43,7 +43,7 @@ module Packo
       show_command = show_command[0, 42] + '...' unless $trace
 
       block = lambda {|ok, status|
-        ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}]"
+        ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}] in {#{Dir.pwd}}"
       }
     end
 

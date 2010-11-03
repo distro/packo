@@ -128,6 +128,12 @@ class Autotools < Module
 
     package.on :initialize do |package|
       package.autotools = Class.new(Module::Helper) {
+        def initialize (package)
+          super(package)
+
+          @versions = {}
+        end
+
         def configure (conf)
           Packo.sh "./configure #{conf}"
         end
@@ -166,6 +172,10 @@ class Autotools < Module
         def install (path=nil)
           self.make 'install'
         end
+
+        def version (name, slot=nil)
+          slot ? @versions[name.to_sym] = slot : @versions[name.to_sym]
+        end
       }.new(package)
     end
   end
@@ -184,7 +194,7 @@ class Autotools < Module
     end
 
     if !File.exists? 'configure'
-      package.autotools.autoreconf
+      package.autotools.autogen
     end
 
     if !File.exists? 'Makefile'

@@ -32,13 +32,14 @@ class Feature
     Feature.new(nil, text, enabled)
   end
 
-  attr_reader :package, :name, :block
+  attr_reader :package, :name, :block, :dependencies
 
   def initialize (package, name, enabled=false, &block)
-    @package = package
-    @name    = name
-    @enabled = enabled
-    @block   = block
+    @package      = package
+    @name         = name
+    @enabled      = enabled
+    @block        = block
+    @dependencies = []
 
     if Packo::Features::Default[@name]
       self.instance_exec(self, &Packo::Features::Default[@name])
@@ -53,6 +54,10 @@ class Feature
 
   def description (value=nil)
     value ? @description = value : @description
+  end
+
+  def needs (*names)
+    @dependencies = @dependencies.concat(names).flatten.compact.uniq
   end
 
   def on (what, priority=0, &block)
