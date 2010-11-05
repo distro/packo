@@ -164,7 +164,11 @@ class Stages
     (@callbacks[what.to_sym] ||= []) << Callback.new(what, priority, callback, binding)
 
     @callbacks[what.to_sym].sort! {|a, b|
-      a.priority <=> b.priority
+      if a.priority == b.priority
+        a.position <=> b.position
+      else
+        a.priority <=> b.priority
+      end
     }
   end
 

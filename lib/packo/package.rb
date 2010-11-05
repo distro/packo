@@ -58,7 +58,7 @@ class Package
     return result
   end
 
-  attr_reader :name, :categories, :version, :slot, :modules, :dependencies, :blockers, :stages
+  attr_reader :environment, :name, :categories, :version, :slot, :modules, :dependencies, :blockers, :stages
 
   def initialize (name, version=nil, slot=nil, &block)
     tmp         = name.split('/')
@@ -106,7 +106,9 @@ class Package
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
     @stages.add :blockers, @blockers.method(:check), :at => :beginning
 
-    self.directory = "#{Packo.env('TMP') || '/tmp'}/#{(@categories + [@name]).join('/')}/#{@version}"
+    @environment = Environment.new
+
+    self.directory = "#{package.environment['TMP']}/#{(@categories + [@name]).join('/')}/#{@version}"
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
 

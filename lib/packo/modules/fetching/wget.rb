@@ -33,7 +33,7 @@ class Wget < Module
 
     package.on :initialize do |package|
       package.fetch = Class.new(Module::Helper) {
-        def url (source)
+        def url (source=nil)
           if source.is_a? Integer
             Packo.interpolate(package.source[source], package)
           elsif source.is_a? String

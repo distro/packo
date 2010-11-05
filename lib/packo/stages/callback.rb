@@ -22,15 +22,18 @@ module Packo
 class Stages
 
 class Callback
+  @@last = 0
+
   attr_accessor :binding
 
-  attr_reader :name, :priority
+  attr_reader :name, :priority, :position
 
   def initialize (name, priority, callback, binding=nil)
     @name     = name
     @priority = priority
     @callback = callback
     @binding  = binding
+    @position = @@last += 1
   end
 
   def call (*args)

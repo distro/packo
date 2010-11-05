@@ -97,8 +97,8 @@ class Tree
           version = version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
 
           begin
-            load "#{what}/#{File.basename(what)}.rbuild"
-            load "#{what}/#{File.basename(what)}-#{version}.rbuild"
+            Packo.load "#{what}/#{File.basename(what)}.rbuild"
+            Packo.load "#{what}/#{File.basename(what)}-#{version}.rbuild"
           rescue LoadError
           end
 

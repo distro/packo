@@ -92,7 +92,7 @@ class Autotools < Module
         case value
           when true;  result += "--enable-#{name} "
           when false; result += "--disable-#{name} "
-          else;       result += "--enable-#{name}=#{value} "
+          else;       result += "--enable-#{name}='#{value}' "
         end
       }
 
@@ -100,7 +100,7 @@ class Autotools < Module
         case value
           when true;  result += "--with-#{name} "
           when false; result += "--without-#{name} "
-          else;       result += "--with-#{name}=#{value} "
+          else;       result += "--with-#{name}='#{value}' "
         end
       }
 
@@ -135,7 +135,9 @@ class Autotools < Module
         end
 
         def configure (conf)
-          Packo.sh "./configure #{conf}"
+          package.environment.sandbox {
+            Packo.sh "./configure #{conf}"
+          }
         end
 
         def autogen
@@ -145,32 +147,46 @@ class Autotools < Module
         end
 
         def autoreconf (version=nil)
-          Packo.sh 'aclocal'
-          Packo.sh "autoreconf#{"-#{version}" if version}"
+          package.environment.sandbox {
+            Packo.sh 'aclocal'
+            Packo.sh "autoreconf#{"-#{version}" if version}"
+          }
         end
 
         def autoconf (version=nil)
-          Packo.sh "autoconf#{"-#{version}" if version}"
+          package.environment.sandbox {
+            Packo.sh "autoconf#{"-#{version}" if version}"
+          }
         end
 
         def autoheader (version=nil)
-          Packo.sh "autoheader#{"-#{version}" if version}"
+          package.environment.sandbox {
+            Packo.sh "autoheader#{"-#{version}" if version}"
+          }
         end
 
         def automake (version=nil)
-          Packo.sh "automake#{"-#{version}" if version}"
+          package.environment.sandbox {
+            Packo.sh "automake#{"-#{version}" if version}"
+          }
         end
 
         def autoupdate (version=nil)
-          Packo.sh "autoupdate#{"-#{version}" if version}"
+          package.environment.sandbox {
+            Packo.sh "autoupdate#{"-#{version}" if version}"
+          }
         end
 
         def make (*args)
-          Packo.sh 'make', *args
+          package.environment.sandbox {
+            Packo.sh 'make', *args
+          }
         end
 
         def install (path=nil)
-          self.make 'install'
+          package.environment.sandbox {
+            self.make 'install'
+          }
         end
 
         def version (name, slot=nil)
@@ -186,7 +202,6 @@ class Autotools < Module
     FileUtils.mkpath "#{package.distdir}/usr"
 
     @configuration.set 'prefix', "#{package.distdir}/usr"
-    @configuration.set 'datarootdir', "#{package.distdir}/usr/share"
 
     if (error = package.stages.call(:configure, @configuration).find {|result| result.is_a? Exception})
       Packo.debug error
@@ -210,7 +225,7 @@ class Autotools < Module
       return
     end
 
-    package.autotools.make "-j#{Packo.env('MAKE_JOBS') || 1}"
+    package.autotools.make "-j#{package.environment['MAKE_JOBS']}"
 
     package.stages.call(:compiled, @configuration)
   end

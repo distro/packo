@@ -30,14 +30,14 @@ require 'packo_binary'
 class Application < Optitron::CLI
   include Helpers
 
-  class_opt 'cache', 'The path to the cache file', :default => Packo.env('CACHE') || '/var/lib/packo/cache'
+  class_opt 'cache', 'The path to the cache file', :default => Packo::Environment['CACHE']
 
   desc 'Builds packages'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo.env('TMP') || '/tmp'
-  opt 'output', 'The directory where to save packages', :default => Packo.env('TMP') || '/tmp'
+  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment['TMP']
+  opt 'output', 'The directory where to save packages', :default => Packo::Environment['TMP']
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false
   def build (*names)
-    Packo.env('TMP', params['tmp'])
+    Packo::Environment['TMP'] = params['tmp']
 
     names.map {|package|
       tmp = []
@@ -65,12 +65,12 @@ class Application < Optitron::CLI
       }
 
       manifest.elements.each('//features/feature') {|e|
-        begin; load "#{Packo.env('PROFILE')}/features/#{e.text}"; rescue LoadError; end
+        begin; Packo.load "#{Packo::Environment['PROFILE']}/features/#{e.text}"; rescue LoadError; end
       }
 
       begin
-        load "#{path}/#{package.name}.rbuild"
-        load "#{path}/#{package.name}-#{package.version}.rbuild"
+        Packo.load "#{path}/#{package.name}.rbuild"
+        Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
       rescue LoadError
         warn 'One of the rbuilds could not be found'
       end
@@ -119,7 +119,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Clean a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo.env('TMP') || '/tmp'
+  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment['TMP']
   def clean (*names)
     names.map {|package|
       tmp = []
@@ -234,7 +234,7 @@ class Application < Optitron::CLI
         path = "#{tree.path}/#{packages.first.categories.join('/')}/#{packages.first.name}"
   
         begin
-          load "#{path}/#{packages.first.name}.rbuild"
+          Packo.load "#{path}/#{packages.first.name}.rbuild"
         rescue LoadError
           warn 'The root rbuild could not be found'
         end
@@ -243,7 +243,7 @@ class Application < Optitron::CLI
           info "doing #{package.version}..."
   
           begin
-            load "#{path}/#{package.name}-#{package.version}.rbuild"
+            Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
           rescue LoadError
             warn "Failed to load #{package}"
             next
@@ -307,9 +307,15 @@ class Application < Optitron::CLI
     puts "packø #{Packo::Version}"
   end
 
-  def initialize
-    Packo.env('PROFILE', '/etc/packo.profile') if !Packo.env('PROFILE')
-    Packo.env('FLAVORS', 'headers documentation') if !Packo.env('FLAVORS')
+  desc "Manage packø's environment"
+  def env (*args)
+    if args.first == 'show'
+      Packo::Environment.each {|name, value|
+        puts "PACKO_#{name} = #{value}"
+      }
+    else
+
+    end
   end
 
   def params= (params)

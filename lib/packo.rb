@@ -20,16 +20,10 @@
 require 'versionomy'
 require 'fileutils'
 
+require 'packo/environment'
+
 module Packo
   Version = Versionomy.parse('0.0.1')
-
-  def self.env (name, value=nil)
-    if value.nil?
-      return ENV["PACKO_#{name}"] || ENV[name.to_s]
-    else
-      ENV["PACKO_#{name}"] = value.to_s
-    end
-  end
 
   def self.interpolate (string, on)
     on.instance_eval('"' + string + '"') rescue nil
@@ -64,11 +58,11 @@ module Packo
   end
 
   def self.debug (argument, options={})
-    if !Packo.env('DEBUG') && !options[:force]
+    if !Packo::Environment['DEBUG'] && !options[:force]
       return
     end
 
-    if Packo.env('DEBUG').to_i < (options[:level] || 1) && !options[:force]
+    if Packo::Environment['DEBUG'].to_i < (options[:level] || 1) && !options[:force]
       return
     end
 
@@ -91,6 +85,14 @@ module Packo
     end
 
     puts output
+  end
+
+  def self.load (path)
+    begin
+      eval(File.read(path))
+    rescue Errno::ENOENT
+      raise LoadError.new("no such file to load -- #{path}")
+    end
   end
 end
 

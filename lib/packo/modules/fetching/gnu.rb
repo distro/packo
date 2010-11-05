@@ -40,13 +40,23 @@ class GNU < Module
           name    = matches[1]
           version = matches[2]
       
-          body = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/"))
-      
-          packs = body.scan(%r{href="(#{name}-#{version}.*?)"}).flatten.map {|pack|
+          packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/")).scan(
+            %r{href="(#{name}-#{version}.*?)"}
+          ).flatten.map {|pack|
             URI.decode(pack)
           }.select {|pack|
-            !pack.match(/\.sig$/)
+            !pack.match(%r{(\.sig|/)$})
           }
+
+          if packs.empty?
+            packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/#{name}-#{version}/")).scan(
+              %r{href="(#{name}-#{version}.*?)"}
+            ).flatten.map {|pack|
+              URI.decode("#{name}-#{version}/#{pack}")
+            }.select {|pack|
+              !pack.match(%r{(\.sig|/)$})
+            }
+          end
       
           pack = nil
           ['xz', 'bz2', 'gz'].each {|compression|
@@ -56,6 +66,8 @@ class GNU < Module
       
             break if pack
           }
+
+          raise RuntimeError.new "No download URL for #{name}-#{version}" if !pack
       
           "http://ftp.gnu.org/gnu/#{name}/#{pack}"
         end

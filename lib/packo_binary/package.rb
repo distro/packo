@@ -23,17 +23,15 @@ class Package
       return
     end
 
-    package.arch = Packo.env('ARCH')
-
     ['binary', 'headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
-      if Packo.env('FLAVORS').include?(flavor)
+      if Packo::Environment['FLAVORS'].include?(flavor)
         package.flavors.send "#{flavor}!"
       else
         package.flavors.send "not_#{flavor}!"
       end
     }
 
-    (Packo.env('FEATURES') || '').split(/\s+/).each {|feature|
+    Packo::Environment['FEATURES'].split(/\s+/).each {|feature|
       feature = Packo::Feature.parse(feature)
 
       package.features {
