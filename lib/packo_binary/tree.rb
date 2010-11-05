@@ -36,6 +36,8 @@ class Tree
     Tree.new(db, name)
   end
 
+  include Helpers
+
   attr_reader :id, :path
 
   def initialize (db, name)
@@ -96,22 +98,35 @@ class Tree
         Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
           version = version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
 
+          package = Package.new(File.basename(what), version, File.dirname(what[(root || '').length + 1, what.length]))
+
           begin
-            Packo.load "#{what}/#{File.basename(what)}.rbuild"
-            Packo.load "#{what}/#{File.basename(what)}-#{version}.rbuild"
+            loadPackage(what, package)
           rescue LoadError
+            warn "Some files failed to load for #{File.basename(what)}"
           end
 
-          categories = File.dirname(what[(root || '').length + 1, what.length])
+          package = Packo::Packages[package.to_s]
 
-          @db.execute('INSERT OR IGNORE INTO packages VALUES(?, ?, ?, ?, ?)', [
-            File.basename(what), version, File.dirname(what.sub(%r{#{Regexp.escape(@path)}/}, '')),
-            (Packo::Packages["#{categories}/#{File.basename(what)}-#{version}"].description rescue nil) || '',
-            @id
+          if !package
+            warn "Package not found: #{File.basename(what)}"
+            next
+          end
+
+          @db.execute('INSERT OR REPLACE INTO packages VALUES(?, ?, ?, ?, ?, ?, ?)', [@id,
+            package.name, package.version.to_s, package.categories.join('/'),
+            package.description, [package.homepage].flatten.join(' '), [package.license].flatten.join(' ')
           ])
 
-          Packo::Packages.delete "#{categories}/#{File.basename(what)}"
-          Packo::Packages.delete "#{categories}/#{File.basename(what)}-#{version}"
+          package.features.each {|feature|
+            @db.execute('INSERT OR REPLACE INTO package_features VALUES(?, ?, ?, ?, ?, ?)', [
+              package.name, package.version.to_s, package.categories.join('/'),
+              feature.name, feature.description, (feature.enabled?) ? 1 : 0
+            ])
+          }
+
+          Packo::Packages.delete "#{package.categories.join('/')}/#{package.name}"
+          Packo::Packages.delete package.to_s
         }
       else
         _populate(Dir.entries(what).map {|e| if e != '.' && e != '..' then "#{what}/#{e}" end}.compact, root)

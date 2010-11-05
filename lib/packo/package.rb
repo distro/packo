@@ -128,11 +128,15 @@ class Package
   def build
     self.create!
 
+    @stages.call :build, self
+
     @stages.each {|stage|
       yield stage if block_given?
 
       stage.call
     }
+
+    @stages.call :build!, self
   end
 
   def use (klass)

@@ -57,4 +57,15 @@ module Helpers
   def fatal (text)
     puts "#{colorize('*', :RED)} #{text}"
   end
+
+  def loadPackage (path, package)
+    manifest = REXML::Document.new(File.new("#{path}/manifest.xml"))
+
+    manifest.elements.each('//features/feature') {|e|
+      begin; Packo.load "#{Packo::Environment['PROFILE']}/features/#{e.text}"; rescue LoadError; end
+    }
+
+    Packo.load "#{path}/#{package.name}.rbuild"
+    Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
+  end
 end

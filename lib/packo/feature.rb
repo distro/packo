@@ -36,13 +36,13 @@ class Feature
 
   def initialize (package, name, enabled=false, &block)
     @package      = package
-    @name         = name
+    @name         = name.to_s
     @enabled      = enabled
     @block        = block
     @dependencies = []
 
-    if Packo::Features::Default[@name]
-      self.instance_exec(self, &Packo::Features::Default[@name])
+    if Packo::Features::Default[@name.to_sym]
+      self.instance_exec(self, &Packo::Features::Default[@name.to_sym])
     end
 
     self.instance_exec(self, &@block) if @block

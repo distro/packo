@@ -185,7 +185,7 @@ class Autotools < Module
 
         def install (path=nil)
           package.environment.sandbox {
-            self.make 'install'
+            self.make "DESTDIR=#{path || package.distdir}", 'install'
           }
         end
 
@@ -201,7 +201,7 @@ class Autotools < Module
 
     FileUtils.mkpath "#{package.distdir}/usr"
 
-    @configuration.set 'prefix', "#{package.distdir}/usr"
+    @configuration.set 'prefix', '/usr'
 
     if (error = package.stages.call(:configure, @configuration).find {|result| result.is_a? Exception})
       Packo.debug error

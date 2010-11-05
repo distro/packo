@@ -35,7 +35,7 @@ class Application < Optitron::CLI
   desc 'Builds packages'
   opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment['TMP']
   opt 'output', 'The directory where to save packages', :default => Packo::Environment['TMP']
-  opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false
+  opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
   def build (*names)
     Packo::Environment['TMP'] = params['tmp']
 
@@ -64,13 +64,8 @@ class Application < Optitron::CLI
         files[e.attributes['name']] = e.text
       }
 
-      manifest.elements.each('//features/feature') {|e|
-        begin; Packo.load "#{Packo::Environment['PROFILE']}/features/#{e.text}"; rescue LoadError; end
-      }
-
       begin
-        Packo.load "#{path}/#{package.name}.rbuild"
-        Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
+        loadPackage(path, package)
       rescue LoadError
         warn 'One of the rbuilds could not be found'
       end
@@ -163,7 +158,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Updates the cache file'
-  opt 'wipe', 'Wipes the cache before updating it', :type => :boolean, :default => false
+  opt 'wipe', 'Wipes the cache before updating it', :type => :boolean, :default => false, :short_name => 'w'
   def cache (*trees)
     if params['wipe']
       FileUtils.rm(params['cache']) rescue nil
@@ -184,16 +179,33 @@ class Application < Optitron::CLI
     })
   
     @db.execute(%{
-      CREATE TABLE IF NOT EXISTS packages (
-        name       TEXT,
-        version    TEXT,
-        categories TEXT,
+      CREATE TABLE IF NOT EXISTS packages ( 
+        tree INTEGER,
+
+        name       TEXT PRIMARY KEY,
+        version    TEXT PRIMARY KEY,
+        categories TEXT PRIMARY KEY,
 
         description TEXT,
-  
-        tree INTEGER,
-  
+        homepage TEXT,
+        license TEXT,
+
         UNIQUE (name, version, categories)
+      )
+    })
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS package_features (
+        package_name       TEXT,
+        package_version    TEXT,
+        package_categories TEXT,
+
+        name TEXT,
+        description TEXT,
+
+        enabled INTEGER,
+
+        UNIQUE (package_name, package_version, package_categories, name)
       )
     })
 
