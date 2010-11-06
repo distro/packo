@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+module PackoBinary
+
 class Tree
   def self.all (db)
     db.execute('SELECT * FROM trees').map {|tree|
@@ -98,7 +100,7 @@ class Tree
         Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
           version = version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
 
-          package = Package.new(File.basename(what), version, File.dirname(what[(root || '').length + 1, what.length]))
+          package = PackoBinary::Package.new(File.basename(what), version, File.dirname(what[(root || '').length + 1, what.length]))
 
           begin
             loadPackage(what, package)
@@ -133,4 +135,6 @@ class Tree
       end
     }
   end
+end
+
 end

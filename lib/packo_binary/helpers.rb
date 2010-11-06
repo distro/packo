@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+module PackoBinary
+
 module Helpers
   def colorize (text, fg, bg=nil, attr=nil)
     colors = {
@@ -68,4 +70,6 @@ module Helpers
     Packo.load "#{path}/#{package.name}.rbuild"
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
   end
+end
+
 end

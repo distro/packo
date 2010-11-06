@@ -28,9 +28,14 @@ require 'digest/sha1'
 require 'packo_binary'
 
 class Application < Optitron::CLI
-  include Helpers
+  include PackoBinary::Helpers
 
   class_opt 'cache', 'The path to the cache file', :default => Packo::Environment['CACHE']
+
+  desc 'Output version'
+  def version
+    puts "packø #{Packo::Version}"
+  end
 
   desc 'Builds packages'
   opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment['TMP']
@@ -42,9 +47,9 @@ class Application < Optitron::CLI
     names.map {|package|
       tmp = []
 
-      Tree.all(@db).each {|tree|
+      PackoBinary::Tree.all(@db).each {|tree|
         tree.search(package, true).each {|pkg|
-          tmp << Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
         }
       }
 
@@ -74,7 +79,7 @@ class Application < Optitron::CLI
         warn 'The package does not have a parent'
       end
 
-      package = Package.envify(Packo::Packages[package.to_s])
+      package = PackoBinary::Package.envify(Packo::Packages[package.to_s])
 
       if !package
         fatal 'Package could not be instantiated'
@@ -119,9 +124,9 @@ class Application < Optitron::CLI
     names.map {|package|
       tmp = []
 
-      Tree.all(@db).each {|tree|
+      PackoBinary::Tree.all(@db).each {|tree|
         tree.search(package, true).each {|pkg|
-          tmp << Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
         }
       }
 
@@ -150,9 +155,9 @@ class Application < Optitron::CLI
   desc 'Searches packages with the given expression'
   opt 'exact', 'Search for the exact name', :type => :boolean, :default => false
   def search (expression='')
-    Tree.all(@db).each {|tree|
+    PackoBinary::Tree.all(@db).each {|tree|
       tree.search(expression, params['exact']).each {|package|
-        puts Package.new(package['name'], package['version'], package['categories']).to_s
+        puts PackoBinary::Package.new(package['name'], package['version'], package['categories']).to_s
       }
     }
   end
@@ -210,7 +215,7 @@ class Application < Optitron::CLI
     })
 
     trees.each {|tree|
-      Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
+      PackoBinary::Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
     }
   
     @db.commit rescue nil
@@ -221,9 +226,9 @@ class Application < Optitron::CLI
     names.map {|package|
       tmp = []
 
-      Tree.all(@db).each {|tree|
+      PackoBinary::Tree.all(@db).each {|tree|
         tree.search(package, true).each {|pkg|
-          tmp << Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
         }
       }
 
@@ -261,7 +266,7 @@ class Application < Optitron::CLI
             next
           end
   
-          package = Package.envify(Packo::Packages[package.to_s])
+          package = PackoBinary::Package.envify(Packo::Packages[package.to_s])
   
           if !package
             fatal 'Package could not be instantiated'
@@ -314,9 +319,9 @@ class Application < Optitron::CLI
     }
   end
 
-  desc 'Output version'
-  def version
-    puts "packø #{Packo::Version}"
+  desc "Manage packø's configurations"
+  def select (*args)
+
   end
 
   desc "Manage packø's environment"

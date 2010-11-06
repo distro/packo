@@ -17,7 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo_binary/helpers'
-require 'packo_binary/package'
-require 'packo_binary/tree'
-require 'packo_binary/select'
+module PackoBinary
+
+class Select
+
+end
+
+end

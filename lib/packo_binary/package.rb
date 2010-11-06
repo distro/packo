@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+module PackoBinary
+
 class Package
   def self.envify (package)
     if !package
@@ -62,4 +64,6 @@ class Package
       "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
     end
   end
+end
+
 end

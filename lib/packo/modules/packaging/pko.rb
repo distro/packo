@@ -58,7 +58,7 @@ class PKO < Module
 
     name = "#{package.to_s(true)}.pko"
 
-    Packo.sh 'tar', 'cjf', name, 'dist/', 'pre/', 'post/', 'package.xml'
+    Packo.sh 'tar', 'cJf', name, 'dist/', 'pre/', 'post/', 'package.xml'
 
     package.stages.call(:packed, "#{package.directory}/#{name}")
   end
