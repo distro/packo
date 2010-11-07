@@ -19,10 +19,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo'
-require 'packo_binary/helpers'
 require 'optitron'
 require 'sqlite3'
+require 'packo'
+require 'packo_binary/helpers'
 
 class Application < Optitron::CLI
   include PackoBinary::Helpers
@@ -66,6 +66,8 @@ class Application < Optitron::CLI
       exit 1
     end
 
+    cmd << " --database='#{params['database']}'"
+
     args.each {|arg|
       cmd << %Q{ "#{arg}"}
     }
@@ -97,6 +99,16 @@ class Application < Optitron::CLI
         description TEXT,
 
         path TEXT,
+
+        UNIQUE (name)
+      )
+    })
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS data (
+        name TEXT,
+
+        data BLOB,
 
         UNIQUE (name)
       )

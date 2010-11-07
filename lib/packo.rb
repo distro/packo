@@ -94,6 +94,10 @@ module Packo
       raise LoadError.new("no such file to load -- #{path}")
     end
   end
+
+  def self.numeric? (what)
+    true if Float(what) rescue false
+  end
 end
 
 require 'packo/package'
