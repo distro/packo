@@ -45,7 +45,7 @@ class Manifest
         Hash[
           :name        => selector.attributes['name'],
           :description => selector.attributes['description'],
-          :path        = selector.text
+          :path        => selector.text
         ]
       }
     ))

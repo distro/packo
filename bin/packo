@@ -163,7 +163,7 @@ class Application < Optitron::CLI
         when 'pko'
           Packo::Modules::Packaging::PKO.unpack(File.realpath(name), path)
 
-          manifest = Packo::Package::Manifest.open("#{path}/manifest.xml"))
+          manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
 
           puts manifest.inspect
 
