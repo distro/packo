@@ -41,15 +41,20 @@ module Packo
       }
     end
 
-    print "#{cmd.first} "
-    cmd[1 .. cmd.length].each {|cmd|
-      if cmd.match(/[ ']/)
-        print %Q{"#{cmd}" }
-      else
-        print "#{cmd} "
-      end
-    }
-    print "\n"
+    if options[:silent]
+      options[:out] = '/dev/null'
+      options[:err] = '/dev/null'
+    else
+      print "#{cmd.first} "
+      cmd[1 .. cmd.length].each {|cmd|
+        if cmd.match(/[ ']/)
+          print %Q{"#{cmd}" }
+        else
+          print "#{cmd} "
+        end
+      }
+      print "\n"
+    end
 
     result = Kernel.system(options[:env] || {}, *cmd, options)
     status = $?

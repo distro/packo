@@ -27,13 +27,13 @@ module Packaging
 
 class PKO < Module
   def self.pack (name, *files)
-    Packo.sh 'tar', 'cJf', File.realpath(name), *files
+    Packo.sh 'tar', 'cJf', File.realpath(name), *files, :silent => true
   end
 
   def self.unpack (name, to)
     FileUtils.mkpath(to) rescue nil
 
-    Packo.sh 'tar', 'xJf', File.realpath(name), '-C', to
+    Packo.sh 'tar', 'xJf', File.realpath(name), '-C', to, :silent => true
   end
 
   def initialize (package)

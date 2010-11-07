@@ -172,11 +172,11 @@ class Application < Optitron::CLI
           manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
 
           manifest.selectors.each {|selector|
-            FileUtils.cp "#{path}/selectors/#{selector.path}", Packo::Environment[:SELECTOR_MODULES], :preserve => true
-            Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{Packo::Environment[:SELECTOR_MODULES]}/#{selector.path}"
+            FileUtils.cp "#{path}/selectors/#{selector.path}", Packo::Environment[:SELECTOR_MODULES], :preserve => true, :force => true
+            Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{Packo::Environment[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
           }
 
-          FileUtils.cp_r Dir.glob("#{path}/dist/*"), params['destination'], :preserve => true, :verbose => true
+          FileUtils.cp_r Dir.glob("#{path}/dist/*"), params['destination'], :preserve => true, :force => true
 
         else
           fatal 'Unknown package type'
