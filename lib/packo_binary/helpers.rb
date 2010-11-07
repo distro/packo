@@ -61,9 +61,9 @@ module Helpers
   end
 
   def loadPackage (path, package)
-    manifest = REXML::Document.new(File.new("#{path}/manifest.xml"))
+    digest = REXML::Document.new(File.new("#{path}/digest.xml"))
 
-    manifest.elements.each('//features/feature') {|e|
+    digest.elements.each('//features/feature') {|e|
       begin; Packo.load "#{Packo::Environment['PROFILE']}/features/#{e.text}"; rescue LoadError; end
     }
 

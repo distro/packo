@@ -68,7 +68,7 @@ class PKO < Module
 
     FileUtils.mkpath "#{package.directory}/selectors"
     [package.selector].flatten.each {|selector|
-      FileUtils.cp Packo.interpolate(selector[:path], self), "#{package.directory}/selectors"
+      FileUtils.cp Packo.interpolate(selector[:path], self), "#{package.directory}/selectors", :preserve => true
     }
 
     name = "#{package.to_s(true)}.pko"

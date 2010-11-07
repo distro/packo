@@ -32,7 +32,7 @@ require 'packo/modules/packaging'
 class Application < Optitron::CLI
   include PackoBinary::Helpers
 
-  class_opt 'cache', 'The path to the cache file', :default => Packo::Environment['CACHE']
+  class_opt 'cache', 'The path to the cache file', :default => Packo::Environment[:CACHE]
 
   desc 'Output version'
   def version
@@ -40,11 +40,11 @@ class Application < Optitron::CLI
   end
 
   desc 'Builds packages'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment['TMP']
-  opt 'output', 'The directory where to save packages', :default => Packo::Environment['TMP']
+  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
+  opt 'output', 'The directory where to save packages', :default => Packo::Environment[:TMP]
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
   def build (*names)
-    Packo::Environment['TMP'] = params['tmp']
+    Packo::Environment[:TMP] = params['tmp']
 
     names.map {|package|
       tmp = []
@@ -125,7 +125,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Clean a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment['TMP']
+  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
   def clean (*names)
     names.map {|package|
       tmp = []
@@ -163,7 +163,7 @@ class Application < Optitron::CLI
     names.each {|name|
       info "Installing #{name}"
 
-      path = "#{Packo::Environment['TMP']}/#{name}"
+      path = "#{Packo::Environment[:TMP]}/#{name}"
 
       case File.extname(name)
         when '.pko'
