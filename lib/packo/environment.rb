@@ -37,8 +37,10 @@ class Environment < Hash
     :FLAVORS  => 'headers documentation',
     :FEATURES => '',
 
-    :CACHE => '/var/lib/packo/cache',
-    :TMP   => '/tmp'
+    :CACHE  => '/var/lib/packo/cache',
+    :SELECT => '/var/lib/packo/select',
+
+    :TMP    => '/tmp'
   }
 
   @@callbacks = {

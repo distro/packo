@@ -198,28 +198,44 @@ class Package
   def package; self end
 
   def to_xml
-    <<XML
+    result = ''
 
-<?xml version="1.0" encoding="utf-8"?>
+    package = REXML::Document.new
+    package.add_element REXML::Element.new('package')
+    package.root.attributes['version'] = '1.0'
 
-<package>
-    <name>#{@name}</name>
-    <version>#{@version}</version>
-  
-    <categories>
-#{@categories.map {|category|
-  "        <category>#{category}</category>"
-}.join("\n")}
-    </categories>
+    package.root.attributes['name']  = self.name
+    package.attributes['categories'] = self.categories.join('/')
+    package.attributes['version']    = self.version
+    package.attributes['slot']       = self.slot
 
-    <dependencies>
-#{@dependencies.each {|dependency|
-  "        <dependency type='#{dependency.runtime? ? 'runtime' : 'build'}'>#{dependency.to_s}</dependency>"
-}.join("\n")}
-    </dependencies>
-</package>
+    dependencies = REXML::Element.new('dependencies')
+    @dependencies.each {|dependency|
+      dom = REXML::Element.new('dependency')
 
-XML
+      dom.attributes['runtime'] = (dependency.runtime?) ? 'runtime' : 'build'
+      dom.text                  = dependency.to_s
+
+      dependencies.add_element dom
+    }
+
+    selects = REXML::Element.new('selects')
+    [self.select].flatten.each {|select|
+      dom = REXML::Element.new('select')
+
+      dom.attributes['name']        = select[:name]
+      dom.attributes['description'] = select[:description]
+
+      dom.text = File.basename(select[:path])
+
+      selects.add_element dom
+    }
+
+    package.root.add_element dependencies
+    package.root.add_element selects
+
+    package.write result
+    result
   end
 
   def to_s (pack=false)

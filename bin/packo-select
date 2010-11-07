@@ -1,0 +1,109 @@
+#! /usr/bin/env ruby
+# encoding: utf-8
+#--
+# Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
+#
+# This file is part of packo.
+#
+# packo is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# packo is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with packo. If not, see <http://www.gnu.org/licenses/>.
+#++
+
+require 'packo'
+require 'packo_binary/helpers'
+require 'optitron'
+require 'sqlite3'
+
+class Application < Optitron::CLI
+  include PackoBinary::Helpers
+
+  class_opt 'database', 'The path to the cache file', :default => Packo::Environment['SELECT']
+
+  desc 'Output version'
+  def version
+    puts "packø selection tool #{Packo::Version}"
+  end
+
+  desc 'Show current selection modules'
+  def show
+    @db.execute('SELECT * FROM modules').each {|select|
+      info "#{select['name']}\t\t#{select['description']}"
+    }
+  end
+
+  desc 'Add a module to the database'
+  def add (name, description, path)
+    @db.execute('INSERT OR REPLACE INTO modules VALUES(?, ?, ?)', [
+      name, description, path 
+    ])
+  end
+
+  desc 'Delete a module from the database'
+  def delete (name)
+    @db.execute('DELETE FROM modules WHERE name = ?', name)
+  end
+
+  desc 'Delete the whole database'
+  def wipe
+    FileUtils.rm params['database']
+  end
+
+  def command_missing (command, *args)
+    cmd = @db.execute('SELECT * FROM modules WHERE name = ?', command)['path'] rescue nil
+
+    if !cmd
+      fatal "#{command} not found"
+      exit 1
+    end
+
+    args.each {|arg|
+      cmd << %Q{ "#{arg}"}
+    }
+
+    system(cmd)
+  end
+
+  def params= (params)
+    @params = params
+
+    if File.directory? params['database']
+      fatal "#{params['database']} is a directory"
+      exit 42
+    end
+
+    begin
+      FileUtils.mkpath(File.dirname(params['database']))
+    rescue Exception => e
+      fatal "Could not create #{File.dirname(params['database'])}"
+      exit 42
+    end
+
+    @db = SQLite3::Database.new(params['database'])
+    @db.results_as_hash = true
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS modules (
+        name TEXT,
+        description TEXT,
+
+        path TEXT,
+
+        UNIQUE (name)
+      )
+    })
+  end
+end
+
+Application.dispatch {
+  $app = Application.new
+}

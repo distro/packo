@@ -79,7 +79,8 @@ class Application < Optitron::CLI
         warn 'The package does not have a parent'
       end
 
-      package = PackoBinary::Package.envify(Packo::Packages[package.to_s])
+      package      = PackoBinary::Package.envify(Packo::Packages[package.to_s])
+      package.path = path
 
       if !package
         fatal 'Package could not be instantiated'
@@ -187,9 +188,9 @@ class Application < Optitron::CLI
       CREATE TABLE IF NOT EXISTS packages ( 
         tree INTEGER,
 
-        name       TEXT PRIMARY KEY,
-        version    TEXT PRIMARY KEY,
-        categories TEXT PRIMARY KEY,
+        name       TEXT,
+        version    TEXT,
+        categories TEXT,
 
         description TEXT,
         homepage TEXT,
@@ -319,20 +320,11 @@ class Application < Optitron::CLI
     }
   end
 
-  desc "Manage packø's configurations"
-  def select (*args)
-
-  end
-
-  desc "Manage packø's environment"
-  def env (*args)
-    if args.first == 'show'
-      Packo::Environment.each {|name, value|
-        puts "PACKO_#{name} = #{value}"
-      }
-    else
-
-    end
+  desc "Get packø's environment"
+  def env
+    Packo::Environment.each {|name, value|
+      puts "PACKO_#{name} = #{value}"
+    }
   end
 
   def params= (params)
@@ -355,4 +347,10 @@ class Application < Optitron::CLI
   end
 end
 
-Application.dispatch
+begin
+  Application.dispatch {
+    $app = Application.new
+  }
+rescue NoMethodError
+  $app.help
+end

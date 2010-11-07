@@ -56,6 +56,11 @@ class PKO < Module
       file.close
     }
 
+    FileUtils.mkpath "#{package.directory}/select"
+    [package.select].flatten.each {|select|
+      FileUtils.cp Packo.interpolate(select[:path], self), "#{package.directory}/select"
+    }
+
     name = "#{package.to_s(true)}.pko"
 
     Packo.sh 'tar', 'cJf', name, 'dist/', 'pre/', 'post/', 'package.xml'
