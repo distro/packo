@@ -122,6 +122,4 @@ class Application < Optitron::CLI
   end
 end
 
-Application.dispatch {
-  $app = Application.new
-}
+Application.dispatch

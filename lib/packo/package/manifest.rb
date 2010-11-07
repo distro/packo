@@ -112,10 +112,16 @@ class Manifest
     @dom.root.add_element selectors
   end
 
-  def save (to)
+  def save (to, *args)
     file = File.new(to, 'w')
-    @dom.write(file)
+    file.write(self.to_s(*args))
     file.close
+  end
+
+  def to_s (*args)
+    result = ''
+    @dom.write(result, *args)
+    result
   end
 end
 

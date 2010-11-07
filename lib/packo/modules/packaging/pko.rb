@@ -27,13 +27,13 @@ module Packaging
 
 class PKO < Module
   def self.pack (name, *files)
-    Packo.sh 'tar', 'cJf', name, *files
+    Packo.sh 'tar', 'cJf', File.realpath(name), *files
   end
 
   def self.unpack (name, to)
     FileUtils.mkpath(to) rescue nil
 
-    Packo.sh 'tar', 'xf', name, '-C', to
+    Packo.sh 'tar', 'xf', File.realpath(name), '-C', to
   end
 
   def initialize (package)
@@ -67,8 +67,8 @@ class PKO < Module
     }
 
     FileUtils.mkpath "#{package.directory}/selectors"
-    [package.select].flatten.each {|select|
-      FileUtils.cp Packo.interpolate(select[:path], self), "#{package.directory}/selectors"
+    [package.selector].flatten.each {|selector|
+      FileUtils.cp Packo.interpolate(selector[:path], self), "#{package.directory}/selectors"
     }
 
     name = "#{package.to_s(true)}.pko"

@@ -116,8 +116,11 @@ class Application < Optitron::CLI
           info "Executing #{stage.name}"
         }
       rescue Exception => e
+        fatal "Failed to build #{package}"
         Packo.debug e, :force => true
       end
+
+      info "Succesfully built #{package}"
     }
   end
 
@@ -243,7 +246,7 @@ class Application < Optitron::CLI
         PackoBinary::Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
       }
     rescue Exception => e
-      fatal "Failed to updated cache"
+      fatal "Failed to update cache"
       Packo.debug e, :force => true
     end
   
@@ -357,6 +360,33 @@ class Application < Optitron::CLI
     }
   end
 
+  desc 'Output the manifest of the given package'
+  def manifest (package)
+    tmp = []
+
+    PackoBinary::Tree.all(@db).each {|tree|
+      tree.search(package, true).each {|pkg|
+        tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+      }
+    }
+
+    if (multiple = tmp.uniq).length > 1
+      fatal 'Multiple packages with the same name, be more precise.'
+      exit 2
+    end
+
+    package = tmp.last
+
+    loadPackage("#{package.tree.path}/#{package.categories.join('/')}/#{package.name}", package)
+
+    if Packo::Packages[package.to_s]
+      puts Packo::Package::Manifest.new(Packo::Packages[package.to_s]).to_s(4)
+    else
+      fatal 'Package could not be instantiated'
+      exit 23
+    end
+  end
+
   def params= (params)
     @params = params
 
@@ -377,10 +407,4 @@ class Application < Optitron::CLI
   end
 end
 
-begin
-  Application.dispatch {
-    $app = Application.new
-  }
-rescue NoMethodError
-  $app.help
-end
+Application.dispatch
