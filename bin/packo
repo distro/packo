@@ -176,7 +176,7 @@ class Application < Optitron::CLI
             Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{Packo::Environment[:SELECTOR_MODULES]}/#{selector.path}"
           }
 
-          FileUtils.cp_r "#{path}/dist/*", params['destination'], :preserve => true, :verbose => true
+          FileUtils.cp_r Dir.glob("#{path}/dist/*"), params['destination'], :preserve => true, :verbose => true
 
         else
           fatal 'Unknown package type'
