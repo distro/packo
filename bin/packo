@@ -158,6 +158,7 @@ class Application < Optitron::CLI
   opt 'destination', 'Set the destination where to install the package', :default => '/'
   def install (*names)
     FileUtils.mkpath params['destination'] rescue nil
+    FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
 
     names.each {|name|
       info "Installing #{name}"
@@ -172,7 +173,7 @@ class Application < Optitron::CLI
 
           manifest.selectors.each {|selector|
             FileUtils.cp "#{path}/selectors/#{selector.path}", Packo::Environment[:SELECTOR_MODULES]
-            Packo.sh 'packo-select add', selector.name, selector.description, "#{path}/selectors/#{selector.path}"
+            Packo.sh 'packo-select add', selector.name, selector.description, "#{Packo::Environment[:SELECTOR_MODULES]}/#{selector.path}"
           }
 
           FileUtils.cp_r "#{path}/dist/*", params['destination'], :verbose => true
