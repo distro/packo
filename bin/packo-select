@@ -44,7 +44,7 @@ class Application < Optitron::CLI
   desc 'Add a module to the database'
   def add (name, description, path)
     @db.execute('INSERT OR REPLACE INTO modules VALUES(?, ?, ?)', [
-      name, description, path 
+      name, description, File.realpath(path)
     ])
   end
 
@@ -59,7 +59,7 @@ class Application < Optitron::CLI
   end
 
   def command_missing (command, *args)
-    cmd = @db.execute('SELECT * FROM modules WHERE name = ?', command)['path'] rescue nil
+    cmd = @db.execute('SELECT * FROM modules WHERE name = ?', command).first['path'] rescue nil
 
     if !cmd
       fatal "#{command} not found"
