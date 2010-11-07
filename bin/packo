@@ -64,7 +64,7 @@ class Application < Optitron::CLI
     }.each {|package|
       path = "#{package.tree.path}/#{package.categories.join('/')}/#{package.name}"
 
-      manifest = REXML::Document.new(File.new("#{path}/manifest.xml"))
+      manifest = REXML::Document.new(File.new("#{path}/digest.xml"))
 
       files = {}
       manifest.elements.each('//files/file') {|e|
@@ -278,9 +278,9 @@ class Application < Optitron::CLI
       packages.group_by {|package|
         package.tree
       }.each {|tree, packages|
-        manifest = REXML::Document.new
-        manifest.add_element REXML::Element.new('manifest')
-        manifest.root.attributes['version'] = '1.0'
+        digest = REXML::Document.new
+        digest.add_element REXML::Element.new('digest')
+        digest.root.attributes['version'] = '1.0'
   
         path = "#{tree.path}/#{packages.first.categories.join('/')}/#{packages.first.name}"
   
@@ -341,11 +341,11 @@ class Application < Optitron::CLI
           dom.add_element features
           dom.add_element files
   
-          manifest.root.add_element dom
+          digest.root.add_element dom
         }
   
-        file = File.new("#{path}/manifest.xml", 'w')
-        manifest.write file
+        file = File.new("#{path}/digest.xml", 'w')
+        digest.write file
         file.close
 
         info "Digested #{packages.first} (#{file.path})"
