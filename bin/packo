@@ -19,15 +19,15 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo'
 require 'optitron'
 require 'sqlite3'
 require 'rexml/document'
 require 'digest/sha1'
 
-require 'packo/modules/packaging'
 
+require 'packo'
 require 'packo_binary'
+require 'packo/modules/packaging'
 
 class Application < Optitron::CLI
   include PackoBinary::Helpers
@@ -160,14 +160,14 @@ class Application < Optitron::CLI
       path = "#{Packo::Environment['TMP']}/#{name}"
 
       case File.extname(name)
-        when 'pko'
+        when '.pko'
           Packo::Modules::Packaging::PKO.unpack(File.realpath(name), path)
 
           manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
 
           puts manifest.inspect
 
-#          FileUtils.cp_r "#{path}/dist/*", params['destination'], :verbose => true
+          FileUtils.cp_r "#{path}/dist/*", params['destination'], :verbose => true
 
         else
           fatal 'Unknown package type'
@@ -238,11 +238,18 @@ class Application < Optitron::CLI
       )
     })
 
-    trees.each {|tree|
-      PackoBinary::Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
-    }
+    begin
+      trees.each {|tree|
+        PackoBinary::Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
+      }
+    rescue Exception => e
+      fatal "Failed to updated cache"
+      Packo.debug e, :force => true
+    end
   
     @db.commit rescue nil
+
+    info "Updated cache succesfully"
   end
 
   desc 'Create a manifest for the given packages'

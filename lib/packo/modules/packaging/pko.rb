@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/module'
+
 module Packo
 
 module Modules
@@ -29,7 +31,7 @@ class PKO < Module
   end
 
   def self.unpack (name, to)
-    FileUtils.mkpath(to)
+    FileUtils.mkpath(to) rescue nil
 
     Packo.sh 'tar', 'xf', name, '-C', to
   end

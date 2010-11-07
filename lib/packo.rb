@@ -89,7 +89,7 @@ module Packo
 
   def self.load (path)
     begin
-      eval(File.read(path))
+      eval(File.read(path, :encoding => 'utf-8'), binding, path, 0)
     rescue Errno::ENOENT
       raise LoadError.new("no such file to load -- #{path}")
     end
