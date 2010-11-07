@@ -42,6 +42,7 @@ module Packo
     end
 
     if options[:silent]
+      options.delete :silent
       options[:out] = '/dev/null'
       options[:err] = '/dev/null'
     else
