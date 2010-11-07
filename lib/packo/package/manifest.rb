@@ -41,7 +41,7 @@ class Manifest
         Blocker.parse(blocker)
       },
 
-      :selectors => dom.elements.each('//selectors/selector') {}.map {|selector|
+      :selector => dom.elements.each('//selectors/selector') {}.map {|selector|
         Hash[
           :name        => selector.attributes['name'],
           :description => selector.attributes['description'],

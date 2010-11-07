@@ -160,6 +160,8 @@ class Application < Optitron::CLI
     FileUtils.mkpath params['destination'] rescue nil
 
     names.each {|name|
+      info "Installing #{name}"
+
       path = "#{Packo::Environment['TMP']}/#{name}"
 
       case File.extname(name)
@@ -168,7 +170,10 @@ class Application < Optitron::CLI
 
           manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
 
-          puts manifest.inspect
+          manifest.selectors.each {|selector|
+            FileUtils.cp "#{path}/selectors/#{selector.path}", Packo::Environment[:SELECTOR_MODULES]
+            Packo.sh 'packo-select add', selector.name, selector.description, "#{path}/selectors/#{selector.path}"
+          }
 
           FileUtils.cp_r "#{path}/dist/*", params['destination'], :verbose => true
 
@@ -176,6 +181,8 @@ class Application < Optitron::CLI
           fatal 'Unknown package type'
           exit 10
       end
+
+      info "Installed #{name}"
     }
   end
 
