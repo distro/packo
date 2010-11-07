@@ -20,6 +20,7 @@
 require 'ostruct'
 
 require 'packo/packages'
+require 'packo/package/manifest'
 
 require 'packo/dependencies'
 require 'packo/blockers'
@@ -111,6 +112,7 @@ class Package
     self.directory = "#{package.environment['TMP']}/#{(@categories + [@name]).join('/')}/#{@version}"
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
+    self.tempdir   = "#{package.directory}/temp"
 
     @default_to_self = true
     @stages.call :initialize, self
@@ -120,15 +122,18 @@ class Package
   end
 
   def create!
-    FileUtils.mkpath "#{self.directory}/"
-    FileUtils.mkpath "#{self.directory}/work"
-    FileUtils.mkpath "#{self.directory}/dist"
+    FileUtils.mkpath self.workdir
+    FileUtils.mkpath self.distdir
+    FileUtils.mkpath self.tempdir
   rescue; end
 
   def build
     self.create!
 
-    @stages.call :build, self
+    if (error = @stages.call(:build, self).find {|result| result.is_a? Exception})
+      Packo.debug error
+      return
+    end
 
     @stages.each {|stage|
       yield stage if block_given?
@@ -196,47 +201,6 @@ class Package
   end
 
   def package; self end
-
-  def to_xml
-    result = ''
-
-    package = REXML::Document.new
-    package.add_element REXML::Element.new('package')
-    package.root.attributes['version'] = '1.0'
-
-    package.root.attributes['name']  = self.name
-    package.attributes['categories'] = self.categories.join('/')
-    package.attributes['version']    = self.version
-    package.attributes['slot']       = self.slot
-
-    dependencies = REXML::Element.new('dependencies')
-    @dependencies.each {|dependency|
-      dom = REXML::Element.new('dependency')
-
-      dom.attributes['runtime'] = (dependency.runtime?) ? 'runtime' : 'build'
-      dom.text                  = dependency.to_s
-
-      dependencies.add_element dom
-    }
-
-    selects = REXML::Element.new('selects')
-    [self.select].flatten.each {|select|
-      dom = REXML::Element.new('select')
-
-      dom.attributes['name']        = select[:name]
-      dom.attributes['description'] = select[:description]
-
-      dom.text = File.basename(select[:path])
-
-      selects.add_element dom
-    }
-
-    package.root.add_element dependencies
-    package.root.add_element selects
-
-    package.write result
-    result
-  end
 
   def to_s (pack=false)
     if pack && @version

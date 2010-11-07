@@ -24,6 +24,16 @@ module Modules
 module Packaging
 
 class PKO < Module
+  def self.pack (name, *files)
+    Packo.sh 'tar', 'cJf', name, *files
+  end
+
+  def self.unpack (name, to)
+    FileUtils.mkpath(to)
+
+    Packo.sh 'tar', 'xf', name, '-C', to
+  end
+
   def initialize (package)
     super(package)
 
@@ -38,9 +48,7 @@ class PKO < Module
 
     Dir.chdir package.directory
 
-    file = File.new('package.xml', 'w')
-    file.write(package.to_xml)
-    file.close
+    Package::Manifest.new(package).save('manifest.xml')
 
     FileUtils.mkpath "#{package.directory}/pre"
     package.pre.each {|pre|
@@ -56,14 +64,14 @@ class PKO < Module
       file.close
     }
 
-    FileUtils.mkpath "#{package.directory}/select"
+    FileUtils.mkpath "#{package.directory}/selectors"
     [package.select].flatten.each {|select|
-      FileUtils.cp Packo.interpolate(select[:path], self), "#{package.directory}/select"
+      FileUtils.cp Packo.interpolate(select[:path], self), "#{package.directory}/selectors"
     }
 
     name = "#{package.to_s(true)}.pko"
 
-    Packo.sh 'tar', 'cJf', name, 'dist/', 'pre/', 'post/', 'package.xml'
+    PKO.pack(name, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
 
     package.stages.call(:packed, "#{package.directory}/#{name}")
   end

@@ -25,6 +25,8 @@ require 'sqlite3'
 require 'rexml/document'
 require 'digest/sha1'
 
+require 'packo/modules/packaging'
+
 require 'packo_binary'
 
 class Application < Optitron::CLI
@@ -143,14 +145,35 @@ class Application < Optitron::CLI
 
         FileUtils.rm_r "#{path}/work"; FileUtils.mkpath "#{path}/work"
         FileUtils.rm_r "#{path}/dist"; FileUtils.mkpath "#{path}/dist"
-      rescue Exception => e
+        FileUtils.rm_r "#{path}/temp"; FileUtils.mkpath "#{path}/temp"
+      rescue Exception
       end
     }
   end
 
   desc 'Installs packages'
+  opt 'destination', 'Set the destination where to install the package', :default => '/'
   def install (*names)
+    FileUtils.mkpath params['destination']
 
+    names.each {|name|
+      path = "#{Packo::Environment['TMP']}/#{name}"
+
+      case File.extname(name)
+        when 'pko'
+          Packo::Modules::Packaging::PKO.unpack(File.realpath(name), path)
+
+          manifest = Packo::Package::Manifest.open("#{path}/manifest.xml"))
+
+          puts manifest.inspect
+
+#          FileUtils.cp_r "#{path}/dist/*", params['destination'], :verbose => true
+
+        else
+          fatal 'Unknown package type'
+          exit 10
+      end
+    }
   end
 
   desc 'Searches packages with the given expression'

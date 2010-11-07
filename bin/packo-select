@@ -46,16 +46,22 @@ class Application < Optitron::CLI
     @db.execute('INSERT OR REPLACE INTO modules VALUES(?, ?, ?)', [
       name, description, File.realpath(path)
     ])
+
+    info "#{name} added"
   end
 
   desc 'Delete a module from the database'
   def delete (name)
     @db.execute('DELETE FROM modules WHERE name = ?', name)
+
+    info "#{name} deleted"
   end
 
   desc 'Delete the whole database'
   def wipe
     FileUtils.rm params['database']
+
+    info "#{params['database']} deleted"
   end
 
   def command_missing (command, *args)
