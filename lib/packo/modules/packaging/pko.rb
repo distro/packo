@@ -33,7 +33,7 @@ class PKO < Module
   def self.unpack (name, to)
     FileUtils.mkpath(to) rescue nil
 
-    Packo.sh 'tar', 'xf', File.realpath(name), '-C', to
+    Packo.sh 'tar', 'xJf', File.realpath(name), '-C', to
   end
 
   def initialize (package)
