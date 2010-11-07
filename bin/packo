@@ -154,7 +154,7 @@ class Application < Optitron::CLI
   desc 'Installs packages'
   opt 'destination', 'Set the destination where to install the package', :default => '/'
   def install (*names)
-    FileUtils.mkpath params['destination']
+    FileUtils.mkpath params['destination'] rescue nil
 
     names.each {|name|
       path = "#{Packo::Environment['TMP']}/#{name}"
