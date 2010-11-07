@@ -63,7 +63,7 @@ class Manifest
 
     @dependencies = what.dependencies
     @blockers     = what.blockers
-    @selectors    = [what.selector].flatten
+    @selectors    = [what.selector].flatten.map {|selector| OpenStruct.new(selector)}
 
     self.xmlify!
   end
@@ -99,9 +99,9 @@ class Manifest
     selectors = REXML::Element.new('selectors')
     self.selectors.each {|selector|
       selectors.add_element((dom = REXML::Element.new('selector');
-        dom.attributes['name']        = selector[:name];
-        dom.attributes['description'] = selector[:description];
-        dom.text                      = File.basename(selector[:path]);
+        dom.attributes['name']        = selector.name;
+        dom.attributes['description'] = selector.description;
+        dom.text                      = File.basename(selector.path);
         dom
       ))
     }
