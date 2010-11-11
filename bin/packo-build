@@ -50,7 +50,7 @@ class Application < Optitron::CLI
 
       PackoBinary::Tree.all(@db).each {|tree|
         tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+          tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
         }
       }
 
@@ -114,12 +114,12 @@ class Application < Optitron::CLI
         package.build {|stage|
           info "Executing #{stage.name}"
         }
+
+        info "Succesfully built #{package}"
       rescue Exception => e
         fatal "Failed to build #{package}"
         Packo.debug e, :force => true
       end
-
-      info "Succesfully built #{package}"
     }
   end
 
@@ -131,7 +131,7 @@ class Application < Optitron::CLI
 
       PackoBinary::Tree.all(@db).each {|tree|
         tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+          tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
         }
       }
 
@@ -158,7 +158,7 @@ class Application < Optitron::CLI
   def search (expression='')
     PackoBinary::Tree.all(@db).each {|tree|
       tree.search(expression, params['exact']).each {|package|
-        puts PackoBinary::Package.new(package['name'], package['version'], package['categories']).to_s
+        puts PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot']).to_s
       }
     }
   end
@@ -188,30 +188,32 @@ class Application < Optitron::CLI
       CREATE TABLE IF NOT EXISTS packages ( 
         tree INTEGER,
 
+        categories TEXT,
         name       TEXT,
         version    TEXT,
-        categories TEXT,
+        slot       TEXT,
 
         description TEXT,
         homepage TEXT,
         license TEXT,
 
-        UNIQUE (name, version, categories)
+        UNIQUE (categories, name, version, slot)
       )
     })
 
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS package_features (
+        package_categories TEXT,
         package_name       TEXT,
         package_version    TEXT,
-        package_categories TEXT,
+        package_slot       TEXT,
 
         name TEXT,
         description TEXT,
 
         enabled INTEGER,
 
-        UNIQUE (package_name, package_version, package_categories, name)
+        UNIQUE (package_categories, package_name, package_version, package_slot, name)
       )
     })
 
@@ -236,7 +238,7 @@ class Application < Optitron::CLI
 
       PackoBinary::Tree.all(@db).each {|tree|
         tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+          tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
         }
       }
 
@@ -333,7 +335,7 @@ class Application < Optitron::CLI
 
     PackoBinary::Tree.all(@db).each {|tree|
       tree.search(package, true).each {|pkg|
-        tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
+        tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
       }
     }
 

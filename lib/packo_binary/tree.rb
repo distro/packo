@@ -69,13 +69,13 @@ class Tree
 
         WHERE
           tree = ?
+          #{'AND categories LIKE ?' if !package.categories.empty?}
           #{'AND name LIKE ?' if package.name}
           #{'AND version LIKE ?' if package.version}
-          #{'AND categories LIKE ?' if !package.categories.empty?}
       }, [@id,
+        (!package.categories.empty? ? "%#{package.categories.join('/')}%" : nil),
         (package.name ? "%#{package.name}%" : nil),
-        (package.version ? "%#{package.version}%" : nil),
-        (!package.categories.empty? ? "%#{package.categories.join('/')}%" : nil)
+        (package.version ? "%#{package.version}%" : nil)
       ].compact)
     else
       @db.execute(%{
@@ -85,22 +85,36 @@ class Tree
 
         WHERE
           tree = ?
+          #{'AND categories = ?' if !package.categories.empty?}
           #{'AND name = ?' if package.name}
           #{'AND version = ?' if package.version}
-          #{'AND categories = ?' if !package.categories.empty?}
-      }, [@id, package.name, package.version, (package.categories.empty? ? nil : package.categories.join('/'))].compact)
+      }, [@id,
+        (package.categories.empty? ? nil : package.categories.join('/')),
+        package.name,
+        package.version
+      ].compact)
     end
   end
 
   private
 
   def _populate (what, root=nil)
+    last = nil
+
     what.select {|what| File.directory? what}.each {|what|
+      categories = File.dirname(what[(root || '').length + 1, what.length]) rescue nil
+
+      if categories && categories != '.'
+        next if categories[0] == '.'
+
+        info "Parsing #{categories}" if categories != last
+
+        last = categories
+      end
+
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
-          version = version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
-
-          package = PackoBinary::Package.new(File.basename(what), version, File.dirname(what[(root || '').length + 1, what.length]))
+          package = PackoBinary::Package.new(categories, File.basename(what), version.match(/-(\d.*?)\.(rbuild|xml)$/)[1])
 
           begin
             loadPackage(what, package)
@@ -115,19 +129,19 @@ class Tree
             next
           end
 
-          @db.execute('INSERT OR REPLACE INTO packages VALUES(?, ?, ?, ?, ?, ?, ?)', [@id,
-            package.name, package.version.to_s, package.categories.join('/'),
+          @db.execute('INSERT OR REPLACE INTO packages VALUES(?, ?, ?, ?, ?, ?, ?, ?)', [@id,
+            package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s,
             package.description, [package.homepage].flatten.join(' '), [package.license].flatten.join(' ')
           ])
 
           package.features.each {|feature|
-            @db.execute('INSERT OR REPLACE INTO package_features VALUES(?, ?, ?, ?, ?, ?)', [
-              package.name, package.version.to_s, package.categories.join('/'),
+            @db.execute('INSERT OR REPLACE INTO package_features VALUES(?, ?, ?, ?, ?, ?, ?)', [
+              package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s,
               feature.name, feature.description, (feature.enabled?) ? 1 : 0
             ])
           }
 
-          Packo::Packages.delete "#{package.categories.join('/')}/#{package.name}"
+          Packo::Packages.delete package.to_s(true)
           Packo::Packages.delete package.to_s
         }
       else

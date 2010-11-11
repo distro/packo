@@ -53,7 +53,7 @@ module Helpers
   end
 
   def warn (text)
-    puts "#{colorize('*', :YELLOW)} #{text}"
+    puts "#{colorize('*', :YELLOW, :DEFAULT, :BOLD)} #{text}"
   end
 
   def fatal (text)

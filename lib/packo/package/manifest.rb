@@ -63,7 +63,7 @@ class Manifest
 
     @dependencies = what.dependencies
     @blockers     = what.blockers
-    @selectors    = [what.selector].flatten.map {|selector| OpenStruct.new(selector)}
+    @selectors    = [what.selector].flatten.compact.map {|selector| OpenStruct.new(selector)}
 
     self.xmlify!
   end

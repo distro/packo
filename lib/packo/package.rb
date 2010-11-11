@@ -54,7 +54,12 @@ class Package
       result.name = result.categories.pop
     end
 
-    result.version = matches[3]
+    if matches[3]
+      matches = matches[3].match(/(.*?)(%(.*)$)?/)
+
+      result.version = matches[1]
+      result.slot    = matches[3]
+    end
 
     return result
   end
@@ -204,7 +209,7 @@ class Package
 
   def to_s (pack=false)
     if pack && @version
-      "#{@name}-#{@version}#{"+#{@flavors.to_s(true)}" if !@flavors.to_s(true).empty?}#{"-#{@features.to_s(true)}" if !@features.to_s(true).empty?}#{".#{@slot}" if @slot}"
+      "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavors.to_s(true)}" if !@flavors.to_s(true).empty?}#{"-#{@features.to_s(true)}" if !@features.to_s(true).empty?}"
     else
       "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavors.to_s}}" if !@flavors.to_s.empty?}"
     end

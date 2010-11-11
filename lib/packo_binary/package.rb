@@ -44,12 +44,13 @@ class Package
     package
   end
 
-  attr_reader :name, :version, :categories, :tree
+  attr_reader :categories, :name, :version, :slot, :tree
 
-  def initialize (name, version, categories, tree=nil)
+  def initialize (categories, name, version, slot=nil, tree=nil)
+    @categories = (categories || '').split('/')
     @name       = name
     @version    = version
-    @categories = (categories || '').split('/')
+    @slot       = ((slot.empty? rescue nil) ? nil : slot)
     @tree       = tree
   end
 
@@ -61,7 +62,7 @@ class Package
     if name
       (@categories + [@name]).join('/')
     else
-      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
+      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"%#{@slot}" if @slot}"
     end
   end
 end

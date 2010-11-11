@@ -38,6 +38,8 @@ class Application < Optitron::CLI
   desc 'Installs packages'
   opt 'destination', 'Set the destination where to install the package', :default => '/'
   def install (*name)
+    _database
+
     FileUtils.mkpath params['destination'] rescue nil
     FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
 
@@ -63,14 +65,19 @@ class Application < Optitron::CLI
           fatal 'Unknown package type'
           exit 10
       end
-
-      info "Installed #{name}"
     }
   end
 
   desc 'Uninstalls packages'
   def uninstall (*name)
+    _database
 
+  end
+
+  def show
+    @db.execute('SELECT * FROM present').each {|package|
+
+    }
   end
 
   desc 'Manages packø building system'
@@ -140,6 +147,24 @@ class Application < Optitron::CLI
 
     @db = SQLite3::Database.new(params['database'])
     @db.results_as_hash = true
+  end
+
+  private
+
+  def _database
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS present (
+        categories TEXT,
+        name       TEXT,
+        version    TEXT,
+        slot       TEXT,
+
+        uri  TEXT,
+        path TEXT,
+
+        UNIQUE (name, type)
+      )
+    })
   end
 end
 
