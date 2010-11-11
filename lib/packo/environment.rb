@@ -39,10 +39,16 @@ class Environment < Hash
 
     :CACHE => '/var/lib/packo/cache',
 
-    :SELECTOR_CACHE   => '/var/lib/packo/selectors',
-    :SELECTOR_MODULES => '/var/lib/packo/modules',
+    :REPOSITORY_CACHE     => '/var/lib/packo/repository-cache',
+    :REPOSITORY_DIRECTORY => '/var/lib/packo/repository-directory',
 
-    :TMP    => '/tmp'
+    :BUILD_CACHE => '/var/lib/packo/build-cache',
+
+    :SELECTOR_CACHE   => '/var/lib/packo/selector-cache',
+    :SELECTOR_MODULES => '/var/lib/packo/selector-modules',
+
+    :TMP   => '/tmp',
+    :DEBUG => nil
   }
 
   @@callbacks = {
@@ -76,7 +82,9 @@ class Environment < Hash
   end
 
   def self.each
-    @@default.each_key {|name|
+    (@@default.keys + ENV.map {|(key, value)|
+      key.sub(/^PACKO_/, '').to_sym if key.match(/^PACKO_/)
+    }.compact).uniq.each {|name|
       yield name.to_s, Environment[name]
     }
   end

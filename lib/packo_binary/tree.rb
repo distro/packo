@@ -27,7 +27,7 @@ class Tree
   end
 
   def self.name (dom)
-    dom.elements.each('/tree/name') {|e| e.name == 'name'}.first.text rescue nil
+    dom.root.attributes['name']
   end
 
   def self.create (db, dom, path)

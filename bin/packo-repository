@@ -1,0 +1,244 @@
+#! /usr/bin/env ruby
+# encoding: utf-8
+#--
+# Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
+#
+# This file is part of packo.
+#
+# packo is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# packo is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with packo. If not, see <http://www.gnu.org/licenses/>.
+#++
+
+require 'optitron'
+require 'sqlite3'
+require 'open-uri'
+require 'rexml/document'
+
+require 'packo'
+require 'packo_binary/helpers'
+
+class Application < Optitron::CLI
+  include PackoBinary::Helpers
+
+  class_opt 'database', 'The path to the database', :default => Packo::Environment[:REPOSITORY_CACHE]
+
+  desc 'Outputs version'
+  def version
+    puts "packø repository manager #{Packo::Version}"
+  end
+
+  desc 'Adds binary/source repositories'
+  def add (*uri)
+    FileUtils.mkpath "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/binary" rescue nil
+    FileUtils.mkpath "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/source" rescue nil
+
+    uri.each {|uri|
+      info "Adding #{uri}"
+
+      uri  = URI.parse(uri)
+      type = 'source'
+
+      if ['http', 'https', 'ftp'].member?(uri.scheme)
+        xml = open(uri).read
+        dom = REXML::Document.new(xml)
+
+        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{dom.root.attributes['type']}/#{dom.root.attributes['name']}"
+
+        case type = dom.attributes['type']
+          when 'binary'
+            begin
+              @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
+                dom.root.attributes['name'], 'binary', uri.to_s, path
+              ])
+            rescue SQLite3::ConstraintException
+              fatal "binary/#{dom.root.attributes['name']} already exists, delete it first"
+              next
+            end
+
+            file = File.new("#{path}.xml", 'w')
+            file.write(xml)
+            file.close
+          
+          when 'source'
+            uri = dom.elements.each('//mirror') {}.first.text
+
+            begin
+              @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
+                dom.root.attributes['name'], 'source', uri.to_s, path
+              ])
+            rescue SQLite3::ConstraintException
+              fatal "source/#{dom.root.attributes['name']} already exists, delete it first"
+              next
+            end
+
+            _checkout(uri, path)
+        end
+      else
+        FileUtils.rm_rf("#{Packo::Environment[:TMP]}/.__repo", :secure => true)
+
+        _checkout(uri, "#{Packo::Environment[:TMP]}/.__repo")
+
+        dom = REXML::Document.new(File.new("#{Packo::Environment[:TMP]}/.__repo/repository.xml"))
+
+        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{dom.root.attributes['type']}/#{dom.root.attributes['name']}"
+
+        begin
+          @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
+            dom.root.attributes['name'], 'source', uri.to_s, path
+          ])
+        rescue SQLite3::ConstraintException
+          fatal "source/#{dom.root.attributes['name']} already exists, delete it first"
+          next
+        end
+
+        FileUtils.rm_rf path, :secure => true rescue nil
+        FileUtils.mkpath path rescue nil
+        FileUtils.cp_r "#{Packo::Environment[:TMP]}/.__repo/.", path, :preserve => true, :remove_destination => true
+      end
+    }
+  end
+
+  desc 'Deletes installed repositories'
+  def delete (*name)
+    name.each {|name|
+      info "Deleting #{name}"
+
+      type, name = (name.include?('/') ? name : '/' + name).split('/')
+
+      begin
+        @db.execute(%{
+          SELECT *
+          
+          FROM repositories
+          
+          WHERE
+            name = ?
+            #{'AND type = ?' if !type.empty?}
+        }, [name, (type.empty? ? nil : type)].compact).each {|repo|
+          FileUtils.rm_rf repo['path'], :secure => true
+  
+          @db.execute(%{
+            DELETE
+  
+            FROM repositories
+    
+            WHERE
+              name = ?
+              #{'AND type = ?' if !type.empty?}
+          }, [name, (type.empty? ? nil : type)].compact)
+        }
+      rescue Exception => e
+        fatal "Something went wrong while deleting #{name}"
+
+        Packo.debug e, :force => true
+      end
+    }
+  end
+
+  desc 'Updates installed repositories'
+  def update
+    @db.execute('SELECT * FROM repositories').each {|repo|
+      info "Updating #{repo['type']}/#{repo['name']}"
+      
+      case repo['type']
+        when 'binary'
+
+        when 'source'
+          _update(repo['path'])
+      end
+    }
+  end
+
+  desc 'Shows installed repositories'
+  arg_types :string
+  def show (type='')
+    case type
+      when 'binary'
+        info 'Installed binary repositories:'
+
+        @db.execute('SELECT * FROM repositories WHERE type = ?', 'binary').each {|repo|
+          puts "  #{repo['type']}/#{repo['name']}\t#{repo['uri']} (#{repo['path']})"
+        }
+
+        puts ''
+
+      when 'source'
+        info 'Installed source repositories:'
+
+        @db.execute('SELECT * FROM repositories WHERE type = ?', 'source').each {|repo|
+          puts "  #{repo['type']}/#{repo['name']}\t#{repo['uri']} (#{repo['path']})"
+        }
+
+        puts ''
+
+      else
+        show('binary')
+        show('source')
+    end
+  end
+
+  def params= (params)
+    @params = params
+
+    if File.directory? params['database']
+      fatal "#{params['database']} is a directory"
+      exit 42
+    end
+
+    begin
+      FileUtils.mkpath(File.dirname(params['database']))
+    rescue Exception => e
+      fatal "Could not create #{File.dirname(params['database'])}"
+      exit 42
+    end
+
+    @db = SQLite3::Database.new(params['database'])
+    @db.results_as_hash = true
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS repositories (
+        name TEXT,
+        type TEXT,
+
+        uri  TEXT,
+        path TEXT,
+
+        UNIQUE (name, type)
+      )
+    })
+  end
+
+  private
+
+  def _checkout (uri, path)
+    uri = URI.parse(uri.to_s) if !uri.is_a?(URI)
+
+    case uri.scheme
+      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !Packo::Environment[:DEBUG]
+      when 'hg';
+      when 'svn';
+      when 'bzr';
+    end
+  end
+
+  def _update (path)
+    old = Dir.pwd; Dir.chdir(path)
+
+    # git
+    Packo.sh 'git', 'pull', :silent => !Packo::Environment[:DEBUG] if File.exists?('.git')
+
+    Dir.chdir(old)
+  end
+end
+
+Application.dispatch

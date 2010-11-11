@@ -42,7 +42,6 @@ module Packo
     end
 
     if options[:silent]
-      options.delete :silent
       options[:out] = '/dev/null'
       options[:err] = '/dev/null'
     else
@@ -56,6 +55,8 @@ module Packo
       }
       print "\n"
     end
+
+    options.delete :silent
 
     result = Kernel.system(options[:env] || {}, *cmd, options)
     status = $?

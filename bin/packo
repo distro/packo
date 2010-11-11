@@ -21,146 +21,27 @@
 
 require 'optitron'
 require 'sqlite3'
-require 'rexml/document'
-require 'digest/sha1'
-
 
 require 'packo'
-require 'packo_binary'
-require 'packo/modules/packaging'
+require 'packo_binary/helpers'
 
 class Application < Optitron::CLI
   include PackoBinary::Helpers
 
-  class_opt 'cache', 'The path to the cache file', :default => Packo::Environment[:CACHE]
+  class_opt 'database', 'The path to the database', :default => Packo::Environment[:CACHE]
 
-  desc 'Output version'
+  desc 'Outputs version'
   def version
     puts "packø #{Packo::Version}"
   end
 
-  desc 'Builds packages'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
-  opt 'output', 'The directory where to save packages', :default => Packo::Environment[:TMP]
-  opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
-  def build (*names)
-    Packo::Environment[:TMP] = params['tmp']
-
-    names.map {|package|
-      tmp = []
-
-      PackoBinary::Tree.all(@db).each {|tree|
-        tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
-        }
-      }
-
-      if (multiple = tmp.uniq).length > 1
-        fatal 'Multiple packages with the same name, be more precise.'
-        exit 2
-      end
-
-      tmp.last
-    }.each {|package|
-      path = "#{package.tree.path}/#{package.categories.join('/')}/#{package.name}"
-
-      manifest = REXML::Document.new(File.new("#{path}/digest.xml"))
-
-      files = {}
-      manifest.elements.each('//files/file') {|e|
-        files[e.attributes['name']] = e.text
-      }
-
-      begin
-        loadPackage(path, package)
-      rescue LoadError
-        warn 'One of the rbuilds could not be found'
-      end
-
-      if !Packo::Packages[(package.categories + [package.name]).join('/')]
-        warn 'The package does not have a parent'
-      end
-
-      package      = PackoBinary::Package.envify(Packo::Packages[package.to_s])
-      package.path = path
-
-      if !package
-        fatal 'Package could not be instantiated'
-        exit 23
-      end
-
-      info "Building #{package}"
-
-      output = File.realpath(params['output'])
-
-      package.on :packed do |path|
-        FileUtils.cp path, output, :verbose => true, :preserve => true
-      end
-
-      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s || params['wipe']
-        info "Cleaning #{package} because flavors/features changed."
-
-        clean(package.to_s)
-
-        package.create!
-
-        begin
-          file = File.new("#{package.directory}/.build", 'w')
-          file.write package.to_s
-          file.close
-        rescue; end
-      end
-
-      begin
-        package.build {|stage|
-          info "Executing #{stage.name}"
-        }
-      rescue Exception => e
-        fatal "Failed to build #{package}"
-        Packo.debug e, :force => true
-      end
-
-      info "Succesfully built #{package}"
-    }
-  end
-
-  desc 'Clean a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
-  def clean (*names)
-    names.map {|package|
-      tmp = []
-
-      PackoBinary::Tree.all(@db).each {|tree|
-        tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
-        }
-      }
-
-      if (multiple = tmp.uniq).length > 1
-        fatal 'Multiple packages with the same name, be more precise.'
-        exit 2
-      end
-
-      tmp.last
-    }.each {|package|
-      begin
-        path = "#{params['tmp']}/#{package.to_s(true)}/#{package.version}"
-
-        FileUtils.rm_r "#{path}/work"; FileUtils.mkpath "#{path}/work"
-        FileUtils.rm_r "#{path}/dist"; FileUtils.mkpath "#{path}/dist"
-        FileUtils.rm_r "#{path}/temp"; FileUtils.mkpath "#{path}/temp"
-      rescue Exception
-      end
-    }
-  end
-
   desc 'Installs packages'
   opt 'destination', 'Set the destination where to install the package', :default => '/'
-  def install (*names)
+  def install (*name)
     FileUtils.mkpath params['destination'] rescue nil
     FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
 
-    names.each {|name|
+    name.each {|name|
       info "Installing #{name}"
 
       path = "#{Packo::Environment[:TMP]}/#{name}"
@@ -187,230 +68,77 @@ class Application < Optitron::CLI
     }
   end
 
-  desc 'Searches packages with the given expression'
-  opt 'exact', 'Search for the exact name', :type => :boolean, :default => false
-  def search (expression='')
-    PackoBinary::Tree.all(@db).each {|tree|
-      tree.search(expression, params['exact']).each {|package|
-        puts PackoBinary::Package.new(package['name'], package['version'], package['categories']).to_s
-      }
-    }
+  desc 'Uninstalls packages'
+  def uninstall (*name)
+
   end
 
-  desc 'Updates the cache file'
-  opt 'wipe', 'Wipes the cache before updating it', :type => :boolean, :default => false, :short_name => 'w'
-  def cache (*trees)
-    if params['wipe']
-      FileUtils.rm(params['cache']) rescue nil
+  desc 'Manages packø building system'
+  def build (*argument)
+    cmd = "packo-build"
 
-      @db = SQLite3::Database.new(params['cache'])
-      @db.results_as_hash = true
-    end
+    cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
 
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS trees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-  
-        name TEXT,
-        path TEXT,
-  
-        UNIQUE (name)
-      )
-    })
-  
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS packages ( 
-        tree INTEGER,
-
-        name       TEXT,
-        version    TEXT,
-        categories TEXT,
-
-        description TEXT,
-        homepage TEXT,
-        license TEXT,
-
-        UNIQUE (name, version, categories)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS package_features (
-        package_name       TEXT,
-        package_version    TEXT,
-        package_categories TEXT,
-
-        name TEXT,
-        description TEXT,
-
-        enabled INTEGER,
-
-        UNIQUE (package_name, package_version, package_categories, name)
-      )
-    })
-
-    begin
-      trees.each {|tree|
-        PackoBinary::Tree.create(@db, REXML::Document.new(File.new("#{tree}/tree.xml")), File.realpath(tree)).update
-      }
-    rescue Exception => e
-      fatal "Failed to update cache"
-      Packo.debug e, :force => true
-    end
-  
-    @db.commit rescue nil
-
-    info "Updated cache succesfully"
-  end
-
-  desc 'Create a manifest for the given packages'
-  def digest (*names)
-    names.map {|package|
-      tmp = []
-
-      PackoBinary::Tree.all(@db).each {|tree|
-        tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
-        }
-      }
-
-      if (multiple = tmp.uniq).length > 1
-        fatal 'Multiple packages with the same name, be more precise.'
-        exit 2
-      end
-
-      tmp
-    }.each {|packages|
-      info "Digesting #{packages.first}"
-
-      packages.group_by {|package|
-        package.tree
-      }.each {|tree, packages|
-        digest = REXML::Document.new
-        digest.add_element REXML::Element.new('digest')
-        digest.root.attributes['version'] = '1.0'
-  
-        path = "#{tree.path}/#{packages.first.categories.join('/')}/#{packages.first.name}"
-  
-        begin
-          Packo.load "#{path}/#{packages.first.name}.rbuild"
-        rescue LoadError
-          warn 'The root rbuild could not be found'
-        end
-        
-        packages.each {|package|
-          info "doing #{package.version}..."
-  
-          begin
-            Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
-          rescue LoadError
-            warn "Failed to load #{package}"
-            next
-          end
-  
-          package = PackoBinary::Package.envify(Packo::Packages[package.to_s])
-  
-          if !package
-            fatal 'Package could not be instantiated'
-            exit 23
-          end
-  
-          dom                          = REXML::Element.new('package')
-          dom.attributes['name']       = package.name
-          dom.attributes['categories'] = package.categories.join('/')
-          dom.attributes['version']    = package.version
-          dom.attributes['slot']       = package.slot
-  
-          features = REXML::Element.new('features')
-          package.features.each {|feature|
-            tmp      = REXML::Element.new('feature')
-            tmp.text = feature.name
-  
-            features.add_element tmp
-          }
-  
-          package.on :unpack, -9001 do
-            package.stages.stop!
-  
-            raise 'YOU SHALL NOT PASS'
-          end
-  
-          package.build
-  
-          files = REXML::Element.new('files')
-          package.distfiles.each {|file|
-            tmp                    = REXML::Element.new('file')
-            tmp.attributes['name'] = File.basename(file)
-            tmp.text               = Digest::SHA1.hexdigest(File.read(file))
-  
-            files.add_element tmp
-          }
-          
-          dom.add_element features
-          dom.add_element files
-  
-          digest.root.add_element dom
-        }
-  
-        file = File.new("#{path}/digest.xml", 'w')
-        digest.write file
-        file.close
-
-        info "Digested #{packages.first} (#{file.path})"
-      }
-    }
-  end
-
-  desc "Get packø's environment"
-  def env
-    Packo::Environment.each {|name, value|
-      puts "PACKO_#{name} = #{value}"
-    }
-  end
-
-  desc 'Output the manifest of the given package'
-  def manifest (package)
-    tmp = []
-
-    PackoBinary::Tree.all(@db).each {|tree|
-      tree.search(package, true).each {|pkg|
-        tmp << PackoBinary::Package.new(pkg['name'], pkg['version'], pkg['categories'], tree)
-      }
+    argument.compact.each {|arg|
+      cmd << %Q{ "#{arg}"}
     }
 
-    if (multiple = tmp.uniq).length > 1
-      fatal 'Multiple packages with the same name, be more precise.'
-      exit 2
-    end
+    system(cmd)
+  end
 
-    package = tmp.last
+  desc 'Manages various configurations'
+  def select (*argument)
+    cmd = 'packo-select'
 
-    loadPackage("#{package.tree.path}/#{package.categories.join('/')}/#{package.name}", package)
+    cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
 
-    if Packo::Packages[package.to_s]
-      puts Packo::Package::Manifest.new(Packo::Packages[package.to_s]).to_s(4)
-    else
-      fatal 'Package could not be instantiated'
-      exit 23
-    end
+    argument.compact.each {|arg|
+      cmd << %Q{ "#{arg}"}
+    }
+
+    system(cmd)
+  end
+
+  desc 'Manages packø repositories'
+  def repository (*argument)
+    cmd = 'packo-repository'
+
+    cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
+
+    argument.compact.each {|arg|
+      cmd << %Q{ "#{arg}"}
+    }
+
+    system(cmd)
+  end
+
+  desc 'Manages packø environment'
+  def env (*argument)
+    cmd = 'packo-env'
+
+    argument.compact.each {|arg|
+      cmd << %Q{ "#{arg}"}
+    }
+
+    system(cmd)
   end
 
   def params= (params)
     @params = params
 
-    if File.directory? params['cache']
-      fatal "#{params['cache']} is a directory"
+    if File.directory? params['database']
+      fatal "#{params['database']} is a directory"
       exit 42
     end
 
     begin
-      FileUtils.mkpath(File.dirname(params['cache']))
+      FileUtils.mkpath(File.dirname(params['database']))
     rescue Exception => e
-      fatal "Could not create #{File.dirname(params['cache'])}"
+      fatal "Could not create #{File.dirname(params['database'])}"
       exit 42
     end
 
-    @db = SQLite3::Database.new(params['cache'])
+    @db = SQLite3::Database.new(params['database'])
     @db.results_as_hash = true
   end
 end
