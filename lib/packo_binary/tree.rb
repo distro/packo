@@ -40,7 +40,7 @@ class Tree
 
   include Helpers
 
-  attr_reader :id, :path
+  attr_reader :id, :name, :path
 
   def initialize (db, name)
     @db   = db

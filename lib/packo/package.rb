@@ -55,7 +55,7 @@ class Package
     end
 
     if matches[3]
-      matches = matches[3].match(/(.*?)(%(.*)$)?/)
+      matches = matches[3].match(/^(.*?)(%(.*)$)?$/)
 
       result.version = matches[1]
       result.slot    = matches[3]

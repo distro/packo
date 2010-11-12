@@ -31,8 +31,6 @@ require 'packo/modules/packaging'
 class Application < Optitron::CLI
   include PackoBinary::Helpers
 
-  class_opt 'database', 'The path to the database', :default => Packo::Environment[:BUILD_CACHE]
-
   desc 'Output version'
   def version
     puts "packø building tool #{Packo::Version}"
@@ -46,13 +44,7 @@ class Application < Optitron::CLI
     Packo::Environment[:TMP] = params['tmp']
 
     name.map {|package|
-      tmp = []
-
-      PackoBinary::Tree.all(@db).each {|tree|
-        tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
-        }
-      }
+      tmp = _search(package, true)
 
       if (multiple = tmp.uniq).length > 1
         fatal 'Multiple packages with the same name, be more precise.'
@@ -80,13 +72,14 @@ class Application < Optitron::CLI
         warn 'The package does not have a parent'
       end
 
-      package      = PackoBinary::Package.envify(Packo::Packages[package.to_s])
-      package.path = path
+      package = PackoBinary::Package.envify(Packo::Packages[package.to_s])
 
       if !package
-        fatal 'Package could not be instantiated'
+        fatal 'The package could not be instantiated'
         exit 23
       end
+
+      package.path = path
 
       info "Building #{package}"
 
@@ -127,13 +120,7 @@ class Application < Optitron::CLI
   opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
   def clean (*name)
     name.map {|package|
-      tmp = []
-
-      PackoBinary::Tree.all(@db).each {|tree|
-        tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
-        }
-      }
+      tmp = _search(package, true)
 
       if (multiple = tmp.uniq).length > 1
         fatal 'Multiple packages with the same name, be more precise.'
@@ -153,94 +140,10 @@ class Application < Optitron::CLI
     }
   end
 
-  desc 'Searches packages with the given expression'
-  opt 'exact', 'Search for the exact name', :type => :boolean, :default => false
-  def search (expression='')
-    PackoBinary::Tree.all(@db).each {|tree|
-      tree.search(expression, params['exact']).each {|package|
-        puts PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot']).to_s
-      }
-    }
-  end
-
-  desc 'Updates the cache file'
-  opt 'wipe', 'Wipes the cache before updating it', :type => :boolean, :default => false, :short_name => 'w'
-  def cache (*tree)
-    if params['wipe']
-      FileUtils.rm(params['cache']) rescue nil
-
-      @db = SQLite3::Database.new(params['cache'])
-      @db.results_as_hash = true
-    end
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS trees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-  
-        name TEXT,
-        path TEXT,
-  
-        UNIQUE (name)
-      )
-    })
-  
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS packages ( 
-        tree INTEGER,
-
-        categories TEXT,
-        name       TEXT,
-        version    TEXT,
-        slot       TEXT,
-
-        description TEXT,
-        homepage TEXT,
-        license TEXT,
-
-        UNIQUE (categories, name, version, slot)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS package_features (
-        package_categories TEXT,
-        package_name       TEXT,
-        package_version    TEXT,
-        package_slot       TEXT,
-
-        name TEXT,
-        description TEXT,
-
-        enabled INTEGER,
-
-        UNIQUE (package_categories, package_name, package_version, package_slot, name)
-      )
-    })
-
-    begin
-      tree.each {|tree|
-        PackoBinary::Tree.create(@db, REXML::Document.new(File.new("#{tree}/repository.xml")), File.realpath(tree)).update
-      }
-    rescue Exception => e
-      fatal "Failed to update cache"
-      Packo.debug e, :force => true
-    end
-  
-    @db.commit rescue nil
-
-    info "Updated cache succesfully"
-  end
-
   desc 'Create a manifest for the given packages'
   def digest (*name)
     name.map {|package|
-      tmp = []
-
-      PackoBinary::Tree.all(@db).each {|tree|
-        tree.search(package, true).each {|pkg|
-          tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
-        }
-      }
+      tmp = _search(package, true)
 
       if (multiple = tmp.uniq).length > 1
         fatal 'Multiple packages with the same name, be more precise.'
@@ -331,13 +234,7 @@ class Application < Optitron::CLI
 
   desc 'Output the manifest of the given package'
   def manifest (package)
-    tmp = []
-
-    PackoBinary::Tree.all(@db).each {|tree|
-      tree.search(package, true).each {|pkg|
-        tmp << PackoBinary::Package.new(pkg['categories'], pkg['name'], pkg['version'], pkg['slot'], tree)
-      }
-    }
+    tmp = _search(package, true)
 
     if (multiple = tmp.uniq).length > 1
       fatal 'Multiple packages with the same name, be more precise.'
@@ -356,23 +253,19 @@ class Application < Optitron::CLI
     end
   end
 
-  def params= (params)
-    @params = params
+  private
 
-    if File.directory? params['database']
-      fatal "#{params['database']} is a directory"
-      exit 42
-    end
+  def _search (package, exact=false)
+    `packo-repository --type=source --exact=#{exact.inspect} --full=true search '#{package}'`.lines.map {|line|
+      matches = line.match(/^(.*?)\s*\((.*?) \| (.*?)\)$/)
 
-    begin
-      FileUtils.mkpath(File.dirname(params['database']))
-    rescue Exception => e
-      fatal "Could not create #{File.dirname(params['database'])}"
-      exit 42
-    end
+      pkg = Packo::Package.parse(matches[1])
 
-    @db = SQLite3::Database.new(params['database'])
-    @db.results_as_hash = true
+      PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
+        :name => matches[2],
+        :path => matches[3]
+      ))
+    }.compact
   end
 end
 

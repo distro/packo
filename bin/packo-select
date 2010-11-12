@@ -58,13 +58,6 @@ class Application < Optitron::CLI
     info "#{name} deleted"
   end
 
-  desc 'Delete the whole database'
-  def wipe
-    FileUtils.rm params['database']
-
-    info "#{params['database']} deleted"
-  end
-
   def command_missing (command, *args)
     cmd = @db.execute('SELECT * FROM modules WHERE name = ?', command).first['path'] rescue nil
 

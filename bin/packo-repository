@@ -25,12 +25,14 @@ require 'open-uri'
 require 'rexml/document'
 
 require 'packo'
-require 'packo_binary/helpers'
+require 'packo_binary'
 
 class Application < Optitron::CLI
   include PackoBinary::Helpers
 
-  class_opt 'database', 'The path to the database', :default => Packo::Environment[:REPOSITORY_CACHE]
+  class_opt 'database', 'The path to the repository cache', :default => Packo::Environment[:REPOSITORY_CACHE]
+  class_opt 'source', 'The path to the source cache', :default => Packo::Environment[:SOURCE_CACHE]
+  class_opt 'binary', 'The path to the binary cache', :default => Packo::Environment[:BINARY_CACHE]
 
   desc 'Outputs version'
   def version
@@ -43,25 +45,26 @@ class Application < Optitron::CLI
     FileUtils.mkpath "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/source" rescue nil
 
     uri.each {|uri|
-      info "Adding #{uri}"
-
       uri  = URI.parse(uri)
       type = 'source'
+      name = nil
 
       if ['http', 'https', 'ftp'].member?(uri.scheme)
         xml = open(uri).read
         dom = REXML::Document.new(xml)
 
-        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{dom.root.attributes['type']}/#{dom.root.attributes['name']}"
+        type = dom.root.attributes['type']
+        name = dom.root.attributes['name']
+        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
 
-        case type = dom.attributes['type']
+        case type
           when 'binary'
             begin
               @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-                dom.root.attributes['name'], 'binary', uri.to_s, path
+                name, 'binary', uri.to_s, path
               ])
             rescue SQLite3::ConstraintException
-              fatal "binary/#{dom.root.attributes['name']} already exists, delete it first"
+              fatal "binary/#{name} already exists, delete it first"
               next
             end
 
@@ -70,18 +73,25 @@ class Application < Optitron::CLI
             file.close
           
           when 'source'
-            uri = dom.elements.each('//mirror') {}.first.text
+            uri = dom.elements.each('//address') {}.first.text
 
             begin
               @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-                dom.root.attributes['name'], 'source', uri.to_s, path
+                name, 'source', uri.to_s, path
               ])
             rescue SQLite3::ConstraintException
-              fatal "source/#{dom.root.attributes['name']} already exists, delete it first"
+              fatal "source/#{name} already exists, delete it first"
               next
             end
 
             _checkout(uri, path)
+        end
+
+        begin
+          _add path, type.to_sym
+        rescue Exception => e
+          fatal 'Failed to add the cache'
+          Packo.debug e, :force => true
         end
       else
         FileUtils.rm_rf("#{Packo::Environment[:TMP]}/.__repo", :secure => true)
@@ -90,21 +100,32 @@ class Application < Optitron::CLI
 
         dom = REXML::Document.new(File.new("#{Packo::Environment[:TMP]}/.__repo/repository.xml"))
 
-        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{dom.root.attributes['type']}/#{dom.root.attributes['name']}"
+        type = dom.root.attributes['type']
+        name = dom.root.attributes['name']
+        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
 
         begin
           @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-            dom.root.attributes['name'], 'source', uri.to_s, path
+            name, 'source', uri.to_s, path
           ])
         rescue SQLite3::ConstraintException
-          fatal "source/#{dom.root.attributes['name']} already exists, delete it first"
+          fatal "source/#{name} already exists, delete it first"
           next
         end
 
         FileUtils.rm_rf path, :secure => true rescue nil
         FileUtils.mkpath path rescue nil
         FileUtils.cp_r "#{Packo::Environment[:TMP]}/.__repo/.", path, :preserve => true, :remove_destination => true
+
+        begin
+          _add path, :source
+        rescue Exception => e
+          fatal 'Failed to add the cache'
+          Packo.debug e, :force => true
+        end
       end
+
+      info "Added #{type}/#{name}"
     }
   end
 
@@ -159,8 +180,30 @@ class Application < Optitron::CLI
     }
   end
 
+  desc 'Searches packages with the given expression'
+  opt 'exact', 'Search for the exact name', :type => :boolean, :default => false
+  opt 'full', 'Include the tree that owns the package', :type => :boolean, :default => false
+  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary'], :default => 'binary'
+  def search (expression='')
+    case params['type']
+      when 'binary'
+
+      when 'source'
+        PackoBinary::Tree.all(@source).each {|tree|
+          tree.search(expression, params['exact']).each {|package|
+            print PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot']).to_s
+
+            if params['full']
+              print " (#{tree.name} | #{tree.path})"
+            end
+
+            print "\n"
+          }
+        }
+    end
+  end
+
   desc 'Shows installed repositories'
-  arg_types :string
   def show (type='')
     case type
       when 'binary'
@@ -184,6 +227,36 @@ class Application < Optitron::CLI
       else
         show('binary')
         show('source')
+    end
+  end
+
+  desc 'Outputs the path of a given repository'
+  def path (name)
+    type, name = name.split('/')
+
+    begin
+      if !['source', 'binary'].member? type
+        fatal 'You have to pass the repository type too.'
+        exit! 10
+      end
+
+      if name
+        repositories = @db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [name, type])
+      else
+        repositories = @db.execute('SELECT * FROM repositories WHERE type = ?', type)
+      end
+
+      if repositories.empty?
+        exit! 11
+      end
+      
+      repositories.each {|repo|
+        puts repo['path']
+      }
+    rescue Exception => e
+      fatal "Something went wrong while getting info of #{type}/#{name}"
+
+      Packo.debug e, :force => true
     end
   end
 
@@ -216,9 +289,65 @@ class Application < Optitron::CLI
         UNIQUE (name, type)
       )
     })
+
+    @source = SQLite3::Database.new(params['source'])
+    @source.results_as_hash = true
+
+    @source.execute(%{
+      CREATE TABLE IF NOT EXISTS trees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+  
+        name TEXT,
+        path TEXT,
+  
+        UNIQUE (name)
+      )
+    })
+  
+    @source.execute(%{
+      CREATE TABLE IF NOT EXISTS packages ( 
+        tree INTEGER,
+
+        categories TEXT,
+        name       TEXT,
+        version    TEXT,
+        slot       TEXT,
+
+        description TEXT,
+        homepage TEXT,
+        license TEXT,
+
+        UNIQUE (categories, name, version, slot)
+      )
+    })
+
+    @source.execute(%{
+      CREATE TABLE IF NOT EXISTS package_features (
+        package_categories TEXT,
+        package_name       TEXT,
+        package_version    TEXT,
+        package_slot       TEXT,
+
+        name TEXT,
+        description TEXT,
+
+        enabled INTEGER,
+
+        UNIQUE (package_categories, package_name, package_version, package_slot, name)
+      )
+    })
   end
 
   private
+
+  def _add (path, type)
+    case type
+      when :binary
+
+      when :source
+        PackoBinary::Tree.create(@source, REXML::Document.new(File.new("#{path}/repository.xml")), File.realpath(path)).update
+    end
+  end
 
   def _checkout (uri, path)
     uri = URI.parse(uri.to_s) if !uri.is_a?(URI)

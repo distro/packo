@@ -51,7 +51,7 @@ class Wget < Module
 
     distfiles = []
 
-    [package.source].flatten.each {|source|
+    [package.source].flatten.compact.each {|source|
       source = package.fetch.url(source)
 
       if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})

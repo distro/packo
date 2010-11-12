@@ -76,7 +76,7 @@ class Application < Optitron::CLI
 
   def show
     @db.execute('SELECT * FROM present').each {|package|
-
+      
     }
   end
 
@@ -153,16 +153,40 @@ class Application < Optitron::CLI
 
   def _database
     @db.execute(%{
-      CREATE TABLE IF NOT EXISTS present (
+      CREATE TABLE IF NOT EXISTS installed (
+        categories TEXT,
+        name       TEXT,
+        version    TEXT,
+        slot       TEXT DEFAULT NULL,
+
+        manual INTEGER DEFAULT 0,
+
+        UNIQUE (categories, name, slot)
+      )
+    })
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS dependencies (
+        categories TEXT,
+        name       TEXT,
+        version    TEXT,
+        slot       TEXT DEFAULT NULL,
+       
+        needed_by_categories TEXT,
+        needed_by_name       TEXT,
+        needed_by_version    TEXT,
+        needed_by_slot       TEXT DEFAULT NULL,
+      )
+    })
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS files (
         categories TEXT,
         name       TEXT,
         version    TEXT,
         slot       TEXT,
 
-        uri  TEXT,
-        path TEXT,
-
-        UNIQUE (name, type)
+        path TEXT
       )
     })
   end
