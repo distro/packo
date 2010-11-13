@@ -134,12 +134,18 @@ class Environment < Hash
     end
   end
 
+  alias __get []
+
+  def [] (name)
+    __get(name.to_sym)
+  end
+
   alias __set []=
 
   def []= (name, value)
     self.instance_exec(value, &@@callbacks[name.to_sym]) if @@callbacks[name.to_sym]
 
-    __set(name, value)
+    __set(name.to_sym, value)
   end
 
   def sandbox

@@ -94,9 +94,9 @@ module Packo
     puts output
   end
 
-  def self.load (path, on=nil)
+  def self.load (path, __binding=nil)
     begin
-      eval(File.read(path, :encoding => 'utf-8'), on || binding, path, 1)
+      eval(File.read(path, :encoding => 'utf-8'), __binding || binding, path, 1)
     rescue Errno::ENOENT
       raise LoadError.new("no such file to load -- #{path}")
     end
