@@ -183,7 +183,7 @@ class Application < Optitron::CLI
   desc 'Searches packages with the given expression'
   opt 'exact', 'Search for the exact name', :type => :boolean, :default => false
   opt 'full', 'Include the tree that owns the package', :type => :boolean, :default => false
-  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary'], :default => 'binary'
+  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all'
   def search (expression='')
     case params['type']
       when 'binary'
@@ -200,6 +200,10 @@ class Application < Optitron::CLI
             print "\n"
           }
         }
+
+        when 'all'
+          params['type'] = 'binary'; search(expression)
+          params['type'] = 'source'; search(expression)
     end
   end
 
@@ -336,6 +340,36 @@ class Application < Optitron::CLI
         UNIQUE (package_categories, package_name, package_version, package_slot, name)
       )
     })
+
+    @binary = SQLite3::Database.new(params['binary'])
+    @binary.results_as_hash = true
+
+    @binary.execute(%{
+      CREATE TABLE IF NOT EXISTS repositories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        name TEXT,
+        path TEXT,
+
+        UNIQUE (name)
+      )
+    })
+
+    @binary.execute(%{
+      CREATE TABLE IF NOT EXISTS packages (
+        repository INTEGER,
+
+        categories TEXT,
+        name       TEXT,
+        version    TEXT,
+        slot       TEXT,
+
+        features TEXT,
+        flavors  TEXT,
+
+        UNIQUE (categories, name, version, slot, features, flavors)
+      )
+    })
   end
 
   private
@@ -343,6 +377,7 @@ class Application < Optitron::CLI
   def _add (path, type)
     case type
       when :binary
+        @binary.execute
 
       when :source
         PackoBinary::Tree.create(@source, REXML::Document.new(File.new("#{path}/repository.xml")), File.realpath(path)).update

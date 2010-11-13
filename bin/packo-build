@@ -72,7 +72,7 @@ class Application < Optitron::CLI
         warn 'The package does not have a parent'
       end
 
-      package = PackoBinary::Package.envify(Packo::Packages[package.to_s])
+      package = Packo::Packages[package.to_s]
 
       if !package
         fatal 'The package could not be instantiated'
@@ -179,7 +179,7 @@ class Application < Optitron::CLI
             next
           end
   
-          package = PackoBinary::Package.envify(Packo::Packages[package.to_s])
+          package = Packo::Packages[package.to_s]
   
           if !package
             fatal 'Package could not be instantiated'

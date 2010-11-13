@@ -20,30 +20,6 @@
 module PackoBinary
 
 class Package
-  def self.envify (package)
-    if !package
-      return
-    end
-
-    ['binary', 'headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
-      if Packo::Environment['FLAVORS'].include?(flavor)
-        package.flavors.send "#{flavor}!"
-      else
-        package.flavors.send "not_#{flavor}!"
-      end
-    }
-
-    Packo::Environment['FEATURES'].split(/\s+/).each {|feature|
-      feature = Packo::Feature.parse(feature)
-
-      package.features {
-        self.get(feature.name).merge(feature) if self.get(feature.name)
-      }
-    }
-
-    package
-  end
-
   attr_reader :categories, :name, :version, :slot, :tree
 
   def initialize (categories, name, version, slot=nil, tree=nil)

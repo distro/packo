@@ -106,10 +106,6 @@ class Tree
 
       if categories && categories != '.'
         next if categories[0] == '.'
-
-        info "Parsing #{categories}" if categories != last
-
-        last = categories
       end
 
       if File.file? "#{what}/#{File.basename(what)}.rbuild"

@@ -112,12 +112,14 @@ class Package
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
     @stages.add :blockers, @blockers.method(:check), :at => :beginning
 
-    @environment = Environment.new
+    @environment = Environment.new(self)
 
     self.directory = "#{package.environment['TMP']}/#{(@categories + [@name]).join('/')}/#{@version}"
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
+
+    self.envify!
 
     @default_to_self = true
     @stages.call :initialize, self
@@ -131,6 +133,24 @@ class Package
     FileUtils.mkpath self.distdir
     FileUtils.mkpath self.tempdir
   rescue; end
+
+  def envify!
+    ['binary', 'headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
+      if Packo::Environment['FLAVORS'].include?(flavor)
+        self.flavors.send "#{flavor}!"
+      else
+        self.flavors.send "not_#{flavor}!"
+      end
+    }
+
+    Packo::Environment['FEATURES'].split(/\s+/).each {|feature|
+      feature = Packo::Feature.parse(feature)
+
+      self.features {
+        self.get(feature.name).merge(feature) if self.get(feature.name)
+      }
+    }
+  end
 
   def build
     self.create!

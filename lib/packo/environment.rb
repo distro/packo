@@ -48,7 +48,11 @@ class Environment < Hash
     :SELECTOR_CACHE   => '/var/lib/packo/selector-cache',
     :SELECTOR_MODULES => '/var/lib/packo/selector-modules',
 
-    :TMP   => '/tmp',
+    :CONFIG_FILE    => '/etc/packo.conf',
+    :CONFIG_PATH    => '/etc/packo',
+    :CONFIG_MODULES => '/etc/packo/modules',
+
+    :TMP   => '/var/tmp/packo',
     :DEBUG => nil
   }
 
@@ -100,10 +104,34 @@ class Environment < Hash
     result
   end
 
-  def initialize
+  attr_reader :package
+
+  def initialize (package=nil)
+    @package = package
+
     Environment.clone.each {|key, value|
       self[key] = value
     }
+
+    if File.readable? self[:CONFIG_FILE]
+      mod = Module.new
+
+      self.each {|name, value|
+        mod.const_set name.to_sym, value
+      }
+
+      mod.module_eval File.read(self[:CONFIG_FILE])
+
+      mod.constants.each {|const|
+        self[const] = mod.const_get const
+      }
+    end
+
+    if package
+      Dir.glob("#{self[:CONFIG_MODULES]}/*.rb").each {|file|
+        Packo.load file, binding
+      }
+    end
   end
 
   alias __set []=
