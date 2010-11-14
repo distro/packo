@@ -52,8 +52,11 @@ class Environment < Hash
     :CONFIG_PATH    => '/etc/packo',
     :CONFIG_MODULES => '/etc/packo/modules',
 
-    :TMP   => '/var/tmp/packo',
-    :DEBUG => nil
+    :NO_COLORS => false,
+
+    :TMP     => '/var/tmp/packo',
+    :DEBUG   => nil,
+    :VERBOSE => false
   }
 
   @@callbacks = {
@@ -113,23 +116,31 @@ class Environment < Hash
       self[key] = value
     }
 
-    if File.readable? self[:CONFIG_FILE]
-      mod = Module.new
-
-      self.each {|name, value|
-        mod.const_set name.to_sym, value
-      }
-
-      mod.module_eval File.read(self[:CONFIG_FILE])
-
-      mod.constants.each {|const|
-        self[const] = mod.const_get const
-      }
-    end
+    ["#{self[:PROFILE]}/packo.conf", self[:CONFIG_FILE]].each {|file|
+      if File.readable? file
+        mod = ::Module.new
+  
+        self.each {|name, value|
+          suppress_warnings {
+            mod.const_set name.to_sym, value
+          }
+        }
+  
+        suppress_warnings {
+          mod.module_eval File.read(file)
+        }
+  
+        mod.constants.each {|const|
+          self[const] = mod.const_get const
+        }
+      end
+    }
 
     if package
-      Dir.glob("#{self[:CONFIG_MODULES]}/*.rb").each {|file|
-        Packo.load file, binding
+      ["#{self[:PROFILE]}/modules", self[:CONFIG_MODULES]].each {|path|
+        Dir.glob("#{path}/*.rb").each {|file|
+          Packo.load file, binding
+        }
       }
     end
   end

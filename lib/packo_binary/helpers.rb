@@ -17,10 +17,14 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/environment'
+
 module PackoBinary
 
 module Helpers
   def colorize (text, fg, bg=nil, attr=nil)
+    return text if Packo::Environment[:NO_COLORS]
+
     colors = {
       :DEFAULT => 9,
       nil      => 9,
@@ -52,19 +56,31 @@ module Helpers
     puts "#{colorize('*', :GREEN, :DEFAULT, :BOLD)} #{text}"
   end
 
+  alias _info info
+
   def warn (text)
     puts "#{colorize('*', :YELLOW, :DEFAULT, :BOLD)} #{text}"
   end
+
+  alias _warn warn
 
   def fatal (text)
     puts "#{colorize('*', :RED)} #{text}"
   end
 
+  alias _fatal fatal
+
   def loadPackage (path, package)
     digest = REXML::Document.new(File.new("#{path}/digest.xml"))
 
     digest.elements.each('//features/feature') {|e|
-      begin; Packo.load "#{Packo::Environment['PROFILE']}/features/#{e.text}"; rescue LoadError; end
+      begin
+        Packo.load "#{Packo::Environment[:PROFILE]}/features/#{e.text}"
+      rescue LoadError
+      rescue Exception => e
+        warn "Something went wrong while loading #{e.text} feature."
+        Packo.debug e, :force => true
+      end
     }
 
     Packo.load "#{path}/#{package.name}.rbuild"

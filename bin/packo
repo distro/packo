@@ -82,7 +82,7 @@ class Application < Optitron::CLI
 
   desc 'Manages packø building system'
   def build (*argument)
-    cmd = "packo-build"
+    cmd = "sandbox packo-build"
 
     cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
 
@@ -108,7 +108,7 @@ class Application < Optitron::CLI
 
   desc 'Manages packø repositories'
   def repository (*argument)
-    cmd = 'packo-repository'
+    cmd = 'sandbox packo-repository'
 
     cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
 

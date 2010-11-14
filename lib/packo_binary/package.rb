@@ -34,6 +34,10 @@ class Package
     self.name == package.name && self.categories == package.categories
   end
 
+	alias eql? ==
+
+	def hash; "#{self.categories}/#{self.name}".hash end
+
   def to_s (name=false)
     if name
       (@categories + [@name]).join('/')

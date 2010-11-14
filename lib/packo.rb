@@ -95,15 +95,27 @@ module Packo
   end
 
   def self.load (path, __binding=nil)
-    begin
-      eval(File.read(path, :encoding => 'utf-8'), __binding || binding, path, 1)
-    rescue Errno::ENOENT
+    if !File.readable? path
       raise LoadError.new("no such file to load -- #{path}")
     end
+
+    eval(File.read(path, :encoding => 'utf-8'), __binding || binding, path, 1)
   end
 
   def self.numeric? (what)
     true if Float(what) rescue false
+  end
+end
+
+module Kernel
+  def suppress_warnings
+    tmp, $VERBOSE = $VERBOSE, nil
+
+    result = yield
+
+    $VERBOSE = tmp
+
+    return result
   end
 end
 

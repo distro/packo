@@ -35,7 +35,7 @@ class Application < Optitron::CLI
 
   desc 'Shows the environment'
   def show
-    Packo::Environment.each {|name, value|
+    Packo::Environment.new.each {|name, value|
       puts "#{name} = #{value}"
     }
   end

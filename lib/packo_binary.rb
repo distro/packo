@@ -19,5 +19,5 @@
 
 require 'packo_binary/helpers'
 require 'packo_binary/package'
-require 'packo_binary/tree'
+require 'packo_binary/repository'
 require 'packo_binary/select'
