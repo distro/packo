@@ -36,11 +36,11 @@ class Application < Optitron::CLI
     puts "packø building tool #{Packo::Version}"
   end
 
-  desc 'Create a package'
+  desc 'Creates a package'
   opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
   opt 'output', 'The directory where to save packages', :default => Packo::Environment[:TMP]
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
-  def create (*name)
+  def package (*name)
     Packo::Environment[:TMP] = params['tmp']
 
     name.map {|package|

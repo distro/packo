@@ -58,6 +58,8 @@ class Flavors
     result = ''
 
     @flavors.each {|name, value|
+      next if name == 'binary'
+
       result << name.to_s + (pack ? '.' : ',') if value.enabled?
     }
 

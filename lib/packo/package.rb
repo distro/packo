@@ -119,13 +119,13 @@ class Package
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
 
-    self.envify!
-
     @default_to_self = true
     @stages.call :initialize, self
     self.instance_exec(self, &block) if block
     @stages.call :initialized, self
     @default_to_self = false
+
+    self.envify!
   end
 
   def create!
@@ -147,7 +147,13 @@ class Package
       feature = Packo::Feature.parse(feature)
 
       self.features {
-        self.get(feature.name).merge(feature) if self.get(feature.name)
+				next if !self.get(feature.name)
+
+				if feature.enabled?
+        	self.get(feature.name).enabled!
+				else
+					self.get(feature.name).disabled!
+				end
       }
     }
   end

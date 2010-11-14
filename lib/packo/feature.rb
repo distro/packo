@@ -41,7 +41,7 @@ class Feature
     @block        = block
     @dependencies = []
 
-    if Packo::Features::Default[@name.to_sym]
+    if @package && Packo::Features::Default[@name.to_sym]
       self.instance_exec(self, &Packo::Features::Default[@name.to_sym])
     end
 
