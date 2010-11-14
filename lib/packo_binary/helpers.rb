@@ -71,17 +71,17 @@ module Helpers
   alias _fatal fatal
 
   def loadPackage (path, package)
-    digest = REXML::Document.new(File.new("#{path}/digest.xml"))
-
-    digest.elements.each('//features/feature') {|e|
-      begin
-        Packo.load "#{Packo::Environment[:PROFILE]}/features/#{e.text}"
-      rescue LoadError
-      rescue Exception => e
-        warn "Something went wrong while loading #{e.text} feature."
-        Packo.debug e, :force => true
-      end
-    }
+    if (digest = REXML::Document.new(File.new("#{path}/digest.xml")) rescue nil)
+      digest.elements.each('//features/feature') {|e|
+        begin
+          Packo.load "#{Packo::Environment[:PROFILE]}/features/#{e.text}"
+        rescue LoadError
+        rescue Exception => e
+          warn "Something went wrong while loading #{e.text} feature."
+          Packo.debug e, :force => true
+        end
+      }
+    end
 
     Packo.load "#{path}/#{package.name}.rbuild"
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"

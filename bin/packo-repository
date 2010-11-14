@@ -242,30 +242,30 @@ class Application < Optitron::CLI
 
   desc 'Searches packages with the given expression'
   opt 'exact', 'Search for the exact name', :type => :boolean, :default => false, :short_name => 'e'
-  opt 'full', 'Include the tree that owns the package', :type => :boolean, :default => false
+  opt 'full', 'Include the repository that owns the package', :type => :boolean, :default => false
   opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all'
   def search (expression='')
     packages = []
 
     if params['type'] == 'binary' || params['type'] == 'all'
-      PackoBinary::Repository.all(@binary, :binary).each {|tree|
-        packages << tree.search(expression, params['exact']).map {|package|
-          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], tree)
+      PackoBinary::Repository.all(@binary, :binary).each {|repository|
+        packages << repository.search(expression, params['exact']).map {|package|
+          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
         }
       }
     end
 
     if params['type'] == 'source' || params['type'] == 'all'
-      PackoBinary::Repository.all(@source, :source).each {|tree|
-        packages << tree.search(expression, params['exact']).map {|package|
-          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], tree)
+      PackoBinary::Repository.all(@source, :source).each {|repository|
+        packages << repository.search(expression, params['exact']).map {|package|
+          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
         }
       }
     end
 
     packages.flatten.uniq.each {|package|
       print package.to_s
-      print " (#{package.tree.type}/#{package.tree.name} | #{package.tree.path})" if params['full']
+      print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.path})" if params['full']
 
       print "\n"
     }
@@ -277,8 +277,8 @@ class Application < Optitron::CLI
   def info (expression='')
     case params['type']
       when 'binary'
-        PackoBinary::Repository.all(@binary, :binary).each {|tree|
-          tree.search(expression, params['exact']).each {|package|
+        PackoBinary::Repository.all(@binary, :binary).each {|repository|
+          repository.search(expression, params['exact']).each {|package|
             print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
@@ -308,8 +308,8 @@ class Application < Optitron::CLI
         }
 
       when 'source'
-        PackoBinary::Repository.all(@source, :source).each {|tree|
-          tree.search(expression, params['exact']).each {|package|
+        PackoBinary::Repository.all(@source, :source).each {|repository|
+          repository.search(expression, params['exact']).each {|package|
             print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
@@ -407,6 +407,23 @@ class Application < Optitron::CLI
 
       Packo.debug e, :force => true
     end
+  end
+
+  desc 'Rehash the repository caches'
+  def rehash
+    @db.execute('SELECT * FROM repositories').each {|repo|
+      _info "Rehashing #{repo['type']}/#{repo['name']}"
+      
+      case repo['type']
+        when 'binary'
+          _delete(repo['name'], :binary)
+          _add(repo['path'], :binary)
+
+        when 'source'
+          _delete(repo['name'], :source)
+          _add(repo['path'], :source)
+      end
+    }
   end
 
   def params= (params)
@@ -563,7 +580,7 @@ class Application < Optitron::CLI
 
     old = Dir.pwd; Dir.chdir(path)
 
-    if !result && (`git pull`.include?('up-to-date') rescue nil)
+    if !result && (`git pull`.strip == 'Already up-to-date.' rescue nil)
       result = true
     end
 

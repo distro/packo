@@ -20,14 +20,14 @@
 module PackoBinary
 
 class Package
-  attr_reader :categories, :name, :version, :slot, :tree
+  attr_reader :categories, :name, :version, :slot, :repository
 
-  def initialize (categories, name, version, slot=nil, tree=nil)
+  def initialize (categories, name, version, slot=nil, repository=nil)
     @categories = (categories || '').split('/')
     @name       = name
     @version    = version
     @slot       = ((slot.empty? rescue nil) ? nil : slot)
-    @tree       = tree
+    @repository = repository
   end
 
   def == (package)

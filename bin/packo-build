@@ -53,7 +53,7 @@ class Application < Optitron::CLI
 
       tmp.last
     }.each {|package|
-      path = "#{package.tree.path}/#{package.categories.join('/')}/#{package.name}"
+      path = "#{package.repository.path}/#{package.categories.join('/')}/#{package.name}"
 
       manifest = REXML::Document.new(File.new("#{path}/digest.xml"))
 
@@ -155,13 +155,13 @@ class Application < Optitron::CLI
       info "Digesting #{packages.first}"
 
       packages.group_by {|package|
-        package.tree
-      }.each {|tree, packages|
+        package.repository
+      }.each {|repository, packages|
         digest = REXML::Document.new
         digest.add_element REXML::Element.new('digest')
         digest.root.attributes['version'] = '1.0'
   
-        path = "#{tree.path}/#{packages.first.categories.join('/')}/#{packages.first.name}"
+        path = "#{repository.path}/#{packages.first.categories.join('/')}/#{packages.first.name}"
   
         begin
           Packo.load "#{path}/#{packages.first.name}.rbuild"
@@ -243,7 +243,7 @@ class Application < Optitron::CLI
 
     package = tmp.last
 
-    loadPackage("#{package.tree.path}/#{package.categories.join('/')}/#{package.name}", package)
+    loadPackage("#{package.repository.path}/#{package.categories.join('/')}/#{package.name}", package)
 
     if Packo::Packages[package.to_s]
       puts Packo::Package::Manifest.new(Packo::Packages[package.to_s]).to_s(4)
