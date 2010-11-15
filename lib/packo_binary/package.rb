@@ -34,9 +34,13 @@ class Package
     self.name == package.name && self.categories == package.categories
   end
 
-	alias eql? ==
+  def === (package)
+    self.name == package.name && self.categories == package.categories && self.version == package.version && self.slot == package.slot
+  end
 
-	def hash; "#{self.categories}/#{self.name}".hash end
+	alias eql? ===
+
+	def hash; "#{self.categories}/#{self.name}-#{self.version}%#{self.slot}".hash end
 
   def to_s (name=false)
     if name

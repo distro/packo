@@ -43,7 +43,7 @@ class Features
   end
 
   def get (name)
-    @features[name.to_sym] || Feature.new(@package, name.to_sym, false)
+    @features[name.to_sym] ||= Feature.new(@package, name.to_sym, false)
   end
 
   def delete (name)

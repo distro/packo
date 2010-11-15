@@ -17,38 +17,70 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'ostruct'
+
 module PackoBinary
 
 class Repository
-  def self.all (db, type)
-    db.execute('SELECT * FROM repositories').map {|repo|
-      Repository.new(db, repo['name'], type)
+  def self.parse (text)
+    if text.include?('/')
+      type, name = name.split('/')
+    else
+      type, name = nil, name
+    end
+
+    OpenStruct.new(
+      :type => type,
+      :name => name
+    )
+  end
+
+  def self.all (db, type=nil)
+    db.execute("SELECT * FROM repositories #{'WHERE type = ?' if type}", [type].compact).map {|repo|
+      Repository.new(db, repo['name'], repo['type'])
     }
+  end
+
+  def self.find (db, name, type)
+    db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [name, type]).first
   end
 
   def self.name (dom)
     dom.root.attributes['name']
   end
 
-  def self.create (db, dom, path, type)
+  def self.create (db, type, dom, uri, path)
     name = Repository.name(dom)
 
-    db.execute('INSERT OR IGNORE INTO repositories VALUES(NULL, ?, ?)', [name, path])
+    db.execute('INSERT OR IGNORE INTO repositories VALUES(NULL, ?, ?, ?, ?)', [name, type.to_s, uri, path])
 
-    Repository.new(db, name, type)
+    repository = Repository.new(db, name, type)
+
+    if type == :binary
+      dom.elements.each('//mirrors/mirror') {|e|
+        repository.add_mirror e.text
+      }
+    end
+
+    repository
   end
 
 	def self.delete (db, name, type)
-		repo = db.execute('SELECT * FROM repositories WHERE name = ?', name).first
+		repo = db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [name, type.to_s]).first
 
 		db.execute('SELECT * FROM packages WHERE repository = ?', repo['id']).each {|package|
 			case type
-				when :binary; db.execute('DELETE FROM package_builds WHERE package = ?', package['id'])
-				when :source; db.execute('DELETE FROM package_features WHERE package = ?', package['id'])
+				when :binary; db.execute('DELETE FROM binary_builds WHERE package = ?', package['id'])
+				when :source; db.execute('DELETE FROM source_features WHERE package = ?', package['id'])
 			end
 		}
 
 		db.execute('DELETE FROM packages WHERE repository = ?', repo['id'])
+
+    if type == :binary
+      db.execute('DELETE FROM binary_mirrors WHERE repository = ?', repo['id'])
+    end
+
 		db.execute('DELETE FROM repositories WHERE id = ?', repo['id'])
 
 		db.commit rescue nil
@@ -56,17 +88,28 @@ class Repository
 
   include Helpers
 
-  attr_reader :id, :type, :name, :path
+  attr_reader :id, :type, :name, :uri, :path
 
   def initialize (db, name, type)
     @db   = db
     @name = name
 		@type = type.to_sym
 
-    result = @db.execute('SELECT * FROM repositories WHERE name = ?', name).first
+    result = @db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [name, type.to_s]).first
 
     @id   = result['id']
+    @uri  = result['uri']
     @path = result['path']
+
+    if @type == :binary
+      define_singleton_method :mirrors do
+        @db.execute('SELECT * FROM binary_mirrors WHERE repository = ?', @id).map {|mirror| mirror['uri']}
+      end
+
+      define_singleton_method :add_mirror do |uri|
+        @db.execute('INSERT INTO binary_mirrors VALUES(?, ?)', [@id, uri])
+      end
+    end
   end
 
   def update
@@ -132,6 +175,7 @@ class Repository
 
 				e.elements.each('.//build') {|build|
 					version  = build.attributes['version']
+          digest   = build.attributes['digest']
 					features = build.elements.each('.//features') {}.first.text rescue nil
 					flavors  = build.elements.each('.//flavors') {}.first.text rescue nil
 					slot     = build.parent.attributes['version']
@@ -144,7 +188,7 @@ class Repository
 						categories, name, version.to_s, slot.to_s
 					]).first['id']
 
-					@db.execute('INSERT OR IGNORE INTO package_builds VALUES(?, ?, ?)', [id, features, flavors])
+					@db.execute('INSERT OR REPLACE INTO binary_builds VALUES(?, ?, ?, ?)', [id, features, flavors, digest])
 				}
 			end
 		}
@@ -191,7 +235,7 @@ class Repository
 					]).first['id']
 
           package.features.each {|feature|
-            @db.execute('INSERT OR REPLACE INTO package_features VALUES(?, ?, ?, ?)', [id,
+            @db.execute('INSERT OR REPLACE INTO source_features VALUES(?, ?, ?, ?)', [id,
               feature.name, feature.description, (feature.enabled?) ? 1 : 0
             ])
           }

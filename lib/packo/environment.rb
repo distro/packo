@@ -42,9 +42,6 @@ class Environment < Hash
     :REPOSITORY_CACHE     => '/var/lib/packo/repository-cache',
     :REPOSITORY_DIRECTORY => '/var/lib/packo/repository-directory',
 
-    :SOURCE_CACHE => '/var/lib/packo/source-cache',
-    :BINARY_CACHE => '/var/lib/packo/binary-cache',
-
     :SELECTOR_CACHE   => '/var/lib/packo/selector-cache',
     :SELECTOR_MODULES => '/var/lib/packo/selector-modules',
 

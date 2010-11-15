@@ -40,22 +40,35 @@ class Application < Optitron::CLI
   opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
   opt 'output', 'The directory where to save packages', :default => Packo::Environment[:TMP]
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
+  opt 'repository', 'Set a specific source repository', :type => :string
   def package (*name)
     Packo::Environment[:TMP] = params['tmp']
 
     name.map {|package|
-      tmp = _search(package, true)
+      pkg = nil
 
-      if (multiple = tmp.uniq).length > 1
-        fatal 'Multiple packages with the same name, be more precise.'
-        exit 2
+      packages = _search(package, true, params['repository'])
+      
+      names = packages.group_by {|package|
+        package.to_s
+      }.map {|(name, package)| name}.uniq
+
+      if names.length > 1
+        fatal "More than one package matches: #{package}"
+        names.each {|name|
+          puts "    #{name}"
+        }
+        
+        exit 10
       end
 
-      tmp.last
+      packages.sort {|a, b|
+        a.version <=> b.version
+      }.last
     }.each {|package|
       path = "#{package.repository.path}/#{package.categories.join('/')}/#{package.name}"
 
-      manifest = REXML::Document.new(File.new("#{path}/digest.xml"))
+      manifest = REXML::Document.new(File.read("#{path}/digest.xml"))
 
       files = {}
       manifest.elements.each('//files/file') {|e|
@@ -140,96 +153,73 @@ class Application < Optitron::CLI
     }
   end
 
-  desc 'Create a manifest for the given packages'
-  def digest (*name)
-    name.map {|package|
-      tmp = _search(package, true)
-
-      if (multiple = tmp.uniq).length > 1
-        fatal 'Multiple packages with the same name, be more precise.'
-        exit 2
-      end
-
-      tmp
-    }.each {|packages|
-      info "Digesting #{packages.first}"
-
-      packages.group_by {|package|
-        package.repository
-      }.each {|repository, packages|
+  desc 'Digest the given file'
+  def digest (*file)
+    file.each {|name|
+      Dir.chdir(File.dirname(name))
+      
+      name = File.basename(name)
+  
+      if !File.exists? 'digest.xml'
         digest = REXML::Document.new
         digest.add_element REXML::Element.new('digest')
         digest.root.attributes['version'] = '1.0'
+      else
+        digest = REXML::Document.new(File.read('digest.xml'))
+      end
   
-        path = "#{repository.path}/#{packages.first.categories.join('/')}/#{packages.first.name}"
+      package = Packo::Package.parse(name.sub(/\.rbuild$/, ''))
   
-        begin
-          Packo.load "#{path}/#{packages.first.name}.rbuild"
-        rescue LoadError
-          warn 'The root rbuild could not be found'
-        end
-        
-        packages.each {|package|
-          info "doing #{package.version}..."
+      begin
+        Packo.load "#{package.name}.rbuild" rescue nil
+        Packo.load name
+      rescue LoadError
+        fatal 'Failed to load the rbuild'
+        exit 80
+      end
   
-          begin
-            Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
-          rescue LoadError
-            warn "Failed to load #{package}"
-            next
-          end
+      package = Packo::Packages[:last]
   
-          package = Packo::Packages[package.to_s]
+      package.on :fetched, -9001 do
+        package.stages.stop!
+    
+        raise 'YOU SHALL NOT PASS'
+      end
+    
+      package.build
   
-          if !package
-            fatal 'Package could not be instantiated'
-            exit 23
-          end
-  
-          dom                          = REXML::Element.new('package')
-          dom.attributes['name']       = package.name
-          dom.attributes['categories'] = package.categories.join('/')
-          dom.attributes['version']    = package.version
-          dom.attributes['slot']       = package.slot
-  
-          features = REXML::Element.new('features')
-          package.features.each {|feature|
-            tmp      = REXML::Element.new('feature')
-            tmp.text = feature.name
-  
-            features.add_element tmp
-          }
-  
-          package.on :unpack, -9001 do
-            package.stages.stop!
-  
-            raise 'YOU SHALL NOT PASS'
-          end
-  
-          package.build
-  
-          files = REXML::Element.new('files')
-          package.distfiles.each {|file|
-            tmp                    = REXML::Element.new('file')
-            tmp.attributes['name'] = File.basename(file)
-            tmp.text               = Digest::SHA1.hexdigest(File.read(file))
-  
-            files.add_element tmp
-          }
-          
-          dom.add_element features
-          dom.add_element files
-  
-          digest.root.add_element dom
-        }
-  
-        file = File.new("#{path}/digest.xml", 'w')
-        digest.write file
-        file.close
-
-        info "Digested #{packages.first} (#{file.path})"
+      digest.elements.each("//build[@version = '#{package.version}' AND @slot = '#{package.slot}']") {|e|
+        e.parent.delete(e)
       }
+    
+      build                       = REXML::Element.new('build')
+      build.attributes['version'] = package.version.to_s
+      build.attributes['slot']    = package.slot.to_s
+    
+      features = REXML::Element.new('features')
+  
+      features.text = package.features.each {}.map {|f| f.first.to_s}.join(' ')
+  
+      files = REXML::Element.new('files')
+      package.distfiles.each {|file|
+        files.add_element((dom = REXML::Element.new('file');
+          dom.attributes['name'] = File.basename(file);
+          dom.text               = Digest::SHA1.hexdigest(File.read(file));
+          dom
+        ))
+      }
+            
+      build.add_element features
+      build.add_element files
+    
+      digest.root.add_element build
+    
+      file = File.new('digest.xml', 'w')
+      digest.write file
+      file.close
     }
+  rescue Errno::EACCES
+    fatal "Try to use `packo-build` instead of `packo build` (which is sandbox'd)"
   end
 
   desc 'Output the manifest of the given package'
@@ -255,8 +245,8 @@ class Application < Optitron::CLI
 
   private
 
-  def _search (package, exact=false)
-    `packo-repository --type=source --exact=#{exact.inspect} --full=true search '#{package}'`.lines.map {|line|
+  def _search (package, exact=false, repository='')
+    `packo-repository --repository='#{repository}' --type=source --exact=#{exact.inspect} --full=true search '#{package}'`.lines.map {|line|
       matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?)\)$})
 
       pkg = Packo::Package.parse(matches[1])

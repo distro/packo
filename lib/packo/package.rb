@@ -74,6 +74,7 @@ class Package
     @slot       = slot
 
     Packages["#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"] = self
+    Packages[:last] = self
 
     if !version || !(tmp = Packages[(@categories + [@name]).join('/')])
       @modules      = []

@@ -33,8 +33,6 @@ class Application < Optitron::CLI
   @@scm = ['git'] # implement others
 
   class_opt 'database', 'The path to the repository cache', :default => Packo::Environment[:REPOSITORY_CACHE]
-  class_opt 'source', 'The path to the source cache', :default => Packo::Environment[:SOURCE_CACHE]
-  class_opt 'binary', 'The path to the binary cache', :default => Packo::Environment[:BINARY_CACHE]
 
   desc 'Outputs version'
   def version
@@ -48,135 +46,84 @@ class Application < Optitron::CLI
 
     uri.each {|uri|
       uri  = URI.parse(uri)
-      type = 'source'
+      kind = nil
+      type = nil
       name = nil
 
       if uri.scheme.nil? || uri.scheme == 'file'
+        kind = :file
+
         if File.directory? uri.path
-          dom = REXML::Document.new(File.new("#{uri.path}/repository.xml"))
+          dom = REXML::Document.new(File.read("#{uri.path}/repository.xml"))
         else
-          dom = REXML::Document.new(File.new(uri.path))
+          dom = REXML::Document.new(File.read(uri.path))
         end
 
         uri = File.realpath(uri.path)
 
         type = dom.root.attributes['type'].to_sym
         name = dom.root.attributes['name']
-        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
-
-        case type
-          when :binary
-            path << '.xml'
-
-            FileUtils.cp uri, path, :preserve => true
-
-            begin
-              @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-                name, 'binary', uri, path
-              ])
-            rescue SQLite3::ConstraintException
-              fatal "binary/#{name} already exists, delete it first"
-              next
-            end
-          
-          when :source
-            FileUtils.rm_rf path, :secure => true rescue nil
-            FileUtils.mkpath path rescue nil
-            FileUtils.cp_r "#{uri}/.", path, :preserve => true, :remove_destination => true
-
-            begin
-              @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-                name, 'source', uri, path
-              ])
-            rescue SQLite3::ConstraintException
-              fatal "source/#{name} already exists, delete it first"
-              next
-            end
-        end
-
-        begin
-          _add path, type
-        rescue Exception => e
-          fatal 'Failed to add the cache'
-          Packo.debug e, :force => true
-        end
       elsif ['http', 'https', 'ftp'].member?(uri.scheme)
+        kind = :fetched
+
         xml = open(uri).read
         dom = REXML::Document.new(xml)
 
         type = dom.root.attributes['type']
         name = dom.root.attributes['name']
-        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
-
-        case type
-          when 'binary'
-            begin
-              @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-                name, 'binary', uri.to_s, path
-              ])
-            rescue SQLite3::ConstraintException
-              fatal "binary/#{name} already exists, delete it first"
-              next
-            end
-
-            file = File.new("#{path}.xml", 'w')
-            file.write(xml)
-            file.close
-          
-          when 'source'
-            uri = dom.elements.each('//address') {}.first.text
-
-            begin
-              @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-                name, 'source', uri.to_s, path
-              ])
-            rescue SQLite3::ConstraintException
-              fatal "source/#{name} already exists, delete it first"
-              next
-            end
-
-            _checkout(uri, path)
-        end
-
-        begin
-          _add path, type.to_sym
-        rescue Exception => e
-          fatal 'Failed to add the cache'
-          Packo.debug e, :force => true
-        end
       elsif @@scm.member?(uri.scheme)
+        kind = :scm
+
         FileUtils.rm_rf("#{Packo::Environment[:TMP]}/.__repo", :secure => true)
 
         _checkout(uri, "#{Packo::Environment[:TMP]}/.__repo")
 
-        dom = REXML::Document.new(File.new("#{Packo::Environment[:TMP]}/.__repo/repository.xml"))
+        dom = REXML::Document.new(File.read("#{Packo::Environment[:TMP]}/.__repo/repository.xml"))
 
         type = dom.root.attributes['type']
         name = dom.root.attributes['name']
-        path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
-
-        begin
-          @db.execute('INSERT INTO repositories VALUES(?, ?, ?, ?)', [
-            name, 'source', uri.to_s, path
-          ])
-        rescue SQLite3::ConstraintException
-          fatal "source/#{name} already exists, delete it first"
-          next
-        end
-
-        FileUtils.rm_rf path, :secure => true rescue nil
-        FileUtils.mkpath path rescue nil
-        FileUtils.cp_r "#{Packo::Environment[:TMP]}/.__repo/.", path, :preserve => true, :remove_destination => true
-
-        begin
-          _add path, :source
-        rescue Exception => e
-          fatal 'Failed to add the cache'
-          Packo.debug e, :force => true
-        end
       end
 
-      _info "Added #{type}/#{name}"
+      if !kind
+        fatal "I don't know what to do with #{uri}"
+        next
+      end
+
+      path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
+
+      if @db.execute('SELECT id FROM repositories WHERE name = ? AND type = ?', [name, type.to_s]).length > 0
+        fatal "#{type}/#{name} already exists, delete it first"
+        next
+      end
+
+      case type
+        when :binary
+          path << '.xml'
+
+          file = File.new(path, 'w')
+          file.write(open(uri).read)
+          file.close
+          
+        when :source
+          FileUtils.rm_rf path, :secure => true rescue nil
+          FileUtils.mkpath path rescue nil
+
+          target = case kind
+            when :fetched; dom.elements.each('//address') {}.first.text
+            when :scm;     "#{Packo::Environment[:TMP]}/.__repo/"
+            else;          uri.to_s
+          end
+
+          _checkout(target, path)
+      end
+
+      begin
+        _add type, uri, path
+        _info "Added #{type}/#{name}"
+      rescue Exception => e
+        fatal 'Failed to add the cache'
+        Packo.debug e, :force => true
+      end
     }
 
     @db.commit rescue nil
@@ -185,28 +132,22 @@ class Application < Optitron::CLI
   desc 'Deletes installed repositories'
   def delete (*name)
     name.each {|name|
-      type, name = (name.include?('/') ? name : '/' + name).split('/')
+      repository = PackoBinary::Repository.parse(name)
 
-      if !type.empty? && type != 'binary' && type != 'source'
+      if repository.type && !['binary', 'source'].member?(repository.type)
         fatal "#{type} is not a valid repository type"
         exit 60
       end
 
-      _info "Deleting #{[type, name].join('/')}"
+      _info "Deleting #{[repository.type, repository.namename].join('/')}"
 
       begin
-        @db.execute(%{
-          SELECT *
-          
-          FROM repositories
-          
-          WHERE
-            name = ?
-            #{'AND type = ?' if !type.empty?}
-        }, [name, (type.empty? ? nil : type)].compact).each {|repo|
+        @db.execute("SELECT * FROM repositories WHERE name = ? #{'AND type = ?' if repository.type}", [
+          repository.name, repository.type
+        ].compact).each {|repo|
           FileUtils.rm_rf repo['path'], :secure => true
 
-          _delete(name, (type.empty? ? nil : repo['type']))
+          _delete(repo['name'], repo['type'])
         }
       rescue Exception => e
         fatal "Something went wrong while deleting #{name}"
@@ -229,12 +170,12 @@ class Application < Optitron::CLI
           file = File.new(repo['path'], 'w')
           file.write(open(repo['uri']).read)
           file.close
-          _add(repo['path'], :binary)
+          _add(:binary, repo['uri'], repo['path'])
 
         when 'source'
           if _update(repo['path'])
             _delete(repo['name'], :source)
-            _add(repo['path'], :source)
+            _add(:source, repo['uri'], repo['path'])
           end
       end
     }
@@ -243,42 +184,62 @@ class Application < Optitron::CLI
   desc 'Searches packages with the given expression'
   opt 'exact', 'Search for the exact name', :type => :boolean, :default => false, :short_name => 'e'
   opt 'full', 'Include the repository that owns the package', :type => :boolean, :default => false
-  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all'
+  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
+  opt 'repository', 'Set a specific repository', :type => :string
   def search (expression='')
     packages = []
 
-    if params['type'] == 'binary' || params['type'] == 'all'
-      PackoBinary::Repository.all(@binary, :binary).each {|repository|
-        packages << repository.search(expression, params['exact']).map {|package|
-          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
-        }
+    if params['repository']
+
+    else
+      [:binary, :source].each {|type|
+        if params['type'] == 'all' || params['type'] == type.to_s
+          PackoBinary::Repository.all(@db, type.to_s).each {|repository|
+            packages << repository.search(expression, params['exact']).map {|package|
+              PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
+            }
+          }
+        end
       }
     end
 
-    if params['type'] == 'source' || params['type'] == 'all'
-      PackoBinary::Repository.all(@source, :source).each {|repository|
-        packages << repository.search(expression, params['exact']).map {|package|
-          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
-        }
+    packages.flatten.uniq.group_by {|package|
+      package.to_s
+    }.sort.each {|(name, packages)|
+      packages.sort {|a, b|
+        Versionomy.parse(a['version']) <=> Versionomy.parse(b['version'])
+      }.each {|package|
+        print package.to_s
+        print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.path})" if params['full']
+        print "\n"
       }
-    end
-
-    packages.flatten.uniq.each {|package|
-      print package.to_s
-      print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.path})" if params['full']
-
-      print "\n"
     }
   end
 
   desc 'Searches packages with the given expression and returns detailed informations about them'
   opt 'exact', 'Search for the exact name', :type => :boolean, :default => false, :short_name => 'e'
-  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all'
+  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
   def info (expression='')
-    case params['type']
-      when 'binary'
-        PackoBinary::Repository.all(@binary, :binary).each {|repository|
-          repository.search(expression, params['exact']).each {|package|
+    packages = []
+
+    [:binary, :source].each {|type|
+      if params['type'] == 'all' || params['type'] == type.to_s
+        PackoBinary::Repository.all(@db, type.to_s).each {|repository|
+          packages << repository.search(expression, params['exact']).map {|package|
+            package[:type] = type; package
+          }
+        }
+      end
+    }
+
+    packages.flatten.group_by {|package|
+      "#{package['categories']}/#{package['name']}"
+    }.sort.each {|(name, packages)|
+      packages.sort {|a, b|
+        Versionomy.parse(a['version']) <=> Versionomy.parse(b['version'])
+      }.each {|package|
+        case package[:type]
+          when :binary
             print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
@@ -290,7 +251,7 @@ class Application < Optitron::CLI
 
             print "    #{colorize('Builds', :GREEN)}:      "
 
-            @binary.execute('SELECT * FROM package_builds WHERE package = ?', package['id']).each {|build|
+            @db.execute('SELECT * FROM binary_builds WHERE package = ?', package['id']).each {|build|
               print 'With '
 
               if build['features']
@@ -303,13 +264,7 @@ class Application < Optitron::CLI
               print "\n                 "
             }
 
-            print "\n"
-          }
-        }
-
-      when 'source'
-        PackoBinary::Repository.all(@source, :source).each {|repository|
-          repository.search(expression, params['exact']).each {|package|
+          when :source
             print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
@@ -321,7 +276,7 @@ class Application < Optitron::CLI
 
             print "    #{colorize('Features', :GREEN)}:    "
 
-            features = @source.execute('SELECT * FROM package_features WHERE package = ?', package['id'])
+            features = @db.execute('SELECT * FROM source_features WHERE package = ?', package['id'])
             length   = features.map {|feature| feature['name'].length}.max
 
             features.each {|feature|
@@ -335,82 +290,59 @@ class Application < Optitron::CLI
 
               print "\n                 "
             }
+        end
 
-            puts ''
-          }
-        }
-
-        when 'all'
-          params['type'] = 'binary'; info(expression)
-          params['type'] = 'source'; info(expression)
-    end
+        print "\n"
+      }
+    }
   end
 
   desc 'Shows installed repositories'
   def show (type='all')
-    case type
-      when 'binary'
-        _info 'Installed binary repositories:'
+    if type == 'binary' || type == 'source'
+      _info "Installed #{type} repositories:"
 
-        repositories = @db.execute('SELECT * FROM repositories WHERE type = ?', 'binary')
-        length       = repositories.map {|repo| "#{repo['type']}/#{repo['name']}".length}.max
+      repositories = @db.execute('SELECT * FROM repositories WHERE type = ?', type)
+      length       = repositories.map {|repo| "#{repo['type']}/#{repo['name']}".length}.max
 
-        repositories.each {|repo|
-          puts "  #{repo['type']}/#{repo['name']}#{' ' * (4 + length - "#{repo['type']}/#{repo['name']}".length)}#{repo['uri']} (#{repo['path']})"
-        }
+      repositories.each {|repo|
+        puts "  #{repo['type']}/#{repo['name']}#{' ' * (4 + length - "#{repo['type']}/#{repo['name']}".length)}#{repo['uri']} (#{repo['path']})"
+      }
 
-        puts ''
-
-      when 'source'
-        _info 'Installed source repositories:'
-
-        repositories = @db.execute('SELECT * FROM repositories WHERE type = ?', 'source')
-        length       = repositories.map {|repo| "#{repo['type']}/#{repo['name']}".length}.max
-
-        repositories.each {|repo|
-          puts "  #{repo['type']}/#{repo['name']}#{' ' * (4 + length - "#{repo['type']}/#{repo['name']}".length)}#{repo['uri']} (#{repo['path']})"
-        }
-
-        puts ''
-
-      else
-        show('binary')
-        show('source')
+      puts ''
+    elsif type == 'all'
+      show('binary')
+      show('source')
     end
   end
 
   desc 'Outputs the path of a given repository'
   def path (name)
-    type, name = name.split('/')
+    repository = PackoBinary::Repository.parse(name)
 
     begin
-      if !['source', 'binary'].member? type
+      if !['source', 'binary'].member? repository.type
         fatal 'You have to pass the repository type too.'
         exit! 10
       end
 
-      if name
-        repositories = @db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [name, type])
-      else
-        repositories = @db.execute('SELECT * FROM repositories WHERE type = ?', type)
-      end
+      repo = @db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [repository.name, repository.type]).first
 
-      if repositories.empty?
-        exit! 11
-      end
-      
-      repositories.each {|repo|
-        puts repo['path']
-      }
+      puts repo['path'] if repo
     rescue Exception => e
-      fatal "Something went wrong while getting info of #{type}/#{name}"
+      fatal "Something went wrong while getting info of #{repository.type}/#{repository.name}"
 
       Packo.debug e, :force => true
     end
   end
 
+  desc 'Outputs the URI of a given package in a given repository'
+  def uri (repository, package)
+
+  end
+
   desc 'Rehash the repository caches'
-  def rehash
+  def rehash (*names)
     @db.execute('SELECT * FROM repositories').each {|repo|
       _info "Rehashing #{repo['type']}/#{repo['name']}"
       
@@ -446,6 +378,8 @@ class Application < Optitron::CLI
 
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS repositories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
         name TEXT,
         type TEXT,
 
@@ -456,23 +390,9 @@ class Application < Optitron::CLI
       )
     })
 
-    @source = SQLite3::Database.new(params['source'])
-    @source.results_as_hash = true
-
-    @source.execute(%{
-      CREATE TABLE IF NOT EXISTS repositories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-  
-        name TEXT,
-        path TEXT,
-  
-        UNIQUE (name)
-      )
-    })
-  
-    @source.execute(%{
+    @db.execute(%{
       CREATE TABLE IF NOT EXISTS packages ( 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
         repository INTEGER,
 
         categories TEXT,
@@ -484,15 +404,15 @@ class Application < Optitron::CLI
         homepage    TEXT,
         license     TEXT,
 
-        UNIQUE (categories, name, version, slot)
+        UNIQUE (repository, categories, name, version, slot)
       )
     })
 
-    @source.execute(%{
-      CREATE TABLE IF NOT EXISTS package_features (
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS source_features (
         package INTEGER,
 
-        name TEXT,
+        name        TEXT,
         description TEXT,
 
         enabled INTEGER,
@@ -501,44 +421,23 @@ class Application < Optitron::CLI
       )
     })
 
-    @binary = SQLite3::Database.new(params['binary'])
-    @binary.results_as_hash = true
-
-    @binary.execute(%{
-      CREATE TABLE IF NOT EXISTS repositories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-        name TEXT,
-        path TEXT,
-
-        UNIQUE (name)
-      )
-    })
-
-    @binary.execute(%{
-      CREATE TABLE IF NOT EXISTS packages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS binary_mirrors (
         repository INTEGER,
+        uri        TEXT,
 
-        categories TEXT,
-        name       TEXT,
-        version    TEXT,
-        slot       TEXT,
-
-        description TEXT,
-        homepage    TEXT,
-        license     TEXT,
-
-        UNIQUE (categories, name, version, slot)
+        UNIQUE (repository, uri)
       )
     })
 
-    @binary.execute(%{
-      CREATE TABLE IF NOT EXISTS package_builds (
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS binary_builds (
         package INTEGER,
 
         features TEXT,
         flavors  TEXT,
+
+        digest TEXT,
 
         UNIQUE (package, features, flavors)
       )
@@ -547,31 +446,32 @@ class Application < Optitron::CLI
 
   private
 
-  def _add (path, type)
-    case type.to_sym
-      when :binary; PackoBinary::Repository.create(@binary,  REXML::Document.new(File.new(path)), File.realpath(path), type)
-      when :source; PackoBinary::Repository.create(@source,  REXML::Document.new(File.new("#{path}/repository.xml")), File.realpath(path), type)
-    end.update
+  def _add (type, uri, path)
+    PackoBinary::Repository.create(@db, type, REXML::Document.new(File.read(type == :source ? "#{path}/repository.xml" : path)), uri, File.realpath(path)).update
   end
 
   def _delete (name, type)
-    PackoBinary::Repository.delete({ :binary => @binary, :source => @source }[type.to_sym], name, type.to_sym)
-
-    type = type.to_s if type
-
-    @db.execute("DELETE FROM repositories WHERE name = ? #{'AND type = ?' if type}", [name, type].compact)
+    PackoBinary::Repository.delete(@db, name, type.to_sym)
   end
 
   def _checkout (uri, path)
     uri = URI.parse(uri.to_s) if !uri.is_a?(URI)
 
-    if !@@scm.member?(uri.scheme)
-      fatal "#{uri.scheme} is not a supported SCM"
+    if !uri.scheme
+      if File.directory?("#{uri}/.git")
+        scm = 'git'
+      end
+    else
+      scm = uri.scheme
+    end
+
+    if !@@scm.member?(scm)
+      fatal "#{scm} is an unsupported SCM"
       exit 40
     end
 
-    case uri.scheme
-      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !Packo::Environment[:DEBUG]
+    case scm
+      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !Packo::Environment[:VERBOSE]
     end
   end
 

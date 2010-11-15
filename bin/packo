@@ -44,7 +44,9 @@ class Application < Optitron::CLI
     FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
 
     name.each {|name|
-      info "Installing #{name}"
+      if Packo::Environment[:FLAVORS].include?('binary')
+        
+      end
 
       path = "#{Packo::Environment[:TMP]}/#{name}"
 
@@ -90,7 +92,7 @@ class Application < Optitron::CLI
       cmd << %Q{ "#{arg}"}
     }
 
-    system(cmd)
+    exit! system(cmd)
   end
 
   desc 'Manages various configurations'
@@ -103,7 +105,7 @@ class Application < Optitron::CLI
       cmd << %Q{ "#{arg}"}
     }
 
-    system(cmd)
+    exit! system(cmd)
   end
 
   desc 'Manages packø repositories'
@@ -116,7 +118,7 @@ class Application < Optitron::CLI
       cmd << %Q{ "#{arg}"}
     }
 
-    system(cmd)
+    exit! system(cmd)
   end
 
   desc 'Manages packø environment'
@@ -127,7 +129,7 @@ class Application < Optitron::CLI
       cmd << %Q{ "#{arg}"}
     }
 
-    system(cmd)
+    exit! system(cmd)
   end
 
   def params= (params)
@@ -154,6 +156,8 @@ class Application < Optitron::CLI
   def _database
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS installed (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
         categories TEXT,
         name       TEXT,
         version    TEXT,
@@ -167,29 +171,34 @@ class Application < Optitron::CLI
 
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS dependencies (
-        categories TEXT,
-        name       TEXT,
-        version    TEXT,
-        slot       TEXT DEFAULT NULL,
-       
-        needed_by_categories TEXT,
-        needed_by_name       TEXT,
-        needed_by_version    TEXT,
-        needed_by_slot       TEXT DEFAULT NULL,
+        package           INTEGER,
+        needed_by_package INTEGER
       )
     })
 
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS files (
-        categories TEXT,
-        name       TEXT,
-        version    TEXT,
-        slot       TEXT,
+        package INTEGER,
 
         path TEXT
       )
     })
   end
+
+  def _search (package, type)
+    `packo-repository --type='#{type}' --full=true search '#{package}'`.lines.map {|line|
+      matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?)\)$})
+
+      pkg = Packo::Package.parse(matches[1])
+
+      PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
+				:type => matches[2],
+        :name => matches[3],
+        :path => matches[4]
+      ))
+    }.compact
+  end
+
 end
 
 Application.dispatch
