@@ -101,7 +101,7 @@ class Application < Optitron::CLI
           path << '.xml'
 
           file = File.new(path, 'w')
-          file.write(open(uri).read)
+          file.write(open(kind == :file && !uri.to_s.match(/\.xml$/) ? "#{uri}/repository.xml" : uri).read)
           file.close
           
         when :source
@@ -185,12 +185,20 @@ class Application < Optitron::CLI
   opt 'exact', 'Search for the exact name', :type => :boolean, :default => false, :short_name => 'e'
   opt 'full', 'Include the repository that owns the package', :type => :boolean, :default => false
   opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
-  opt 'repository', 'Set a specific repository', :type => :string
+  opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def search (expression='')
     packages = []
 
-    if params['repository']
+    if params['repository'] && !params['repository'].empty?
+      repository      = PackoBinary::Repository.parse(params['repository'])
+      repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
+      repository      = PackoBinary::Repository.find(@db, repository.name, repository.type)
 
+      if repository
+        packages << repository.search(expression, params['exact']).map {|package|
+          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
+        }
+      end
     else
       [:binary, :source].each {|type|
         if params['type'] == 'all' || params['type'] == type.to_s
@@ -203,14 +211,14 @@ class Application < Optitron::CLI
       }
     end
 
-    packages.flatten.uniq.group_by {|package|
+    packages.flatten.compact.uniq.group_by {|package|
       package.to_s
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
-        Versionomy.parse(a['version']) <=> Versionomy.parse(b['version'])
+        a.version <=> b.version
       }.each {|package|
         print package.to_s
-        print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.path})" if params['full']
+        print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.uri} | #{package.repository.path})" if params['full']
         print "\n"
       }
     }
@@ -219,20 +227,33 @@ class Application < Optitron::CLI
   desc 'Searches packages with the given expression and returns detailed informations about them'
   opt 'exact', 'Search for the exact name', :type => :boolean, :default => false, :short_name => 'e'
   opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
+  opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def info (expression='')
     packages = []
 
-    [:binary, :source].each {|type|
-      if params['type'] == 'all' || params['type'] == type.to_s
-        PackoBinary::Repository.all(@db, type.to_s).each {|repository|
-          packages << repository.search(expression, params['exact']).map {|package|
-            package[:type] = type; package
-          }
+    if params['repository'] && !params['repository'].empty?
+      repository      = PackoBinary::Repository.parse(params['repository'])
+      repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
+      repository      = PackoBinary::Repository.find(@db, repository.name, repository.type)
+
+      if repository
+        packages << repository.search(expression, params['exact']).map {|package|
+          package[:type] = repository.type; package
         }
       end
-    }
+    else
+      [:binary, :source].each {|type|
+        if params['type'] == 'all' || params['type'] == type.to_s
+          PackoBinary::Repository.all(@db, type.to_s).each {|repository|
+            packages << repository.search(expression, params['exact']).map {|package|
+              package[:type] = type; package
+            }
+          }
+        end
+      }
+    end
 
-    packages.flatten.group_by {|package|
+    packages.flatten.compact.group_by {|package|
       "#{package['categories']}/#{package['name']}"
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
@@ -318,32 +339,38 @@ class Application < Optitron::CLI
 
   desc 'Outputs the path of a given repository'
   def path (name)
-    repository = PackoBinary::Repository.parse(name)
+    repository = PackoBinary::Repository.find(@db, name)
 
-    begin
-      if !['source', 'binary'].member? repository.type
-        fatal 'You have to pass the repository type too.'
-        exit! 10
-      end
+    exit! if !repository
 
-      repo = @db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [repository.name, repository.type]).first
-
-      puts repo['path'] if repo
-    rescue Exception => e
-      fatal "Something went wrong while getting info of #{repository.type}/#{repository.name}"
-
-      Packo.debug e, :force => true
-    end
+    puts repository.path
   end
 
-  desc 'Outputs the URI of a given package in a given repository'
-  def uri (repository, package)
+  desc 'Outputs the URI of a given package'
+  def uri (name)
+    repository = PackoBinary::Repository.find(@db, name)
 
+    exit! if !repository
+
+    case repository.type
+      when :binary; puts repository.mirrors.join("\n")
+      when :source; puts repository.uri
+    end
   end
 
   desc 'Rehash the repository caches'
   def rehash (*names)
-    @db.execute('SELECT * FROM repositories').each {|repo|
+    repositories = []
+
+    if names.empty?
+      repositories << PackoBinary::Repository.all(@db)
+    else
+      names.each {|name|
+        repositories << PackoBinary::Repository.find(@db, name)
+      }
+    end
+    
+    repositories.flatten.compact.each {|repo|
       _info "Rehashing #{repo['type']}/#{repo['name']}"
       
       case repo['type']

@@ -24,7 +24,7 @@ module PackoBinary
 class Repository
   def self.parse (text)
     if text.include?('/')
-      type, name = name.split('/')
+      type, name = text.split('/')
     else
       type, name = nil, name
     end
@@ -41,8 +41,12 @@ class Repository
     }
   end
 
-  def self.find (db, name, type)
-    db.execute('SELECT * FROM repositories WHERE name = ? AND type = ?', [name, type]).first
+  def self.find (db, name, type=nil)
+    type, name = (tmp = Repository.parse(name); [tmp.type, tmp.name]) if !type
+
+    repo = db.execute('SELECT name, type FROM repositories WHERE name = ? AND type = ?', [name, type]).first
+
+    Repository.new(db, repo['name'], repo['type'])
   end
 
   def self.name (dom)

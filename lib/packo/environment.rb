@@ -34,7 +34,7 @@ class Environment < Hash
 
     :PROFILE => '/etc/packo.profile',
 
-    :FLAVORS  => 'headers documentation',
+    :FLAVOR   => 'headers documentation',
     :FEATURES => '',
 
     :CACHE => '/var/lib/packo/cache',
@@ -133,7 +133,7 @@ class Environment < Hash
       end
     }
 
-    if package
+    if package && package.respond_to?(:on)
       ["#{self[:PROFILE]}/modules", self[:CONFIG_MODULES]].each {|path|
         Dir.glob("#{path}/*.rb").each {|file|
           Packo.load file, binding

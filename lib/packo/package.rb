@@ -137,7 +137,7 @@ class Package
 
   def envify!
     ['binary', 'headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
-      if Packo::Environment['FLAVORS'].include?(flavor)
+      if Packo::Environment[:FLAVOR].include?(flavor)
         self.flavors.send "#{flavor}!"
       else
         self.flavors.send "not_#{flavor}!"

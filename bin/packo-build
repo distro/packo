@@ -50,7 +50,7 @@ class Application < Optitron::CLI
       packages = _search(package, true, params['repository'])
       
       names = packages.group_by {|package|
-        package.to_s
+        "#{package.categories.join('/')}/#{package.name}"
       }.map {|(name, package)| name}.uniq
 
       if names.length > 1
@@ -245,16 +245,17 @@ class Application < Optitron::CLI
 
   private
 
-  def _search (package, exact=false, repository='')
-    `packo-repository --repository='#{repository}' --type=source --exact=#{exact.inspect} --full=true search '#{package}'`.lines.map {|line|
-      matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?)\)$})
+  def _search (package, exact=false, repository=nil)
+    `packo-repository #{"--repository='#{repository}'" if repository} --type=source --exact=#{exact.inspect} --full=true search '#{package}'`.lines.map {|line|
+      matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?) \| (.*?)\)$})
 
       pkg = Packo::Package.parse(matches[1])
 
       PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
-				:type => matches[2],
+				:type => matches[2].to_sym,
         :name => matches[3],
-        :path => matches[4]
+        :uri  => matches[4],
+        :path => matches[5]
       ))
     }.compact
   end
