@@ -22,8 +22,10 @@
 require 'optitron'
 require 'sqlite3'
 require 'open-uri'
+require 'digest/sha1'
 
 require 'packo'
+require 'packo/modules/packaging'
 require 'packo_binary'
 
 class Application < Optitron::CLI
@@ -38,12 +40,15 @@ class Application < Optitron::CLI
 
   desc 'Installs packages'
   opt 'destination', 'Set the destination where to install the package', :default => '/'
+  opt 'inherit', 'Apply the passed flags to the eventual dependencies', :type => :boolean, :default => false
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def install (*name)
     _database
 
     FileUtils.mkpath params['destination'] rescue nil
     FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
+
+    binary = false
 
     name.each {|name|
       packages = nil
@@ -54,12 +59,16 @@ class Application < Optitron::CLI
         if packages.empty?
           warn "#{name} could not be found in the binary repositories, looking in source repositories"
           packages = nil
+        else
+          binary = true
         end
       end
 
       begin
         if !packages
           packages = _search(name, :source, params['repository'])
+
+          binary = false
         end
 
         names = packages.group_by {|package|
@@ -81,7 +90,7 @@ class Application < Optitron::CLI
 
         if !package
           fatal "#{name} not found"
-          exit 11
+          exit! 11
         end
 
         env = Packo::Environment.new(package)
@@ -118,21 +127,31 @@ class Application < Optitron::CLI
           name << "%#{package.slot}" if package.slot
           name << ".pko"
 
-          if !File.exist?("#{env[:TMP]}/#{name}")
-            FileUtils.mkpath(File.dirname("#{env[:TMP]}/#{name}")) rescue nil
+          FileUtils.mkpath(File.dirname("#{env[:TMP]}/#{name}")) rescue nil
 
+          begin
             Packo.sh 'wget', '-c', '-O', "#{env[:TMP]}/#{name}", "#{_uri(package.repository)}/#{name}"
+          rescue RuntimeError
+            FileUtils.rm "#{env[:TMP]}/#{name}"
+            fatal "Failed to download #{name}"
+            exit! 12
           end
 
           name = "#{env[:TMP]}/#{name}"
 
+          if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
+            fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
+            exit 99
+          end
+
+          path = "#{env[:TMP]}/.__packo_unpacked/#{name[env[:TMP].length, name.length]}"
+
         when :source
           name = _build(package, env)
+          path = "#{env[:TMP]}/.__packo_unpacked/#{package.categories.join('/')}/#{name[env[:TMP].length + '.__packo_build'.length, name.length]}"
       end
 
-      ap name; exit
-
-      path = "#{env[:TMP]}/#{name}.unpacked"
+      FileUtils.rm_rf path, :secure => true
 
       case File.extname(name)
         when '.pko'
@@ -140,17 +159,32 @@ class Application < Optitron::CLI
 
           manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
 
-          manifest.selectors.each {|selector|
-            FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
-            Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
-          }
-
-          FileUtils.cp_r Dir.glob("#{path}/dist/*"), params['destination'], :preserve => true, :remove_destination => true
-
         else
           fatal 'Unknown package type'
-          exit 10
+          exit! 14
       end
+
+      if !params['inherit']
+        Packo::Environment[:FLAVOR] = Packo::Environment[:FEATURES] = ''
+      end
+
+      manifest.blockers {|blocker|
+        if (blocker.runtime? || !binary) && _installed?(blocker)
+          fatal "#{blocker} can't be installed with #{package}"
+          exit! 15
+        end
+      }
+
+      manifest.dependencies.each {|dependency|
+        install(dependency.to_s) if dependency.runtime? || !binary
+      }
+
+      manifest.selectors.each {|selector|
+        FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
+        Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
+      }
+
+      FileUtils.cp_r Dir.glob("#{path}/dist/*"), params['destination'], :preserve => true, :remove_destination => true
     }
   end
 
@@ -173,7 +207,7 @@ class Application < Optitron::CLI
     cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
 
     argument.compact.each {|arg|
-      cmd << %Q{ "#{arg}"}
+      cmd << %Q{ '"#{arg}"'}
     }
 
     exit! system(cmd)
@@ -199,7 +233,7 @@ class Application < Optitron::CLI
     cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
 
     argument.compact.each {|arg|
-      cmd << %Q{ "#{arg}"}
+      cmd << %Q{ '"#{arg}"'}
     }
 
     exit! system(cmd)
@@ -252,7 +286,8 @@ class Application < Optitron::CLI
         flavors  TEXT,
         features TEXT,
 
-        manual INTEGER DEFAULT 0,
+        manual  INTEGER DEFAULT 0,
+        runtime INTEGER DEFAULT 1,
 
         UNIQUE (categories, name, slot)
       )
@@ -276,6 +311,12 @@ class Application < Optitron::CLI
 
   def _install
 
+  end
+
+  def _installed? (package)
+    @db.execute('SELECT * FROM installed WHERE categories = ? AND name = ? AND version = ? AND slot = ?', [
+      package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s
+    ]).first
   end
 
   def _search (package, type, repository=nil)
@@ -305,9 +346,11 @@ class Application < Optitron::CLI
     FileUtils.rm_rf "#{env[:TMP]}/.__packo_build", :secure => true rescue nil
     FileUtils.mkpath "#{env[:TMP]}/.__packo_build" rescue nil
 
-    if system("sandbox packo-build --output='#{env[:TMP]}/.__packo_build' --repository='#{package.repository.type}/#{package.repository.name}' package #{package.to_s}") == 0
-      File.realpath(Dir.glob("#{env[:TMP]}/.__packo_build/*.pko").first)
+    if !system("sandbox packo-build --output='#{env[:TMP]}/.__packo_build' --repository='#{package.repository.type}/#{package.repository.name}' package #{package.to_s}")
+      raise RuntimeError.new 'Build failed'
     end
+
+    return Dir.glob("#{env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
   end
 
   def _has (package, env)
@@ -340,6 +383,21 @@ class Application < Optitron::CLI
         !features.member?(f)
       }.join(' ')
     end
+  end
+
+  def _digest (package, env)
+    matches = Packo::Environment.sandbox(:NO_COLORS => 1) {
+      `packo-repository info --repository='binary/#{package.repository.name}' '#{package.to_s}'`.match(
+        %r{#{Regexp.escape(%{With #{
+            env[:FEATURES].empty? ? 'nothing' : env[:FEATURES].split(/\s+/).join(' ')
+          }#{" in #{
+            env[:FLAVOR].split(/\s+/).join(' ')
+          } flavor" if !env[:FLAVOR].empty?}
+        }.strip)}.*?\(SHA1 (.*?)\)}
+      )
+    }
+
+    return matches[1] if matches
   end
 end
 

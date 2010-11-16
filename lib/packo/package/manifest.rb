@@ -18,6 +18,7 @@
 #++
 
 require 'ostruct'
+require 'rexml/document'
 
 module Packo
 
@@ -34,11 +35,11 @@ class Manifest
       :slot       => dom.elements.each('//package/slot') {}.first.text,
 
       :dependencies => dom.elements.each('//dependencies/dependency') {}.map {|dependency|
-        Dependency.parse("#{dependency}#{'!' if dependency.attributes['type'] == 'build'}")
+        Dependency.parse("#{dependency.text}#{'!' if dependency.attributes['type'] == 'build'}")
       },
 
       :blockers => dom.elements.each('//blockers/blocker') {}.map {|blocker|
-        Blocker.parse(blocker)
+        Blocker.parse("#{blocker.text}#{'!' if blocker.attributes['type'] == 'build'}")
       },
 
       :selector => dom.elements.each('//selectors/selector') {}.map {|selector|
@@ -91,7 +92,8 @@ class Manifest
     blockers = REXML::Element.new('blockers')
     self.blockers.each {|blocker|
       blockers.add_element((dom = REXML::Element.new('blocker');
-        dom.text = blocker.to_s
+        dom.attributes['runtime'] = (blocker.runtime?) ? 'runtime' : 'build';
+        dom.text                  = blocker.to_s;
         dom
       ))
     }

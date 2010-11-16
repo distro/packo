@@ -37,34 +37,41 @@ class Dependency
 
     parsed = Packo::Package.parse(text)
 
-    Dependency.new(parsed.name, parsed.categories, parsed.version, parsed.features, validity, runtime)
+    Dependency.new(parsed.name, parsed.categories, parsed.version, parsed.features, parsed.flavors, validity, runtime)
   end
 
-  attr_reader :name, :categories, :version, :features, :validity
+  attr_reader :name, :categories, :version, :features, :flavors, :validity
 
-  def initialize (name, categories, version, features, validity=nil, runtime=true)
+  def initialize (name, categories, version, features, flavors, validity=nil, runtime=true)
     @name       = name
     @categories = categories
-    @version    = version
+    @version    = (!(version || '').empty?) ? Versionomy.parse(version) : nil
     @features   = features
+    @flavors    = flavors
     @validity   = validity
     @runtime    = runtime
   end
 
   def runtime?; @runtime end
 
-  def to_s
-    tmp = @features.sort {|a, b|
-      if a[1] && b[1]
-        0
-      elsif a[1] && !b[1]
-        -1
-      else
-        1
-      end
-    }.to_a.map {|feature| (feature[1] ? '' : '-') + feature[0].to_s}.join(',')
+  def to_s (name=false)
+    if name
+      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
+    else
+      features = @features.sort {|a, b|
+        if a[1] && b[1]
+          0
+        elsif a[1] && !b[1]
+          -1
+        else
+          1
+        end
+      }.to_a.map {|feature| (feature[1] ? '' : '-') + feature[0].to_s}.join(',')
 
-    "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{tmp}]" if !tmp.empty?}"
+      flavors = @flavors.sort
+
+      "#{@validity}#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavors}}" if !flavors.empty?}"
+    end
   end
 end
 

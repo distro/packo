@@ -261,6 +261,7 @@ class Application < Optitron::CLI
       }.each {|package|
         case package[:type]
           when :binary
+            print "[#{colorize("binary/#{_repository(package).name}", :BLACK, :DEFAULT, :BOLD)}] "
             print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
@@ -292,6 +293,7 @@ class Application < Optitron::CLI
             }
 
           when :source
+            print "[#{colorize("source/#{_repository(package).name}", :BLACK, :DEFAULT, :BOLD)}] "
             print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
@@ -488,6 +490,10 @@ class Application < Optitron::CLI
   end
 
   private
+
+  def _repository (package)
+    PackoBinary::Repository.find(@db, package['repository'].to_i)
+  end
 
   def _add (type, uri, path)
     PackoBinary::Repository.create(@db, type, REXML::Document.new(File.read(type == :source ? "#{path}/repository.xml" : path)), uri, File.realpath(path)).update

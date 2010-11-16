@@ -42,9 +42,14 @@ class Repository
   end
 
   def self.find (db, name, type=nil)
-    type, name = (tmp = Repository.parse(name); [tmp.type, tmp.name]) if !type
+    if name.is_a? Integer
+      repo = db.execute('SELECT name, type FROM repositories WHERE id = ?', name).first
+    else
+      type, name = (tmp = Repository.parse(name); [tmp.type, tmp.name]) if !type
+      repo = db.execute('SELECT name, type FROM repositories WHERE name = ? AND type = ?', [name, type]).first
+    end
 
-    repo = db.execute('SELECT name, type FROM repositories WHERE name = ? AND type = ?', [name, type]).first
+    return if !repo
 
     Repository.new(db, repo['name'], repo['type'])
   end
@@ -125,11 +130,20 @@ class Repository
 		@db.commit rescue nil
   end
 
-  def search (package, exact=false)
-    package = Packo::Package.parse(package)
+  def search (expression, exact=false)
+    if matches = expression.match(/^([<>]?=?)/)
+      validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
+      expression = expression.sub(/^([<>]?=?)/, '')
+
+      validity = nil if validity == '='
+    else
+      validity = nil
+    end
+
+    package = Packo::Package.parse(expression)
 
     if !exact
-      @db.execute(%{
+      result = @db.execute(%{
         SELECT *
 
         FROM packages
@@ -138,14 +152,14 @@ class Repository
           repository = ?
           #{'AND categories LIKE ?' if !package.categories.empty?}
           #{'AND name LIKE ?' if package.name}
-          #{'AND version LIKE ?' if package.version}
+          #{'AND version LIKE ?' if package.version && !validity}
       }, [@id,
         (!package.categories.empty? ? "%#{package.categories.join('/')}%" : nil),
         (package.name ? "%#{package.name}%" : nil),
-        (package.version ? "%#{package.version}%" : nil)
+        (package.version && !validity ? "%#{package.version}%" : nil)
       ].compact)
     else
-      @db.execute(%{
+      result = @db.execute(%{
         SELECT *
 
         FROM packages
@@ -154,13 +168,24 @@ class Repository
           repository = ?
           #{'AND categories = ?' if !package.categories.empty?}
           #{'AND name = ?' if package.name}
-          #{'AND version = ?' if package.version}
+          #{'AND version = ?' if package.version && !validity}
       }, [@id,
         (package.categories.empty? ? nil : package.categories.join('/')),
         package.name,
-        package.version
+        package.version && !validity ? package.version : nil 
       ].compact)
     end
+
+    return result if !validity
+
+    result.select {|pkg|
+      case validity
+        when '>';  Versionomy.parse(pkg['version']) >  package.version
+        when '>='; Versionomy.parse(pkg['version']) >= package.version
+        when '<';  Versionomy.parse(pkg['version']) <  package.version
+        when '<='; Versionomy.parse(pkg['version']) <= package.version
+      end
+    }
   end
 
   private

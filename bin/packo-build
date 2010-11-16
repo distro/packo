@@ -250,6 +250,8 @@ class Application < Optitron::CLI
       `packo-repository #{"--repository='#{repository}'" if repository} --type=source --exact=#{exact.inspect} --full=true search '#{package}'`.lines.map {|line|
         matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?) \| (.*?)\)$})
 
+        next if !matches
+
         pkg = Packo::Package.parse(matches[1])
 
         PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
