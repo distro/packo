@@ -136,7 +136,7 @@ class Package
   rescue; end
 
   def envify!
-    ['binary', 'headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
+    ['headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
       if Packo::Environment[:FLAVOR].include?(flavor)
         self.flavors.send "#{flavor}!"
       else
@@ -144,17 +144,15 @@ class Package
       end
     }
 
-    Packo::Environment['FEATURES'].split(/\s+/).each {|feature|
+    Packo::Environment[:FEATURES].split(/\s+/).each {|feature|
       feature = Packo::Feature.parse(feature)
 
       self.features {
-				next if !self.get(feature.name)
+				next if !self.has(feature.name)
 
-				if feature.enabled?
-        	self.get(feature.name).enabled!
-				else
+				(feature.enabled?) ?
+        	self.get(feature.name).enabled! :
 					self.get(feature.name).disabled!
-				end
       }
     }
   end

@@ -164,15 +164,15 @@ class Application < Optitron::CLI
     @db.execute('SELECT * FROM repositories').each {|repo|
       _info "Updating #{repo['type']}/#{repo['name']}"
       
-      case repo['type']
-        when 'binary'
+      case repo['type'].to_sym
+        when :binary
           _delete(repo['name'], :binary)
           file = File.new(repo['path'], 'w')
           file.write(open(repo['uri']).read)
           file.close
           _add(:binary, repo['uri'], repo['path'])
 
-        when 'source'
+        when :source
           if _update(repo['path'])
             _delete(repo['name'], :source)
             _add(:source, repo['uri'], repo['path'])
@@ -270,8 +270,13 @@ class Application < Optitron::CLI
             puts "    #{colorize('Homepage', :GREEN)}:    #{package['homepage']}"
             puts "    #{colorize('License', :GREEN)}:     #{package['license']}"
 
-            print "    #{colorize('Builds', :GREEN)}:      "
+            print "    #{colorize('Features', :GREEN)}:    "
+            @db.execute('SELECT * FROM binary_features WHERE package = ?', package['id']).each {|version|
+              print version['features']
+            }
+            print "\n"
 
+            print "    #{colorize('Builds', :GREEN)}:      "
             @db.execute('SELECT * FROM binary_builds WHERE package = ?', package['id']).each {|build|
               print 'With '
 
@@ -282,6 +287,7 @@ class Application < Optitron::CLI
               end
 
               print " in #{colorize(build['flavors'], :DEFAULT, :DEFAULT, :BOLD)} flavor" if build['flavors']
+              print colorize(" (SHA1 #{build['digest']})", :BLACK, :DEFAULT, :BOLD) if build['digest']
               print "\n                 "
             }
 
@@ -458,6 +464,16 @@ class Application < Optitron::CLI
     })
 
     @db.execute(%{
+      CREATE TABLE IF NOT EXISTS binary_features (
+        package INTEGER,
+
+        features TEXT,
+
+        UNIQUE (package, features)
+      )
+    })
+
+    @db.execute(%{
       CREATE TABLE IF NOT EXISTS binary_builds (
         package INTEGER,
 
@@ -466,7 +482,7 @@ class Application < Optitron::CLI
 
         digest TEXT,
 
-        UNIQUE (package, features, flavors)
+        UNIQUE (package, features, flavors, digest)
       )
     })
   end

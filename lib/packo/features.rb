@@ -38,6 +38,10 @@ class Features
     end
   end
 
+  def has (name)
+    @features.key? name
+  end
+
   def set (name, &block)
     @features[name.to_sym] = Feature.new(@package, name.to_sym, &block)
   end

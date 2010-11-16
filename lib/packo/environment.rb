@@ -104,42 +104,79 @@ class Environment < Hash
     result
   end
 
+  def self.sandbox (box)
+    old = Hash[ENV]
+
+    box.each {|key, value|
+      ENV[key.to_s] = value.to_s
+    }
+
+    begin
+      result = yield
+    rescue Exception => e
+      result = e
+    end
+
+    box.each {|key, value|
+      ENV.delete(key.to_s)
+    }
+
+    old.each {|key, value|
+      ENV[key] = value
+    }
+
+    if result.is_a?(Exception)
+      raise result
+    else
+      return result
+    end
+  end
+
+
   attr_reader :package
 
   def initialize (package=nil)
     @package = package
 
-    Environment.clone.each {|key, value|
-      self[key] = value
+    mod = ::Module.new
+  
+    Environment.each {|name, value|
+      suppress_warnings {
+        mod.const_set name.to_sym, value
+      }
     }
 
-    ["#{self[:PROFILE]}/packo.conf", self[:CONFIG_FILE]].each {|file|
+    ["#{Environment[:PROFILE]}/packo.conf", Environment[:CONFIG_FILE]].each {|file|
       if File.readable? file
-        mod = ::Module.new
-  
-        self.each {|name, value|
-          suppress_warnings {
-            mod.const_set name.to_sym, value
-          }
-        }
-  
         suppress_warnings {
           mod.module_eval File.read(file)
-        }
-  
-        mod.constants.each {|const|
-          self[const] = mod.const_get const
         }
       end
     }
 
     if package && package.respond_to?(:on)
-      ["#{self[:PROFILE]}/modules", self[:CONFIG_MODULES]].each {|path|
+      ["#{Environment[:PROFILE]}/modules", Environment[:CONFIG_MODULES]].each {|path|
         Dir.glob("#{path}/*.rb").each {|file|
           Packo.load file, binding
         }
       }
     end
+
+    mod.constants.each {|const|
+      self[const] = mod.const_get const
+    }
+
+    Environment.clone.each {|key, value|
+      if [:FEATURES].member?(key)
+        if self[key].is_a?(String)
+          self[key] << " #{value}"
+        else
+          self[key] = value
+        end
+      else
+        self[key] = value
+      end
+    }
   end
 
   alias __get []
@@ -156,26 +193,8 @@ class Environment < Hash
     __set(name.to_sym, value)
   end
 
-  def sandbox
-    old = Hash[ENV]
-
-    self.each {|key, value|
-      ENV[key.to_s] = value.to_s
-    }
-
-    begin
-      error = nil
-
-      yield
-    rescue Exception => e
-      error = e
-    end
-
-    old.each {|key, value|
-      ENV[key] = value
-    }
-
-    raise error if error
+  def sandbox (changes={}, &block)
+    Environment.sandbox(self.merge(changes), &block)
   end
 end
 

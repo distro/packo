@@ -57,69 +57,82 @@ class Application < Optitron::CLI
         end
       end
 
-      packages = _search(name, :source, params['repository']) if !packages
+      begin
+        if !packages
+          packages = _search(name, :source, params['repository'])
+        end
 
-      names = packages.group_by {|package|
-        "#{package.categories.join('/')}/#{package.name}"
-      }.map {|(name, package)| name}.uniq
+        names = packages.group_by {|package|
+          "#{package.categories.join('/')}/#{package.name}"
+        }.map {|(name, package)| name}.uniq
 
-      if names.length > 1
-        fatal "More than one package matches: #{name}"
-        names.each {|name|
-          puts "    #{name}"
-        }
+        if names.length > 1
+          fatal "More than one package matches: #{name}"
+          names.each {|name|
+            puts "    #{name}"
+          }
         
-        exit 10
+          exit 10
+        end
+
+        package = packages.sort {|a, b|
+          a.version <=> b.version
+        }.last
+
+        if !package
+          fatal "#{name} not found"
+          exit 11
+        end
+
+        env = Packo::Environment.new(package)
+
+        _filter(package, env)
+
+        if package.repository.type == :binary && !_has(package, env)
+          warn 'The binary package is not available with the features you asked for, trying to build from source'
+          packages = nil
+          raise ArgumentError
+        end
+      rescue ArgumentError
+        retry
       end
-
-      package = packages.sort {|a, b|
-        a.version <=> b.version
-      }.last
-
-      if !package
-        fatal "#{name} not found"
-        exit 11
-      end
-
-      environment = Packo::Environment.new(package)
 
       case package.repository.type
         when :binary
           name = "#{package.categories.join('/')}/#{package.name}-#{package.version}"
 
           flavors = ''
-          environment[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.each {|f|
+          env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.each {|f|
             flavors << ".#{f}"
           }
           flavors[0, 1] = ''
 
           features = ''
-          environment[:FEATURES].split(/\s+/).each {|f|
+          env[:FEATURES].split(/\s+/).each {|f|
             features << "-#{f}"
           }
           features[0, 1] = ''
 
           name << "+#{flavors}" if !flavors.empty?
           name << "-#{features}" if !features.empty?
-
-          name << "%#{package.slot}"
+          name << "%#{package.slot}" if package.slot
           name << ".pko"
 
-          if !File.exist?("#{Packo::Environment[:TMP]}/#{name}")
-            file = File.new("#{Packo::Environment[:TMP]}/#{name}", 'w')
-            file.write(open("#{_uri(package.repository)}/#{name}").read)
-            file.close
+          if !File.exist?("#{env[:TMP]}/#{name}")
+            FileUtils.mkpath(File.dirname("#{env[:TMP]}/#{name}")) rescue nil
+
+            Packo.sh 'wget', '-c', '-O', "#{env[:TMP]}/#{name}", "#{_uri(package.repository)}/#{name}"
           end
 
-          name = "#{Packo::Environment[:TMP]}/#{name}"
+          name = "#{env[:TMP]}/#{name}"
 
         when :source
-          name = _build package
+          name = _build(package, env)
       end
 
       ap name; exit
 
-      path = "#{Packo::Environment[:TMP]}/#{name}.unpacked"
+      path = "#{env[:TMP]}/#{name}.unpacked"
 
       case File.extname(name)
         when '.pko'
@@ -128,8 +141,8 @@ class Application < Optitron::CLI
           manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
 
           manifest.selectors.each {|selector|
-            FileUtils.cp_r "#{path}/selectors/#{selector.path}", Packo::Environment[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
-            Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{Packo::Environment[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
+            FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
+            Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
           }
 
           FileUtils.cp_r Dir.glob("#{path}/dist/*"), params['destination'], :preserve => true, :remove_destination => true
@@ -229,6 +242,8 @@ class Application < Optitron::CLI
       CREATE TABLE IF NOT EXISTS installed (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
 
+        repository TEXT,
+
         categories TEXT,
         name       TEXT,
         version    TEXT,
@@ -259,33 +274,71 @@ class Application < Optitron::CLI
     })
   end
 
+  def _install
+
+  end
+
   def _search (package, type, repository=nil)
-    `packo-repository #{"--repository='#{repository}'" if repository} --type='#{type}' --full=true search '#{package}'`.lines.map {|line|
-      matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?) \| (.*?)\)$})
+    Packo::Environment.sandbox(:NO_COLORS => 1) {
+      `packo-repository #{"--repository='#{repository}'" if repository} --type='#{type}' --full=true search '#{package}'`.lines.map {|line|
+        matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?) \| (.*?)\)$})
 
-      next if !matches
+        next if !matches
 
-      pkg = Packo::Package.parse(matches[1])
+        pkg = Packo::Package.parse(matches[1])
 
-      PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
-				:type => matches[2].to_sym,
-        :name => matches[3],
-        :uri  => matches[4],
-        :path => matches[5]
-      ))
-    }.compact
+        PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
+	  			:type => matches[2].to_sym,
+          :name => matches[3],
+          :uri  => matches[4],
+          :path => matches[5]
+        ))
+      }.compact
+    }
   end
 
   def _uri (repository)
     `packo-repository uri '#{repository.type}/#{repository.name}'`.strip
   end
 
-  def _build (package)
-    FileUtils.rm_rf "#{Packo::Environment[:TMP]}/.__packo_build", :secure => true rescue nil
-    FileUtils.mkpath "#{Packo::Environment[:TMP]}/.__packo_build" rescue nil
+  def _build (package, env)
+    FileUtils.rm_rf "#{env[:TMP]}/.__packo_build", :secure => true rescue nil
+    FileUtils.mkpath "#{env[:TMP]}/.__packo_build" rescue nil
 
-    if system("sandbox packo-build --output='#{Packo::Environment[:TMP]}/.__packo_build' --repository='#{package.repository.type}/#{package.repository.name}' package #{package.to_s}") == 0
-      File.realpath(Dir.glob("#{Packo::Environment[:TMP]}/.__packo_build/*.pko").first)
+    if system("sandbox packo-build --output='#{env[:TMP]}/.__packo_build' --repository='#{package.repository.type}/#{package.repository.name}' package #{package.to_s}") == 0
+      File.realpath(Dir.glob("#{env[:TMP]}/.__packo_build/*.pko").first)
+    end
+  end
+
+  def _has (package, env)
+    Packo::Environment.sandbox(:NO_COLORS => 1) {
+      `packo-repository info --repository='binary/#{package.repository.name}' '#{package.to_s}'`.include?(
+        %{With #{
+            env[:FEATURES].empty? ? 'nothing' : env[:FEATURES].split(/\s+/).join(' ')
+          }#{" in #{
+            env[:FLAVOR].split(/\s+/).join(' ')
+          } flavor" if !env[:FLAVOR].empty?}
+        }.strip
+      )
+    }
+  end
+
+  def _filter (package, env)
+    env[:FLAVOR] = env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.join(' ')
+
+    matches = Packo::Environment.sandbox(:NO_COLORS => 1) {
+      `packo-repository info --repository='binary/#{package.repository.name}' '#{package.to_s}'`.match(
+        /Features:\s+(.+)$/
+      )
+    }
+
+    if !matches
+      env[:FEATURES] = ''
+    else
+      features       = matches[1].split(/\s+/)
+      env[:FEATURES] = env[:FEATURES].split(/\s+/).delete_if {|f|
+        !features.member?(f)
+      }.join(' ')
     end
   end
 end

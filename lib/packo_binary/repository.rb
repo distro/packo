@@ -178,11 +178,11 @@ class Repository
 				license     = e.attributes['license']
 
 				e.elements.each('.//build') {|build|
-					version  = build.attributes['version']
+					version  = build.parent.attributes['name']
           digest   = build.attributes['digest']
 					features = build.elements.each('.//features') {}.first.text rescue nil
 					flavors  = build.elements.each('.//flavors') {}.first.text rescue nil
-					slot     = build.parent.attributes['version']
+					slot     = build.parent.parent.name == 'slot' ? build.parent.parent.attributes['name'] : nil
 
 					@db.execute('INSERT OR IGNORE INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)', [@id,
 						categories, name, version.to_s, slot.to_s, description.to_s, homepage.to_s, license.to_s
@@ -193,6 +193,8 @@ class Repository
 					]).first['id']
 
 					@db.execute('INSERT OR REPLACE INTO binary_builds VALUES(?, ?, ?, ?)', [id, features, flavors, digest])
+
+          @db.execute('INSERT OR IGNORE INTO binary_features VALUES(?, ?)', [id, build.parent.attributes['features']])
 				}
 			end
 		}
