@@ -23,6 +23,7 @@ require 'optitron'
 require 'sqlite3'
 require 'open-uri'
 require 'digest/sha1'
+require 'find'
 
 require 'packo'
 require 'packo/modules/packaging'
@@ -41,6 +42,7 @@ class Application < Optitron::CLI
   desc 'Installs packages'
   opt 'destination', 'Set the destination where to install the package', :default => '/'
   opt 'inherit', 'Apply the passed flags to the eventual dependencies', :type => :boolean, :default => false
+  opt 'force', 'Force installation when something minor goes wrong', :type => :boolean, :default => false
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def install (*name)
     _database
@@ -49,6 +51,12 @@ class Application < Optitron::CLI
     FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
 
     binary = false
+
+    if name.last === true
+      manual = name.shift ? 0 : 1
+    else
+      manual = 1
+    end
 
     name.each {|name|
       packages = nil
@@ -148,7 +156,7 @@ class Application < Optitron::CLI
 
         when :source
           name = _build(package, env)
-          path = "#{env[:TMP]}/.__packo_unpacked/#{package.categories.join('/')}/#{name[env[:TMP].length + '.__packo_build'.length, name.length]}"
+          path = "#{env[:TMP]}/.__packo_unpacked/#{package.categories.join('/')}/#{name[env[:TMP].length + '.__packo_build/'.length, name.length]}"
       end
 
       FileUtils.rm_rf path, :secure => true
@@ -184,7 +192,61 @@ class Application < Optitron::CLI
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
       }
 
-      FileUtils.cp_r Dir.glob("#{path}/dist/*"), params['destination'], :preserve => true, :remove_destination => true
+      @db.execute('INSERT OR ABORT INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [params['repository'],
+        package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s,
+        env[:FLAVOR], env[:FEATURES], manual, 1
+      ])
+
+      id = @db.execute('SELECT id FROM packages WHERE categories = ? AND name = ? AND slot = ?', [
+        package.categories.join('/'), package.name, package.slot.to_s
+      ]).first['id']
+
+      length = "#{path}/dist".length
+
+      begin
+        Find.find("#{path}/dist") {|file|
+          type = nil
+          path = "#{params['destination']}/#{file[length, file.length]}".gsub(%r{/*/}, '/')
+          meta = nil
+
+          if pkg = _exists?(path) && !params['force']
+            fatal "#{path} belongs to #{pkg}, use --force to force overwrite"
+            raise RuntimeError.new 'File collision'
+          end
+  
+          if File.directory? file
+            type = 'dir'
+            FileUtils.mkpath path
+          elsif File.symlink? file
+            type = 'sym'
+            meta = File.readlink file
+
+            FileUtils.rm_f path
+            File.symlink meta, path
+          elsif File.file? file
+            type = 'obj'
+            meta = Digest::SHA1.hexdigest(File.read(file))
+            FileUtils.cp file, path, :preserve => true
+          else
+            next
+          end
+
+          case type
+            when 'dir'; puts ">   #{path}"
+            when 'sym'; puts ">>> #{path} -> #{meta}"
+            when 'obj'; puts ">>> #{path}"
+          end
+  
+          @db.execute('INSERT INTO contents VALUES(?, ?, ?, ?)', [id, type, path, meta])
+        }
+      rescue Exception => e
+        @db.execute('DELETE FROM packages WHERE id = ?', id)
+        @db.execute('DELETE FROM contents WHERE package = ?', id)
+
+        fatal 'Something went deeply wrong when installing package contents'
+        Packo.debug e, :force => true
+        exit! 17
+      end
     }
   end
 
@@ -273,7 +335,7 @@ class Application < Optitron::CLI
 
   def _database
     @db.execute(%{
-      CREATE TABLE IF NOT EXISTS installed (
+      CREATE TABLE IF NOT EXISTS packages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
 
         repository TEXT,
@@ -295,16 +357,18 @@ class Application < Optitron::CLI
 
     @db.execute(%{
       CREATE TABLE IF NOT EXISTS dependencies (
-        package           INTEGER,
-        needed_by_package INTEGER
+        package    INTEGER,
+        dependency INTEGER
       )
     })
 
     @db.execute(%{
-      CREATE TABLE IF NOT EXISTS files (
+      CREATE TABLE IF NOT EXISTS contents (
         package INTEGER,
 
-        path TEXT
+        type TEXT,
+        path TEXT,
+        meta TEXT
       )
     })
   end
@@ -398,6 +462,14 @@ class Application < Optitron::CLI
     }
 
     return matches[1] if matches
+  end
+
+  def _exists? (path)
+    path = @db.execute("SELECT * FROM contents WHERE path = ? AND type != 'dir'", path).first
+
+    return false unless path
+
+    @db.execute('SELECT * FROM packages WHERE id = ?', path['package']).first
   end
 end
 
