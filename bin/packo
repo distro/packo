@@ -43,9 +43,12 @@ class Application < Optitron::CLI
   opt 'destination', 'Set the destination where to install the package', :default => '/'
   opt 'inherit', 'Apply the passed flags to the eventual dependencies', :type => :boolean, :default => false
   opt 'force', 'Force installation when something minor goes wrong', :type => :boolean, :default => false
+  opt 'nodeps', 'Ignore blockers and dependencies', :type => :boolean, :default => false
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def install (*name)
     _database
+
+    outside = params['destination'] != '/'
 
     FileUtils.mkpath params['destination'] rescue nil
     FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
@@ -59,104 +62,109 @@ class Application < Optitron::CLI
     end
 
     name.each {|name|
-      packages = nil
-
-      if Packo::Environment.new[:FLAVOR].include?('binary')
-        packages = _search(name, :binary, params['repository'])
-
-        if packages.empty?
-          warn "#{name} could not be found in the binary repositories, looking in source repositories"
-          packages = nil
-        else
-          binary = true
-        end
-      end
-
-      begin
-        if !packages
-          packages = _search(name, :source, params['repository'])
-
-          binary = false
-        end
-
-        names = packages.group_by {|package|
-          "#{package.categories.join('/')}/#{package.name}"
-        }.map {|(name, package)| name}.uniq
-
-        if names.length > 1
-          fatal "More than one package matches: #{name}"
-          names.each {|name|
-            puts "    #{name}"
-          }
-        
-          exit 10
-        end
-
-        package = packages.sort {|a, b|
-          a.version <=> b.version
-        }.last
-
-        if !package
-          fatal "#{name} not found"
-          exit! 11
-        end
-
-        env = Packo::Environment.new(package)
-
-        _filter(package, env)
-
-        if package.repository.type == :binary && !_has(package, env)
-          warn 'The binary package is not available with the features you asked for, trying to build from source'
-          packages = nil
-          raise ArgumentError
-        end
-      rescue ArgumentError
-        retry
-      end
-
-      case package.repository.type
-        when :binary
-          name = "#{package.categories.join('/')}/#{package.name}-#{package.version}"
-
-          flavors = ''
-          env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.each {|f|
-            flavors << ".#{f}"
-          }
-          flavors[0, 1] = ''
-
-          features = ''
-          env[:FEATURES].split(/\s+/).each {|f|
-            features << "-#{f}"
-          }
-          features[0, 1] = ''
-
-          name << "+#{flavors}" if !flavors.empty?
-          name << "-#{features}" if !features.empty?
-          name << "%#{package.slot}" if package.slot
-          name << ".pko"
-
-          FileUtils.mkpath(File.dirname("#{env[:TMP]}/#{name}")) rescue nil
-
-          begin
-            Packo.sh 'wget', '-c', '-O', "#{env[:TMP]}/#{name}", "#{_uri(package.repository)}/#{name}"
-          rescue RuntimeError
-            FileUtils.rm "#{env[:TMP]}/#{name}"
-            fatal "Failed to download #{name}"
-            exit! 12
+      if File.extname(name).empty?
+        packages = nil
+  
+        if Packo::Environment.new[:FLAVOR].include?('binary')
+          packages = _search(name, :binary, params['repository'])
+  
+          if packages.empty?
+            warn "#{name} could not be found in the binary repositories, looking in source repositories"
+            packages = nil
+          else
+            binary = true
           end
-
-          name = "#{env[:TMP]}/#{name}"
-
-          if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
-            fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
-            exit 99
+        end
+  
+        begin
+          if !packages
+            packages = _search(name, :source, params['repository'])
+  
+            binary = false
           end
-
-          path = "#{env[:TMP]}/.__packo_unpacked/#{name[env[:TMP].length, name.length]}"
-
-        when :source
-          name = _build(package, env)
-          path = "#{env[:TMP]}/.__packo_unpacked/#{package.categories.join('/')}/#{name[env[:TMP].length + '.__packo_build/'.length, name.length]}"
+  
+          names = packages.group_by {|package|
+            "#{package.categories.join('/')}/#{package.name}"
+          }.map {|(name, package)| name}.uniq
+  
+          if names.length > 1
+            fatal "More than one package matches: #{name}"
+            names.each {|name|
+              puts "    #{name}"
+            }
+          
+            exit 10
+          end
+  
+          package = packages.sort {|a, b|
+            a.version <=> b.version
+          }.last
+  
+          if !package
+            fatal "#{name} not found"
+            exit! 11
+          end
+  
+          env = Packo::Environment.new(package)
+  
+          _filter(package, env)
+  
+          if package.repository.type == :binary && !_has(package, env)
+            warn 'The binary package is not available with the features you asked for, trying to build from source'
+            packages = nil
+            raise ArgumentError
+          end
+        rescue ArgumentError
+          retry
+        end
+  
+        case package.repository.type
+          when :binary
+            name = "#{package.categories.join('/')}/#{package.name}-#{package.version}"
+  
+            flavors = ''
+            env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.each {|f|
+              flavors << ".#{f}"
+            }
+            flavors[0, 1] = ''
+  
+            features = ''
+            env[:FEATURES].split(/\s+/).each {|f|
+              features << "-#{f}"
+            }
+            features[0, 1] = ''
+  
+            name << "%#{package.slot}"
+            name << "+#{flavors}"
+            name << "-#{features}"
+            name << ".pko"
+  
+            FileUtils.mkpath(File.dirname("#{env[:TMP]}/#{name}")) rescue nil
+  
+            begin
+              Packo.sh 'wget', '-c', '-O', "#{env[:TMP]}/#{name}", "#{_uri(package.repository)}/#{name}"
+            rescue RuntimeError
+              FileUtils.rm "#{env[:TMP]}/#{name}"
+              fatal "Failed to download #{name}"
+              exit! 12
+            end
+  
+            name = "#{env[:TMP]}/#{name}"
+  
+            if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
+              fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
+              exit 99
+            end
+  
+            path = "#{env[:TMP]}/.__packo_unpacked/#{name[env[:TMP].length, name.length]}"
+  
+          when :source
+            name = _build(package, env)
+            path = "#{env[:TMP]}/.__packo_unpacked/#{package.categories.join('/')}/#{name[env[:TMP].length + '.__packo_build/'.length, name.length]}"
+        end
+      else
+        env  = Packo::Environment.new
+        path = "#{env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
       end
 
       FileUtils.rm_rf path, :secure => true
@@ -176,30 +184,39 @@ class Application < Optitron::CLI
         Packo::Environment[:FLAVOR] = Packo::Environment[:FEATURES] = ''
       end
 
-      manifest.blockers {|blocker|
-        if (blocker.runtime? || !binary) && _installed?(blocker)
-          fatal "#{blocker} can't be installed with #{package}"
-          exit! 15
-        end
-      }
+      if !params['nodeps']
+        manifest.blockers {|blocker|
+          if (blocker.runtime? || !binary) && _installed?(blocker)
+            fatal "#{blocker} can't be installed with #{package}"
+            exit! 15
+          end
+        }
 
-      manifest.dependencies.each {|dependency|
-        install(dependency.to_s) if dependency.runtime? || !binary
-      }
+        manifest.dependencies.each {|dependency|
+          install(dependency.to_s) if dependency.runtime? || !binary
+        }
+      end
 
       manifest.selectors.each {|selector|
         FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
       }
 
-      @db.execute('INSERT OR ABORT INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [params['repository'],
-        package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s,
-        env[:FLAVOR], env[:FEATURES], manual, 1
-      ])
+      if !(outside && !params['force'])
+        begin
+          @db.execute('INSERT OR ABORT INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [params['repository'],
+            manifest.package.categories.join('/'), manifest.package.name, manifest.package.version.to_s, manifest.package.slot.to_s, manifest.package.revision,
+            manifest.package.flavors, manifest.package.features, manual, 1
+          ])
 
-      id = @db.execute('SELECT id FROM packages WHERE categories = ? AND name = ? AND slot = ?', [
-        package.categories.join('/'), package.name, package.slot.to_s
-      ]).first['id']
+          id = @db.execute('SELECT id FROM packages WHERE categories = ? AND name = ? AND slot = ?', [
+            manifest.package.categories.join('/'), manifest.package.name, manifest.package.slot.to_s
+          ]).first['id']
+        rescue SQLite3::ConstraintException
+          fatal "#{manifest.package.categories.join('/')}/#{manifest.package.name} is already installed"
+          exit! 16
+        end
+      end
 
       length = "#{path}/dist".length
 
@@ -207,9 +224,10 @@ class Application < Optitron::CLI
         Find.find("#{path}/dist") {|file|
           type = nil
           path = "#{params['destination']}/#{file[length, file.length]}".gsub(%r{/*/}, '/')
+          fake = path[params['destination'].length, path.length]
           meta = nil
 
-          if pkg = _exists?(path) && !params['force']
+          if !outside && pkg = _exists?(fake) && !params['force']
             fatal "#{path} belongs to #{pkg}, use --force to force overwrite"
             raise RuntimeError.new 'File collision'
           end
@@ -232,16 +250,20 @@ class Application < Optitron::CLI
           end
 
           case type
-            when 'dir'; puts ">   #{path}"
-            when 'sym'; puts ">>> #{path} -> #{meta}"
+            when 'dir'; puts colorize(">   #{path}", :DEFAULT, :DEFAULT, :BOLD)
+            when 'sym'; puts colorize(">>> #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
             when 'obj'; puts ">>> #{path}"
           end
   
-          @db.execute('INSERT INTO contents VALUES(?, ?, ?, ?)', [id, type, path, meta])
+          if !(outside && !params['force'])
+            @db.execute('INSERT INTO contents VALUES(?, ?, ?, ?)', [id, type, fake, meta])
+          end
         }
       rescue Exception => e
-        @db.execute('DELETE FROM packages WHERE id = ?', id)
-        @db.execute('DELETE FROM contents WHERE package = ?', id)
+        if !(outside && !params['force'])
+          @db.execute('DELETE FROM packages WHERE id = ?', id)
+          @db.execute('DELETE FROM contents WHERE package = ?', id)
+        end
 
         fatal 'Something went deeply wrong when installing package contents'
         Packo.debug e, :force => true
@@ -251,14 +273,47 @@ class Application < Optitron::CLI
   end
 
   desc 'Uninstalls packages'
+  opt 'destination', 'Set the destination where to install the package', :default => '/'
   def uninstall (*name)
     _database
 
+    name.each {|name|
+      _search_installed(name).each {|installed|
+        @db.execute('SELECT * FROM contents WHERE package = ? ORDER BY type DESC', installed['package']).each {|content|
+          path = "#{params['destination']}/#{content['path']}".gsub(%r{/*/}, '/')
+
+          case content['type']
+            when 'obj'
+              puts "<<< #{path}"
+              FileUtils.rm_f(path)
+
+            when 'sym'
+              puts colorize("<<< #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
+              FileUtils.rm_f(path)
+
+            when 'dir'
+              puts colorize("<   #{path}", :DEFAULT, :DEFAULT, :BOLD)
+              Dir.delete(path) rescue nil
+          end
+
+          @db.execute('DELETE FROM contents WHERE package = ? AND path = ?', [content['package'], content['path']])
+        }
+
+        @db.execute('DELETE FROM packages WHERE id = ?', installed['id'])
+
+        @db.execute('DELETE FROM dependencies WHERE package = ?', installed['id'])
+      }
+    }
   end
 
   def show
-    @db.execute('SELECT * FROM present').each {|package|
-      
+    @db.execute('SELECT * FROM packages').each {|package|
+      print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
+      print "-#{colorize(package['version'], :RED)}"
+      print "%#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)}" if !package['slot'].empty?
+
+      print " [#{package['features']}]" if !package['features'].empty?
+      print " {#{package['flavors']}}" if !package['flavors'].empty?
     }
   end
 
@@ -343,7 +398,8 @@ class Application < Optitron::CLI
         categories TEXT,
         name       TEXT,
         version    TEXT,
-        slot       TEXT DEFAULT NULL,
+        slot       TEXT,
+        revision   INTEGER,
 
         flavors  TEXT,
         features TEXT,
@@ -373,14 +429,68 @@ class Application < Optitron::CLI
     })
   end
 
-  def _install
-
-  end
-
   def _installed? (package)
     @db.execute('SELECT * FROM installed WHERE categories = ? AND name = ? AND version = ? AND slot = ?', [
       package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s
     ]).first
+  end
+
+  def _search_installed (expression, exact=false)
+    if matches = expression.match(/^([<>]?=?)/)
+      validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
+      expression = expression.sub(/^([<>]?=?)/, '')
+
+      validity = nil if validity == '='
+    else
+      validity = nil
+    end
+
+    package = Packo::Package.parse(expression)
+
+    if !exact
+      result = @db.execute(%{
+        SELECT *
+
+        FROM packages
+
+        WHERE #{[
+          (!package.categories.empty?) ? 'categories LIKE ?' : nil,
+          (package.name) ? 'name LIKE ?' : nil,
+          (package.version && !validity) ? 'version LIKE ?' : nil
+        ].compact.join(' AND ')}
+      }, [
+        (!package.categories.empty? ? "%#{package.categories.join('/')}%" : nil),
+        (package.name ? "%#{package.name}%" : nil),
+        (package.version && !validity ? "%#{package.version}%" : nil)
+      ].compact)
+    else
+      result = @db.execute(%{
+        SELECT *
+
+        FROM packages
+
+        WHERE  #{[
+          (!package.categories.empty?) ? 'categories = ?' : nil,
+          (package.name) ? 'name = ?' : nil,
+          (package.version && !validity) ? 'version = ?' : nil
+        ].compact.join(' AND ')}
+      }, [
+        (package.categories.empty? ? nil : package.categories.join('/')),
+        package.name,
+        package.version && !validity ? package.version : nil 
+      ].compact)
+    end
+
+    return result if !validity
+
+    result.select {|pkg|
+      case validity
+        when '>';  Versionomy.parse(pkg['version']) >  package.version
+        when '>='; Versionomy.parse(pkg['version']) >= package.version
+        when '<';  Versionomy.parse(pkg['version']) <  package.version
+        when '<='; Versionomy.parse(pkg['version']) <= package.version
+      end
+    }
   end
 
   def _search (package, type, repository=nil)

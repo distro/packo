@@ -68,6 +68,10 @@ class Features
     }
   end
 
+  def to_a
+    @features.select {|name, feature| feature.enabled?}.map {|feature| feature.first.to_s}
+  end
+
   def to_s (pack=false)
     if pack
       @features.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')

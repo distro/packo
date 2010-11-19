@@ -18,7 +18,7 @@
 #++
 
 require 'ostruct'
-require 'rexml/document'
+require 'nokogiri'
 
 module Packo
 
@@ -26,26 +26,33 @@ class Package
 
 class Manifest
   def self.open (path)
-    dom = REXML::Document.new(File.new(path))
+    dom = Nokogiri::XML.parse(File.read(path))
 
     Manifest.new(OpenStruct.new(
-      :name       => dom.elements.each('//package/name') {}.first.text,
-      :categories => dom.elements.each('//package/categories') {}.first.text.split('/'),
-      :version    => dom.elements.each('//package/version') {}.first.text,
-      :slot       => dom.elements.each('//package/slot') {}.first.text,
+      :name       => dom.xpath('//package/name').first.text,
+      :categories => dom.xpath('//package/categories').first.text.split('/'),
+      :version    => Versionomy.parse(dom.xpath('//package/version').first.text),
+      :slot       => dom.xpath('//package/slot').first.text,
 
-      :dependencies => dom.elements.each('//dependencies/dependency') {}.map {|dependency|
-        Dependency.parse("#{dependency.text}#{'!' if dependency.attributes['type'] == 'build'}")
+      :flavors  => (dom.xpath('//package/flavor').first.text || '').split(/\s+/),
+      :features => (dom.xpath('//package/features').first.text || '').split(/\s+/),
+
+      :environment => Hash[dom.xpath('//package/environment/variable').map {|env|
+        [env['name'], env.text]
+      }],
+
+      :dependencies => dom.xpath('//dependencies/dependency').map {|dependency|
+        Dependency.parse("#{dependency.text}#{'!' if dependency['type'] == 'build'}")
       },
 
-      :blockers => dom.elements.each('//blockers/blocker') {}.map {|blocker|
-        Blocker.parse("#{blocker.text}#{'!' if blocker.attributes['type'] == 'build'}")
+      :blockers => dom.xpath('//blockers/blocker').map {|blocker|
+        Blocker.parse("#{blocker.text}#{'!' if blocker['type'] == 'build'}")
       },
 
-      :selector => dom.elements.each('//selectors/selector') {}.map {|selector|
+      :selector => dom.xpath('//selectors/selector').map {|selector|
         Hash[
-          :name        => selector.attributes['name'],
-          :description => selector.attributes['description'],
+          :name        => selector['name'],
+          :description => selector['description'],
           :path        => selector.text
         ]
       }
@@ -59,71 +66,68 @@ class Manifest
       :name       => what.name,
       :categories => what.categories,
       :version    => what.version,
-      :slot       => what.slot
+      :slot       => what.slot,
+
+      :flavors  => what.flavors.to_a,
+      :features => what.features.to_a,
+
+      :environment => what.environment.reject {|name, value|
+        name.to_s.match(/(^|_)CACHE/) || name.to_s.match(/^(REPOSITORY|SELECTOR|CONFIG)/) || [:NO_COLORS, :DEBUG, :VERBOSE, :TMP].member?(name.to_sym)
+      }
     )
 
     @dependencies = what.dependencies
     @blockers     = what.blockers
     @selectors    = [what.selector].flatten.compact.map {|selector| OpenStruct.new(selector)}
 
-    self.xmlify!
+    @builder = Nokogiri::XML::Builder.new {|xml|
+      xml.manifest(:version => '1.0') {
+        xml.package {
+          xml.categories self.package.categories.join('/')
+          xml.name       self.package.name
+          xml.version    self.package.version
+          xml.slot       self.package.slot
+          xml.revision   self.package.revision
+
+          xml.flavor   self.package.flavors.join(' ')
+          xml.features self.package.features.join(' ')
+
+          xml.environment {
+            self.package.environment.each {|name, value|
+              xml.variable({ :name => name }, value)
+            }
+          }
+        }
+
+        xml.dependencies {
+          self.dependencies.each {|dependency|
+            xml.dependency({ :type => (dependency.runtime?) ? 'runtime' : 'build' }, dependency.to_s)
+          }
+        }
+
+        xml.blockers {
+          self.blockers.each {|blocker|
+            xml.blocker({ :type => (dependency.runtime?) ? 'runtime' : 'build' }, blocker.to_s)
+          }
+        }
+
+        xml.selectors {
+          self.selectors.each {|selector|
+            xml.selector({ :name => selector.name, :description => selector.description }, File.basename(selector.path))
+          }
+        }
+      }
+    }
   end
 
-  def xmlify!
-    @dom = REXML::Document.new
-    @dom.add_element REXML::Element.new('manifest')
-    @dom.root.attributes['version'] = '1.0'
-
-    package = REXML::Element.new('package')
-    package.add_element((dom = REXML::Element.new('name'); dom.text = self.package.name; dom))
-    package.add_element((dom = REXML::Element.new('categories'); dom.text = self.package.categories.join('/'); dom))
-    package.add_element((dom = REXML::Element.new('version'); dom.text = self.package.version.to_s; dom))
-    package.add_element((dom = REXML::Element.new('slot'); dom.text = self.package.slot; dom))
-
-    dependencies = REXML::Element.new('dependencies')
-    self.dependencies.each {|dependency|
-      dependencies.add_element((dom = REXML::Element.new('dependency');
-        dom.attributes['runtime'] = (dependency.runtime?) ? 'runtime' : 'build';
-        dom.text                  = dependency.to_s;
-        dom
-      ))
-    }
-
-    blockers = REXML::Element.new('blockers')
-    self.blockers.each {|blocker|
-      blockers.add_element((dom = REXML::Element.new('blocker');
-        dom.attributes['runtime'] = (blocker.runtime?) ? 'runtime' : 'build';
-        dom.text                  = blocker.to_s;
-        dom
-      ))
-    }
-
-    selectors = REXML::Element.new('selectors')
-    self.selectors.each {|selector|
-      selectors.add_element((dom = REXML::Element.new('selector');
-        dom.attributes['name']        = selector.name;
-        dom.attributes['description'] = selector.description;
-        dom.text                      = File.basename(selector.path);
-        dom
-      ))
-    }
-
-    @dom.root.add_element package
-    @dom.root.add_element dependencies
-    @dom.root.add_element blockers
-    @dom.root.add_element selectors
-  end
-
-  def save (to, *args)
+  def save (to, options={})
     file = File.new(to, 'w')
-    file.write(self.to_s(*args))
+    file.write(self.to_s(options))
     file.close
   end
 
-  def to_s (*args)
-    result = ''
-    @dom.write(result, *args)
-    result
+  def to_s (options={})
+    @builder.to_xml({ :indent => 4 }.merge(options))
   end
 end
 

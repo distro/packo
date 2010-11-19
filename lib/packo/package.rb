@@ -17,8 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'ostruct'
-
 require 'packo/packages'
 require 'packo/package/manifest'
 
@@ -31,7 +29,7 @@ require 'packo/flavors'
 module Packo
 
 class Package
-  def self.parse (text)
+  def self.parse (text, pack=false)
     result = OpenStruct.new
 
     matches = text.match(/^(.*?)(\[(.*?)\])?(\{(.*?)\})?$/)
@@ -64,14 +62,15 @@ class Package
     return result
   end
 
-  attr_reader :environment, :name, :categories, :version, :slot, :modules, :dependencies, :blockers, :stages
+  attr_reader :environment, :name, :categories, :version, :slot, :revision, :modules, :dependencies, :blockers, :stages
 
-  def initialize (name, version=nil, slot=nil, &block)
+  def initialize (name, version=nil, slot=nil, revision=nil, &block)
     tmp         = name.split('/')
     @name       = tmp.pop
     @categories = tmp
     @version    = version.is_a?(Versionomy) ? version : Versionomy.parse(version.to_s) if version
     @slot       = slot
+    @revision   = revision.to_i
 
     Packages["#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"] = self
     Packages[:last] = self

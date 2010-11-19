@@ -22,7 +22,7 @@
 require 'optitron'
 require 'sqlite3'
 require 'open-uri'
-require 'rexml/document'
+require 'nokogiri'
 
 require 'packo'
 require 'packo_binary'
@@ -54,23 +54,23 @@ class Application < Optitron::CLI
         kind = :file
 
         if File.directory? uri.path
-          dom = REXML::Document.new(File.read("#{uri.path}/repository.xml"))
+          dom = Nokogiri::XML.parse(File.read("#{uri.path}/repository.xml"))
         else
-          dom = REXML::Document.new(File.read(uri.path))
+          dom = Nokogiri::XML.parse(File.read(uri.path))
         end
 
         uri = File.realpath(uri.path)
 
-        type = dom.root.attributes['type'].to_sym
-        name = dom.root.attributes['name']
+        type = dom.root['type'].to_sym
+        name = dom.root['name']
       elsif ['http', 'https', 'ftp'].member?(uri.scheme)
         kind = :fetched
 
         xml = open(uri).read
-        dom = REXML::Document.new(xml)
+        dom = Nokogiri::XML.parse(xml)
 
-        type = dom.root.attributes['type']
-        name = dom.root.attributes['name']
+        type = dom.root['type'].to_sym
+        name = dom.root['name']
       elsif @@scm.member?(uri.scheme)
         kind = :scm
 
@@ -78,10 +78,10 @@ class Application < Optitron::CLI
 
         _checkout(uri, "#{Packo::Environment[:TMP]}/.__repo")
 
-        dom = REXML::Document.new(File.read("#{Packo::Environment[:TMP]}/.__repo/repository.xml"))
+        dom = Nokogiri::XML.parse(File.read("#{Packo::Environment[:TMP]}/.__repo/repository.xml"))
 
-        type = dom.root.attributes['type']
-        name = dom.root.attributes['name']
+        type = dom.root['type'].to_sym
+        name = dom.root['name']
       end
 
       if !kind
@@ -91,9 +91,9 @@ class Application < Optitron::CLI
 
       path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
 
-      if @db.execute('SELECT id FROM repositories WHERE name = ? AND type = ?', [name, type.to_s]).length > 0
+      if _exists?(type, name)
         fatal "#{type}/#{name} already exists, delete it first"
-        next
+        exit! 10
       end
 
       case type
@@ -108,13 +108,16 @@ class Application < Optitron::CLI
           FileUtils.rm_rf path, :secure => true rescue nil
           FileUtils.mkpath path rescue nil
 
-          target = case kind
-            when :fetched; dom.elements.each('//address') {}.first.text
-            when :scm;     "#{Packo::Environment[:TMP]}/.__repo/"
-            else;          uri.to_s
-          end
+          case kind
+            when :fetched
+              _checkout(dom.xpath('//address').first.text, path)
 
-          _checkout(target, path)
+            when :scm
+              FileUtils.cp_r "#{Packo::Environment[:TMP]}/.__repo/.", path, :preserve => true
+
+            else
+              _checkout(uri.to_s, path)
+          end
       end
 
       begin
@@ -135,11 +138,16 @@ class Application < Optitron::CLI
       repository = PackoBinary::Repository.parse(name)
 
       if repository.type && !['binary', 'source'].member?(repository.type)
-        fatal "#{type} is not a valid repository type"
-        exit 60
+        fatal "#{repository.type} is not a valid repository type"
+        exit! 20
       end
 
-      _info "Deleting #{[repository.type, repository.namename].join('/')}"
+      if !_exists?(repository.type, repository.name)
+        fatal "#{repository.type}/#{repository.name} doesn't exist"
+        exit! 21
+      end
+
+      _info "Deleting #{[repository.type, repository.name].join('/')}"
 
       begin
         @db.execute("SELECT * FROM repositories WHERE name = ? #{'AND type = ?' if repository.type}", [
@@ -162,21 +170,33 @@ class Application < Optitron::CLI
   desc 'Updates installed repositories'
   def update
     @db.execute('SELECT * FROM repositories').each {|repo|
-      _info "Updating #{repo['type']}/#{repo['name']}"
-      
+      updated = false
+
       case repo['type'].to_sym
         when :binary
-          _delete(repo['name'], :binary)
-          file = File.new(repo['path'], 'w')
-          file.write(open(repo['uri']).read)
-          file.close
-          _add(:binary, repo['uri'], repo['path'])
+          if (content = open(repo['uri']).read) != File.read(repo['path'])
+            _delete(repo['name'], :binary)
+            file = File.new(repo['path'], 'w')
+            file.write(content)
+            file.close
+            _add(:binary, repo['uri'], repo['path'])
+
+            updated = true
+          end
 
         when :source
           if _update(repo['path'])
             _delete(repo['name'], :source)
             _add(:source, repo['uri'], repo['path'])
+
+            updated = true
           end
+      end
+
+      if updated
+        _info "Updated #{repo['type']}/#{repo['name']}"
+      else
+        _info "#{repo['type']}/#{repo['name']} already up to date"
       end
     }
   end
@@ -217,7 +237,10 @@ class Application < Optitron::CLI
       packages.sort {|a, b|
         a.version <=> b.version
       }.each {|package|
-        print package.to_s
+        print "#{package.categories.join('/')}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+        print "-#{colorize(package.version, :RED)}"
+        print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
+
         print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.uri} | #{package.repository.path})" if params['full']
         print "\n"
       }
@@ -265,6 +288,7 @@ class Application < Optitron::CLI
             print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
+            print " {#{colorize(package['revision'], :MAGENTA)}}" if package['revision'] != 0
             print "\n"
 
             puts "    #{colorize('Description', :GREEN)}: #{package['description']}"
@@ -377,18 +401,22 @@ class Application < Optitron::CLI
         repositories << PackoBinary::Repository.find(@db, name)
       }
     end
+
+    ap repositories
     
     repositories.flatten.compact.each {|repo|
-      _info "Rehashing #{repo['type']}/#{repo['name']}"
-      
-      case repo['type']
-        when 'binary'
-          _delete(repo['name'], :binary)
-          _add(repo['path'], :binary)
+      _info "Rehashing #{repo.type}/#{repo.name}"
 
-        when 'source'
-          _delete(repo['name'], :source)
-          _add(repo['path'], :source)
+      ap repo
+      
+      case repo.type
+        when :binary
+          _delete(repo.name, :binary)
+          _add(:binary, repo.uri, repo.path)
+
+        when :source
+          _delete(repo.name, :source)
+          _add(:source, repo.uri, repo.path)
       end
     }
   end
@@ -434,6 +462,7 @@ class Application < Optitron::CLI
         name       TEXT,
         version    TEXT,
         slot       TEXT,
+        revision   INTEGER,
 
         description TEXT,
         homepage    TEXT,
@@ -495,8 +524,12 @@ class Application < Optitron::CLI
     PackoBinary::Repository.find(@db, package['repository'].to_i)
   end
 
+  def _exists? (type, name)
+    @db.execute('SELECT id FROM repositories WHERE name = ? AND type = ?', [name.to_s, type.to_s]).length > 0
+  end
+
   def _add (type, uri, path)
-    PackoBinary::Repository.create(@db, type, REXML::Document.new(File.read(type == :source ? "#{path}/repository.xml" : path)), uri, File.realpath(path)).update
+    PackoBinary::Repository.create(@db, type, Nokogiri::XML.parse(File.read(type == :source ? "#{path}/repository.xml" : path)), uri.to_s, File.realpath(path)).update
   end
 
   def _delete (name, type)
@@ -529,7 +562,7 @@ class Application < Optitron::CLI
 
     old = Dir.pwd; Dir.chdir(path)
 
-    if !result && (`git pull`.strip == 'Already up-to-date.' rescue nil)
+    if !result && (`git pull`.strip != 'Already up-to-date.' rescue nil)
       result = true
     end
 

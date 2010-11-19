@@ -11,6 +11,7 @@ Gem::Specification.new {|s|
     s.executables  = ['packo', 'packo-repository', 'packo-build', 'packo-select', 'packo-env']
     s.has_rdoc     = true
 
+    s.add_dependency('nokogiri')
     s.add_dependency('optitron')
     s.add_dependency('sqlite3-ruby')
     s.add_dependency('versionomy')

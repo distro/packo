@@ -87,9 +87,18 @@ class Environment < Hash
   end
 
   def self.each
-    (@@default.keys + ENV.map {|(key, value)|
+    variables = @@default.keys + ENV.map {|(key, value)|
       key.sub(/^PACKO_/, '').to_sym if key.match(/^PACKO_/)
-    }.compact).uniq.each {|name|
+    }.compact
+
+    if variables.member?(:FLAVORS)
+      variables.delete(:FLAVORS)
+      variables << :FLAVOR
+
+      Environment[:FLAVOR] = Environment[:FLAVORS]
+    end
+    
+    variables.uniq.each {|name|
       yield name.to_s, Environment[name]
     }
   end

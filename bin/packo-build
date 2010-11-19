@@ -21,6 +21,7 @@
 
 require 'optitron'
 require 'sqlite3'
+require 'nokogiri'
 require 'rexml/document'
 require 'digest/sha1'
 
@@ -68,11 +69,11 @@ class Application < Optitron::CLI
     }.each {|package|
       path = "#{package.repository.path}/#{package.categories.join('/')}/#{package.name}"
 
-      manifest = REXML::Document.new(File.read("#{path}/digest.xml"))
+      manifest = Nokogiri::XML.parse(File.read("#{path}/digest.xml"))
 
       files = {}
-      manifest.elements.each('//files/file') {|e|
-        files[e.attributes['name']] = e.text
+      manifest.xpath('//files/file').each {|e|
+        files[e['name']] = e.text
       }
 
       begin

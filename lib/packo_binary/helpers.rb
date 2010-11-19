@@ -71,8 +71,8 @@ module Helpers
   alias _fatal fatal
 
   def loadPackage (path, package)
-    if File.exists?("#{path}/digest.xml") && (digest = REXML::Document.new(File.read("#{path}/digest.xml")))
-      features = digest.elements.each("//build[@version = '#{package.version}' AND @slot = '#{package.slot}']/features") {}.first
+    if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
+      features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
       
       features.text.split(' ').each {|feature|
         begin

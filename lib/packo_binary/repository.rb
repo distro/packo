@@ -55,7 +55,7 @@ class Repository
   end
 
   def self.name (dom)
-    dom.root.attributes['name']
+    dom.root['name']
   end
 
   def self.create (db, type, dom, uri, path)
@@ -66,7 +66,7 @@ class Repository
     repository = Repository.new(db, name, type)
 
     if type == :binary
-      dom.elements.each('//mirrors/mirror') {|e|
+      dom.xpath('//mirrors/mirror').each {|e|
         repository.add_mirror e.text
       }
     end
@@ -123,7 +123,7 @@ class Repository
 
   def update
 		case @type
-			when :binary; _populate_binary(REXML::Document.new(File.new(@path)).elements.each('//packages') {}.first)
+			when :binary; _populate_binary(Nokogiri::XML.parse(File.read(@path)).xpath('//packages').first)
 			when :source; _populate_source([@path], @path)
 		end
 
@@ -197,20 +197,21 @@ class Repository
 			if e.name != 'package'
 				_populate_binary(e, "#{categories}/#{e.name}")
 			else
-				name        = e.attributes['name']
-				description = e.attributes['description']
-				homepage    = e.attributes['homepage']
-				license     = e.attributes['license']
+				name        = e['name']
+				description = e['description']
+				homepage    = e['homepage']
+				license     = e['license']
 
 				e.elements.each('.//build') {|build|
-					version  = build.parent.attributes['name']
-          digest   = build.attributes['digest']
-					features = build.elements.each('.//features') {}.first.text rescue nil
-					flavors  = build.elements.each('.//flavors') {}.first.text rescue nil
-					slot     = build.parent.parent.name == 'slot' ? build.parent.parent.attributes['name'] : nil
+					version  = build.parent['name']
+          digest   = build['digest']
+					features = build.elements.xpath('.//features').first.text rescue nil
+					flavors  = build.elements.xpath('.//flavors').first.text rescue nil
+					slot     = build.parent.parent.name == 'slot' ? build.parent.parent['name'] : nil
+          revision = build.parent['revision']
 
-					@db.execute('INSERT OR IGNORE INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)', [@id,
-						categories, name, version.to_s, slot.to_s, description.to_s, homepage.to_s, license.to_s
+					@db.execute('INSERT OR REPLACE INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [@id,
+						categories, name, version.to_s, slot.to_s, revision.to_i, description.to_s, homepage.to_s, license.to_s
 					])
 
 					id = @db.execute('SELECT * FROM packages WHERE repository = ? AND categories = ? AND name = ? AND version = ? AND slot = ?', [@id,
@@ -219,7 +220,7 @@ class Repository
 
 					@db.execute('INSERT OR REPLACE INTO binary_builds VALUES(?, ?, ?, ?)', [id, features, flavors, digest])
 
-          @db.execute('INSERT OR IGNORE INTO binary_features VALUES(?, ?)', [id, build.parent.attributes['features']])
+          @db.execute('INSERT OR IGNORE INTO binary_features VALUES(?, ?)', [id, build.parent['features']])
 				}
 			end
 		}
@@ -256,8 +257,8 @@ class Repository
             next
           end
 
-          @db.execute('INSERT OR REPLACE INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)', [@id,
-            package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s,
+          @db.execute('INSERT OR REPLACE INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [@id,
+            package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s, package.revision,
             package.description, [package.homepage].flatten.join(' '), [package.license].flatten.join(' ')
           ])
 

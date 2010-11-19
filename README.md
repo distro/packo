@@ -15,13 +15,13 @@ These environment variables are needed for testing.
     export PACKO_BINARY_CACHE=/tmp/packo_binary
     export PACKO_SOURCE_CACHE=/tmp/packo_source
     export PACKO_TMP=/tmp
-    export PACKO_PROFILE=~/projects/packo/profiles/default
+    export PACKO_PROFILE=~/projects/distro/profiles/default
     export PACKO_VERBOSE=true
 
 Then you can start doing some things.
 
-    $ packo repository add git://github.com/organo/source
-    $ packo repository add https://github.com/organo/binary/raw/master/core2.xml
+    $ packo repository add git://github.com/distro/source-universe.git
+    $ packo repository add https://github.com/distro/binary-universe/raw/master/core2.xml
 
 This adds two repositories and gives you some packages.
 

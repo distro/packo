@@ -201,7 +201,10 @@ class Autotools < Module
 
     FileUtils.mkpath "#{package.distdir}/usr"
 
-    @configuration.set 'prefix', '/usr'
+    @configuration.set 'prefix',         '/usr'
+    @configuration.set 'sysconfdir',     '/etc'
+    @configuration.set 'sharedstatedir', '/com'
+    @configuration.set 'localstatedir',  '/var'
 
     if (error = package.stages.call(:configure, @configuration).find {|result| result.is_a? Exception})
       Packo.debug error
