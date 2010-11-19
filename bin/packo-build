@@ -157,18 +157,14 @@ class Application < Optitron::CLI
   desc 'Digest the given file'
   def digest (*file)
     file.each {|name|
+      if !File.exists?(name)
+        fatal "#{name} does not exist"
+        exit! 40
+      end
+
       Dir.chdir(File.dirname(name))
       
-      name = File.basename(name)
-  
-      if !File.exists? 'digest.xml'
-        digest = REXML::Document.new
-        digest.add_element REXML::Element.new('digest')
-        digest.root.attributes['version'] = '1.0'
-      else
-        digest = REXML::Document.new(File.read('digest.xml'))
-      end
-  
+      name    = File.basename(name)
       package = Packo::Package.parse(name.sub(/\.rbuild$/, ''))
   
       begin
@@ -188,35 +184,33 @@ class Application < Optitron::CLI
       end
     
       package.build
+
+      original = Nokogiri::XML.parse(File.read('digest.xml')) rescue nil
   
-      digest.elements.each("//build[@version = '#{package.version}' AND @slot = '#{package.slot}']") {|e|
-        e.parent.delete(e)
+      builder = Nokogiri::XML::Builder.new {|xml|
+        xml.digest(:version => '1.0') {
+          xml.build(:version => package.version.to_s, :slot => package.slot.to_s) {
+            xml.features package.features.to_a.join(' ')
+
+            xml.files {
+              package.distfiles.each {|file|
+                xml.file({ :name => File.basename(file) }, Digest::SHA1.hexdigest(File.read(file)))
+              }
+            }
+          }
+
+          if original
+            original.xpath('//build').each {|build|
+              if build['version'] != package.version.to_s && ((build['slot'].empty? && !package.slot) || build['slot'] != package.slot.to_s)
+                xml.doc.root.add_child(build)
+              end
+            }
+          end
+        }
       }
-    
-      build                       = REXML::Element.new('build')
-      build.attributes['version'] = package.version.to_s
-      build.attributes['slot']    = package.slot.to_s
-    
-      features = REXML::Element.new('features')
-  
-      features.text = package.features.each {}.map {|f| f.first.to_s}.join(' ')
-  
-      files = REXML::Element.new('files')
-      package.distfiles.each {|file|
-        files.add_element((dom = REXML::Element.new('file');
-          dom.attributes['name'] = File.basename(file);
-          dom.text               = Digest::SHA1.hexdigest(File.read(file));
-          dom
-        ))
-      }
-            
-      build.add_element features
-      build.add_element files
-    
-      digest.root.add_element build
-    
+
       file = File.new('digest.xml', 'w')
-      digest.write file
+      file.write(builder.to_xml(:indent => 4))
       file.close
     }
   rescue Errno::EACCES
