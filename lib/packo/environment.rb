@@ -32,28 +32,25 @@ class Environment < Hash
     :LDFLAGS   => '-Wl,-O1 -Wl,--as-needed',
     :MAKE_JOBS => 1,
 
-    :PROFILE => '/etc/packo.profile',
-
     :FLAVOR   => 'headers documentation',
     :FEATURES => '',
 
-    :CACHE => '/var/lib/packo/cache',
-
-    :REPOSITORY_CACHE     => '/var/lib/packo/repository-cache',
-    :REPOSITORY_DIRECTORY => '/var/lib/packo/repository-directory',
-
-    :SELECTOR_CACHE   => '/var/lib/packo/selector-cache',
-    :SELECTOR_MODULES => '/var/lib/packo/selector-modules',
+    :PROFILE => '/etc/packo.profile',
 
     :CONFIG_FILE    => '/etc/packo.conf',
     :CONFIG_PATH    => '/etc/packo',
     :CONFIG_MODULES => '/etc/packo/modules',
 
-    :NO_COLORS => false,
+    :DATABASE => 'sqlite:///var/lib/packo/db',
 
-    :TMP     => '/var/tmp/packo',
-    :DEBUG   => nil,
-    :VERBOSE => false
+    :REPOSITORIES => '/var/lib/packo/repositories',
+    :SELECTORS    => '/var/lib/packo/selectors',
+
+    :NO_COLORS => false,
+    :DEBUG     => nil,
+    :VERBOSE   => false,
+
+    :TMP => '/var/tmp/packo'
   }
 
   @@callbacks = {

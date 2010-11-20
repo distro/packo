@@ -19,7 +19,9 @@
 
 require 'ostruct'
 
-module PackoBinary
+module Packo
+
+module Binary
 
 class Repository
   def self.parse (text)
@@ -282,6 +284,8 @@ class Repository
       end
     }
   end
+end
+
 end
 
 end

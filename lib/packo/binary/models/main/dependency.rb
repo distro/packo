@@ -17,7 +17,35 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo_binary/helpers'
-require 'packo_binary/package'
-require 'packo_binary/repository'
-require 'packo_binary/select'
+require 'packo/binary/models'
+
+module Packo
+
+module Binary
+
+module Models
+
+module Main
+
+class Dependency
+  include DataMapper::Resource
+
+  belongs_to :package
+
+  property :categories, String, :length => 255
+  property :name,       String
+  property :version,    String
+  property :slot,       String,  :default => ''
+  property :revision,   Integer, :default => 0
+
+  property :flavors,  Text, :default => ''
+  property :features, Text, :default => ''
+end
+
+end
+
+end
+
+end
+
+end

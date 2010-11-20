@@ -1,0 +1,107 @@
+#! /usr/bin/env ruby
+# encoding: utf-8
+#--
+# Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
+#
+# This file is part of packo.
+#
+# packo is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# packo is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with packo. If not, see <http://www.gnu.org/licenses/>.
+#++
+
+require 'optitron'
+require 'sqlite3'
+require 'digest/sha1'
+require 'find'
+
+require 'packo'
+require 'packo_binary/helpers'
+
+class Application < Optitron::CLI
+  include PackoBinary::Helpers
+
+  class_opt 'database', 'The path to the database', :default => Packo::Environment[:CACHE]
+
+  desc 'Outputs version'
+  def version
+    puts "packø #{Packo::Version}"
+  end
+
+  def params= (params)
+    @params = params
+
+    if File.directory? params['database']
+      fatal "#{params['database']} is a directory"
+      exit 42
+    end
+
+    begin
+      FileUtils.mkpath(File.dirname(params['database']))
+    rescue Exception => e
+      fatal "Could not create #{File.dirname(params['database'])}"
+      exit 42
+    end
+
+    @db = SQLite3::Database.new(params['database'])
+    @db.results_as_hash = true
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS packages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        repository TEXT,
+
+        categories TEXT,
+        name       TEXT,
+        version    TEXT,
+        slot       TEXT,
+        revision   INTEGER,
+
+        flavors  TEXT,
+        features TEXT,
+
+        manual  INTEGER DEFAULT 0,
+        runtime INTEGER DEFAULT 1,
+
+        UNIQUE (categories, name, slot)
+      )
+    })
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS dependencies (
+        package    INTEGER,
+        dependency INTEGER
+      )
+    })
+
+    @db.execute(%{
+      CREATE TABLE IF NOT EXISTS contents (
+        package INTEGER,
+
+        type TEXT,
+        path TEXT,
+        meta TEXT
+      )
+    })
+  end
+
+  def _exists? (path)
+    path = @db.execute("SELECT * FROM contents WHERE path = ? AND type != 'dir'", path).first
+
+    return false unless path
+
+    @db.execute('SELECT * FROM packages WHERE id = ?', path['package']).first
+  end
+end
+
+Application.dispatch

@@ -68,11 +68,11 @@ class Manifest
       :version    => what.version,
       :slot       => what.slot,
 
-      :flavors  => what.flavors.to_a,
-      :features => what.features.to_a,
+      :flavors  => what.flavors.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
+      :features => what.features.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
 
       :environment => what.environment.reject {|name, value|
-        name.to_s.match(/(^|_)CACHE/) || name.to_s.match(/^(REPOSITORY|SELECTOR|CONFIG)/) || [:NO_COLORS, :DEBUG, :VERBOSE, :TMP].member?(name.to_sym)
+        [:PROFILE, :CONFIG_FILE, :CONFIG_PATH, :CONFIG_MODULES, :REPOSITORIES, :SELECTORS, :NO_COLORS, :DEBUG, :VERBOSE, :TMP].member?(name.to_sym)
       }
     )
 

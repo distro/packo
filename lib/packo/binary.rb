@@ -17,10 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module PackoBinary
-
-class Select
-
-end
-
-end
+require 'packo/binary/helpers'
+require 'packo/binary/package'
+require 'packo/binary/repository'

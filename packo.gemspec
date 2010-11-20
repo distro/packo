@@ -8,11 +8,11 @@ Gem::Specification.new {|s|
     s.summary      = 'The "pacco" package manager.'
     s.files        = Dir.glob('lib/**/*.rb')
     s.require_path = 'lib'
-    s.executables  = ['packo', 'packo-repository', 'packo-build', 'packo-select', 'packo-env']
-    s.has_rdoc     = true
+    s.executables  = ['packo', 'packo-files', 'packo-repository', 'packo-build', 'packo-select', 'packo-env']
+    s.has_rdoc     = false
 
     s.add_dependency('nokogiri')
     s.add_dependency('optitron')
-    s.add_dependency('sqlite3-ruby')
+    s.add_dependency('datamapper')
     s.add_dependency('versionomy')
 }

@@ -54,9 +54,9 @@ class Features
     @features.delete(name.to_sym)
   end
 
-  def each (&block)
+  def each
     @features.each_value {|feature|
-      block.call feature
+      yield feature
     }
   end
   
@@ -69,7 +69,7 @@ class Features
   end
 
   def to_a
-    @features.select {|name, feature| feature.enabled?}.map {|feature| feature.first.to_s}
+    @features.map {|f| f.last}
   end
 
   def to_s (pack=false)

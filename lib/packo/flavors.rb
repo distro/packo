@@ -55,7 +55,7 @@ class Flavors
   end
 
   def to_a
-    @flavors.select {|name, flavor| flavor.enabled?}.map {|flavor| flavor.first.to_s}
+    @flavors.map {|f| f.last}
   end
 
   def to_s (pack=false)

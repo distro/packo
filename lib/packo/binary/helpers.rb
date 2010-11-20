@@ -19,7 +19,9 @@
 
 require 'packo/environment'
 
-module PackoBinary
+module Packo
+
+module Binary
 
 module Helpers
   def colorize (text, fg, bg=nil, attr=nil)
@@ -88,6 +90,8 @@ module Helpers
     Packo.load "#{path}/#{package.name}.rbuild"
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild"
   end
+end
+
 end
 
 end

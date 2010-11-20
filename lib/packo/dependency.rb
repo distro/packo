@@ -23,8 +23,8 @@ class Dependency
   def self.parse (text)
     runtime = true
 
-    if text[text.length - 1] == '!'
-      text[text.length - 1] = ''
+    if text.end_with? '!'
+      text[-1] = ''
       runtime = false
     end
 
@@ -37,7 +37,7 @@ class Dependency
 
     parsed = Packo::Package.parse(text)
 
-    Dependency.new(parsed.name, parsed.categories, parsed.version, parsed.features, parsed.flavors, validity, runtime)
+    self.new(parsed.name, parsed.categories, parsed.version, parsed.features, parsed.flavors, validity, runtime)
   end
 
   attr_reader :name, :categories, :version, :features, :flavors, :validity

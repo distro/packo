@@ -17,7 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module PackoBinary
+module Packo
+
+module Binary
 
 class Package
   attr_reader :categories, :name, :version, :slot, :repository
@@ -49,6 +51,8 @@ class Package
       "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"%#{@slot}" if @slot}"
     end
   end
+end
+
 end
 
 end

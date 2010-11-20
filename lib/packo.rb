@@ -47,7 +47,7 @@ module Packo
     else
       print "#{cmd.first} "
       cmd[1 .. cmd.length].each {|cmd|
-        if cmd.match(/[ ']/)
+        if cmd.match(/[ \$'`]/)
           print %Q{"#{cmd}" }
         else
           print "#{cmd} "

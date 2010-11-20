@@ -27,12 +27,10 @@ require 'find'
 
 require 'packo'
 require 'packo/modules/packaging'
-require 'packo_binary'
+require 'packo/binary'
 
 class Application < Optitron::CLI
-  include PackoBinary::Helpers
-
-  class_opt 'database', 'The path to the database', :default => Packo::Environment[:CACHE]
+  include Packo::Binary::Helpers
 
   desc 'Outputs version'
   def version
@@ -46,8 +44,6 @@ class Application < Optitron::CLI
   opt 'nodeps', 'Ignore blockers and dependencies', :type => :boolean, :default => false
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def install (*name)
-    _database
-
     outside = params['destination'] != '/'
 
     FileUtils.mkpath params['destination'] rescue nil
@@ -204,14 +200,19 @@ class Application < Optitron::CLI
 
       if !(outside && !params['force'])
         begin
-          @db.execute('INSERT OR ABORT INTO packages VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [params['repository'],
-            manifest.package.categories.join('/'), manifest.package.name, manifest.package.version.to_s, manifest.package.slot.to_s, manifest.package.revision,
-            manifest.package.flavors, manifest.package.features, manual, 1
-          ])
+          pkg = Packo::Binary::Modules::Main::Package.new(:repo => [params['repository'],
+            :categories => manifest.package.categories.join('/'),
+            :name       => manifest.package.name,
+            :version    => manifest.package.version,
+            :slot       => manifest.package.slot,
+            :revision   => manifest.package.revision,
 
-          id = @db.execute('SELECT id FROM packages WHERE categories = ? AND name = ? AND slot = ?', [
-            manifest.package.categories.join('/'), manifest.package.name, manifest.package.slot.to_s
-          ]).first['id']
+            :flavors  => manifest.package.flavors,
+            :features => manifest.package.features,
+            
+            :manual  => manual,
+            :runtime => true
+          )
         rescue SQLite3::ConstraintException
           fatal "#{manifest.package.categories.join('/')}/#{manifest.package.name} is already installed"
           exit! 16
@@ -256,42 +257,41 @@ class Application < Optitron::CLI
           end
   
           if !(outside && !params['force'])
-            @db.execute('INSERT INTO contents VALUES(?, ?, ?, ?)', [id, type, fake, meta])
+            pkg.contents << Packo::Binary::Modules::Main::Contents.new(
+              :type => type.to_sym,
+              :path => fake,
+              :meta => meta
+            )
           end
         }
       rescue Exception => e
-        if !(outside && !params['force'])
-          @db.execute('DELETE FROM packages WHERE id = ?', id)
-          @db.execute('DELETE FROM contents WHERE package = ?', id)
-        end
-
         fatal 'Something went deeply wrong when installing package contents'
         Packo.debug e, :force => true
         exit! 17
       end
+
+      pkg.save
     }
   end
 
   desc 'Uninstalls packages'
   opt 'destination', 'Set the destination where to install the package', :default => '/'
   def uninstall (*name)
-    _database
-
     name.each {|name|
       _search_installed(name).each {|installed|
-        @db.execute('SELECT * FROM contents WHERE package = ? ORDER BY type DESC', installed['package']).each {|content|
+        installed.contents.each {|content|
           path = "#{params['destination']}/#{content['path']}".gsub(%r{/*/}, '/')
 
-          case content['type']
-            when 'obj'
+          case content.type
+            when :obj
               puts "<<< #{path}"
               FileUtils.rm_f(path)
 
-            when 'sym'
+            when :sym
               puts colorize("<<< #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
               FileUtils.rm_f(path)
 
-            when 'dir'
+            when :dir
               puts colorize("<   #{path}", :DEFAULT, :DEFAULT, :BOLD)
               Dir.delete(path) rescue nil
           end
@@ -317,11 +317,20 @@ class Application < Optitron::CLI
     }
   end
 
+  desc 'Manages various informations about package contents'
+  def files (*argument)
+    cmd = 'packo-files'
+
+    argument.compact.each {|arg|
+      cmd << %Q{ "#{arg}"}
+    }
+
+    exit! system(cmd)
+  end
+
   desc 'Manages packø building system'
   def build (*argument)
-    cmd = "sandbox packo-build"
-
-    cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
+    cmd = 'sandbox packo-build'
 
     argument.compact.each {|arg|
       cmd << %Q{ '"#{arg}"'}
@@ -334,8 +343,6 @@ class Application < Optitron::CLI
   def select (*argument)
     cmd = 'packo-select'
 
-    cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
-
     argument.compact.each {|arg|
       cmd << %Q{ "#{arg}"}
     }
@@ -346,8 +353,6 @@ class Application < Optitron::CLI
   desc 'Manages packø repositories'
   def repository (*argument)
     cmd = 'sandbox packo-repository'
-
-    cmd << " --database='#{params['database']}'" if params['database'] != Packo::Environment[:CACHE]
 
     argument.compact.each {|arg|
       cmd << %Q{ '"#{arg}"'}
@@ -367,67 +372,7 @@ class Application < Optitron::CLI
     exit! system(cmd)
   end
 
-  def params= (params)
-    @params = params
-
-    if File.directory? params['database']
-      fatal "#{params['database']} is a directory"
-      exit 42
-    end
-
-    begin
-      FileUtils.mkpath(File.dirname(params['database']))
-    rescue Exception => e
-      fatal "Could not create #{File.dirname(params['database'])}"
-      exit 42
-    end
-
-    @db = SQLite3::Database.new(params['database'])
-    @db.results_as_hash = true
-  end
-
   private
-
-  def _database
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS packages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-        repository TEXT,
-
-        categories TEXT,
-        name       TEXT,
-        version    TEXT,
-        slot       TEXT,
-        revision   INTEGER,
-
-        flavors  TEXT,
-        features TEXT,
-
-        manual  INTEGER DEFAULT 0,
-        runtime INTEGER DEFAULT 1,
-
-        UNIQUE (categories, name, slot)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS dependencies (
-        package    INTEGER,
-        dependency INTEGER
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS contents (
-        package INTEGER,
-
-        type TEXT,
-        path TEXT,
-        meta TEXT
-      )
-    })
-  end
 
   def _installed? (package)
     @db.execute('SELECT * FROM installed WHERE categories = ? AND name = ? AND version = ? AND slot = ?', [
@@ -447,39 +392,21 @@ class Application < Optitron::CLI
 
     package = Packo::Package.parse(expression)
 
+    conditions = {}
+
     if !exact
-      result = @db.execute(%{
-        SELECT *
-
-        FROM packages
-
-        WHERE #{[
-          (!package.categories.empty?) ? 'categories LIKE ?' : nil,
-          (package.name) ? 'name LIKE ?' : nil,
-          (package.version && !validity) ? 'version LIKE ?' : nil
-        ].compact.join(' AND ')}
-      }, [
-        (!package.categories.empty? ? "%#{package.categories.join('/')}%" : nil),
-        (package.name ? "%#{package.name}%" : nil),
-        (package.version && !validity ? "%#{package.version}%" : nil)
-      ].compact)
+      conditions[:categories.like] = package.categories.join('/') if !package.categories.empty?
+      conditions[:name.like]       = package.name if package.name
+      conditions[:version.like]    = package.version if package.version
+      conditions[:slot.like]       = package.slot if package.slot
     else
-      result = @db.execute(%{
-        SELECT *
-
-        FROM packages
-
-        WHERE  #{[
-          (!package.categories.empty?) ? 'categories = ?' : nil,
-          (package.name) ? 'name = ?' : nil,
-          (package.version && !validity) ? 'version = ?' : nil
-        ].compact.join(' AND ')}
-      }, [
-        (package.categories.empty? ? nil : package.categories.join('/')),
-        package.name,
-        package.version && !validity ? package.version : nil 
-      ].compact)
+      conditions[:categories.eql] = package.categories.join('/') if !package.categories.empty?
+      conditions[:name.eql]       = package.name if package.name
+      conditions[:version.eql]    = package.version if package.version
+      conditions[:slot.eql]       = package.slot if package.slot
     end
+
+    result = Packo::Binary::Models::Main::Package.all(conditions)
 
     return result if !validity
 
@@ -502,8 +429,8 @@ class Application < Optitron::CLI
 
         pkg = Packo::Package.parse(matches[1])
 
-        PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
-	  			:type => matches[2].to_sym,
+        Packo::Binary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
+          :type => matches[2].to_sym,
           :name => matches[3],
           :uri  => matches[4],
           :path => matches[5]
