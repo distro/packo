@@ -1,4 +1,4 @@
-#--
+ #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
 # This file is part of packo.
@@ -17,35 +17,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/models'
+require 'packo/binary/models/repository/repository/package/source/feature'
 
-module Packo
-
-module Binary
-
-module Models
-
-module Main
-
-class Dependency
+module Packo; module Binary; module Models; module Repository; class Repository; class Package
+  
+class Source
   include DataMapper::Resource
+
+  property :package_id, Integer, :key => true
 
   belongs_to :package
 
-  property :categories, String, :length => 255
-  property :name,       String
-  property :version,    String
-  property :slot,       String,  :default => ''
-  property :revision,   Integer, :default => 0
-
-  property :flavors,  Text, :default => ''
-  property :features, Text, :default => ''
+  has n, :features
 end
 
-end
-
-end
-
-end
-
-end
+end; end; end; end; end; end

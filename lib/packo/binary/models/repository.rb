@@ -17,22 +17,4 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'dm-core'
-require 'dm-constraints'
-require 'dm-migrations'
-require 'dm-types'
-
-if Packo::Environment[:DEBUG].to_i > 0
-  DataMapper::Logger.new($stdout, :debug)
-end
-
-DataMapper::Model.raise_on_save_failure = true
-
-DataMapper.setup(:default, Packo::Environment[:DATABASE])
-
-require 'packo/binary/models/main'
-require 'packo/binary/models/repository'
-
-DataMapper.finalize
-
-DataMapper.auto_upgrade!
+require 'packo/binary/models/repository/repository'

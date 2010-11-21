@@ -29,6 +29,7 @@ require 'packo_binary'
 
 class Application < Optitron::CLI
   include PackoBinary::Helpers
+  include Packo::Binary::Models::Repository
 
   @@scm = ['git'] # implement others
 
@@ -135,7 +136,7 @@ class Application < Optitron::CLI
   desc 'Deletes installed repositories'
   def delete (*name)
     name.each {|name|
-      repository = PackoBinary::Repository.parse(name)
+      repository = Repository.parse(name)
 
       if repository.type && !['binary', 'source'].member?(repository.type)
         fatal "#{repository.type} is not a valid repository type"
@@ -255,7 +256,7 @@ class Application < Optitron::CLI
     packages = []
 
     if params['repository'] && !params['repository'].empty?
-      repository      = PackoBinary::Repository.parse(params['repository'])
+      repository      = Repository.parse(params['repository'])
       repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
       repository      = PackoBinary::Repository.find(@db, repository.name, repository.type)
 
@@ -267,10 +268,8 @@ class Application < Optitron::CLI
     else
       [:binary, :source].each {|type|
         if params['type'] == 'all' || params['type'] == type.to_s
-          PackoBinary::Repository.all(@db, type.to_s).each {|repository|
-            packages << repository.search(expression, params['exact']).map {|package|
-              package[:type] = type; package
-            }
+          Repository.all(:type => type).each {|repository|
+            packages << repository.search(expression, params['exact'])
           }
         end
       }
@@ -282,10 +281,10 @@ class Application < Optitron::CLI
       packages.sort {|a, b|
         Versionomy.parse(a['version']) <=> Versionomy.parse(b['version'])
       }.each {|package|
-        case package[:type]
+        case package.repository.type
           when :binary
-            print "[#{colorize("binary/#{_repository(package).name}", :BLACK, :DEFAULT, :BOLD)}] "
-            print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
+            print "[#{colorize("binary/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
+            print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package['version'], :RED)}"
             print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
             print " {#{colorize(package['revision'], :MAGENTA)}}" if package['revision'] != 0
@@ -519,10 +518,6 @@ class Application < Optitron::CLI
   end
 
   private
-
-  def _repository (package)
-    PackoBinary::Repository.find(@db, package['repository'].to_i)
-  end
 
   def _exists? (type, name)
     @db.execute('SELECT id FROM repositories WHERE name = ? AND type = ?', [name.to_s, type.to_s]).length > 0

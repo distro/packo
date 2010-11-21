@@ -17,30 +17,4 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/models'
-
-module Packo
-
-module Binary
-
-module Models
-
-module Main
-
-class Content
-  include DataMapper::Resource
-
-  belongs_to :package
-
-  property :type, Enum[:dir, :obj, :sym]
-  property :path, Text
-  property :meta, Text
-end
-
-end
-
-end
-
-end
-
-end
+require 'packo/binary/models/main/package'

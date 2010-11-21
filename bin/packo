@@ -257,7 +257,7 @@ class Application < Optitron::CLI
           end
   
           if !(outside && !params['force'])
-            pkg.contents << Packo::Binary::Modules::Main::Contents.new(
+            pkg.contents.new(
               :type => type.to_sym,
               :path => fake,
               :meta => meta
@@ -295,25 +295,21 @@ class Application < Optitron::CLI
               puts colorize("<   #{path}", :DEFAULT, :DEFAULT, :BOLD)
               Dir.delete(path) rescue nil
           end
-
-          @db.execute('DELETE FROM contents WHERE package = ? AND path = ?', [content['package'], content['path']])
         }
 
-        @db.execute('DELETE FROM packages WHERE id = ?', installed['id'])
-
-        @db.execute('DELETE FROM dependencies WHERE package = ?', installed['id'])
+        installed.destroy
       }
     }
   end
 
   def show
-    @db.execute('SELECT * FROM packages').each {|package|
-      print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
-      print "-#{colorize(package['version'], :RED)}"
-      print "%#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)}" if !package['slot'].empty?
+    Packo::Binary::Models::Main::Package.all.each {|package|
+      print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+      print "-#{colorize(package.version, :RED)}"
+      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if !package.slot.empty?
 
-      print " [#{package['features']}]" if !package['features'].empty?
-      print " {#{package['flavors']}}" if !package['flavors'].empty?
+      print " [#{package.features}]" if !package.features.empty?
+      print " {#{package.flavors}}" if !package.flavors.empty?
     }
   end
 
@@ -375,9 +371,12 @@ class Application < Optitron::CLI
   private
 
   def _installed? (package)
-    @db.execute('SELECT * FROM installed WHERE categories = ? AND name = ? AND version = ? AND slot = ?', [
-      package.categories.join('/'), package.name, package.version.to_s, package.slot.to_s
-    ]).first
+    Packo::Binary::Models::Main::Package.first(
+      :categories => package.categories.join('/'),
+      :name       => package.name,
+      :version    => package.version,
+      :slot       => package.slot
+    )
   end
 
   def _search_installed (expression, exact=false)
@@ -394,17 +393,12 @@ class Application < Optitron::CLI
 
     conditions = {}
 
-    if !exact
-      conditions[:categories.like] = package.categories.join('/') if !package.categories.empty?
-      conditions[:name.like]       = package.name if package.name
-      conditions[:version.like]    = package.version if package.version
-      conditions[:slot.like]       = package.slot if package.slot
-    else
-      conditions[:categories.eql] = package.categories.join('/') if !package.categories.empty?
-      conditions[:name.eql]       = package.name if package.name
-      conditions[:version.eql]    = package.version if package.version
-      conditions[:slot.eql]       = package.slot if package.slot
-    end
+    op = exact ? :eql : :like
+
+    conditions[Query::Operator.new(:categories, op)] = package.categories.join('/') if !package.categories.empty?
+    conditions[Query::Operator.new(:name, op)]       = package.name if package.name
+    conditions[Query::Operator.new(:version, op)]    = package.version if package.version
+    conditions[Query::Operator.new(:slot, op)]       = package.slot if package.slot
 
     result = Packo::Binary::Models::Main::Package.all(conditions)
 
@@ -502,11 +496,7 @@ class Application < Optitron::CLI
   end
 
   def _exists? (path)
-    path = @db.execute("SELECT * FROM contents WHERE path = ? AND type != 'dir'", path).first
-
-    return false unless path
-
-    @db.execute('SELECT * FROM packages WHERE id = ?', path['package']).first
+    Packo::Binary::Models::Main::Package::Content.first(:path.eql => path, :type.not => :dir).package rescue false
   end
 end
 
