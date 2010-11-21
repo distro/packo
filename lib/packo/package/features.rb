@@ -17,22 +17,44 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'dm-core'
-require 'dm-constraints'
-require 'dm-migrations'
-require 'dm-types'
+module Packo; class Package
 
-if Packo::Environment[:DEBUG].to_i > 0
-  DataMapper::Logger.new($stdout, :debug)
+class Features
+  class Feature
+
+  end
+
+  def self.parse (text)
+    data = {}
+
+    text.split(/\s+/).each {|part|
+      matches = part.match(/([\+\-])(.+)/)
+
+      data[matches[2].to_sym] = matches[1] != '-'
+    }
+
+    Flavor.new(data)
+  end
+
+  def initialize (values)
+    @values = {}
+
+    Names.each {|name|
+      @values[name] = Feature.new(name, values[name] || false)
+    }
+  end
+
+  def to_h
+    Hash[*@values.map {|(name, element)|
+      [name, element.value]
+    }]
+  end
+
+  def to_a
+    @values.map {|(name, element)|
+      element
+    }
+  end
 end
 
-DataMapper::Model.raise_on_save_failure = true
-
-DataMapper.setup(:default, Packo::Environment[:DATABASE])
-
-require 'packo/binary/models/main'
-require 'packo/binary/models/repository'
-
-DataMapper.finalize
-
-DataMapper.auto_upgrade!
+end; end

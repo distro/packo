@@ -17,4 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/helpers'
+module Packo; module RBuild
+
+Packages = Class.new(Hash) {
+
+}.new
+
+end; end

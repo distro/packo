@@ -17,9 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo
+module Packo; module RBuild
 
-class Dependency
+class Dependency < Packo::Package
   def self.parse (text)
     runtime = true
 
@@ -37,17 +37,12 @@ class Dependency
 
     parsed = Packo::Package.parse(text)
 
-    self.new(parsed.name, parsed.categories, parsed.version, parsed.features, parsed.flavors, validity, runtime)
+    self.new(, validity, runtime)
   end
 
-  attr_reader :name, :categories, :version, :features, :flavors, :validity
+  def initialize (data, validity=nil, runtime=true)
+    super(data)
 
-  def initialize (name, categories, version, features, flavors, validity=nil, runtime=true)
-    @name       = name
-    @categories = categories
-    @version    = (!(version || '').empty?) ? Versionomy.parse(version) : nil
-    @features   = features
-    @flavors    = flavors
     @validity   = validity
     @runtime    = runtime
   end

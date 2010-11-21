@@ -17,225 +17,113 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/packages'
-require 'packo/package/manifest'
-
-require 'packo/dependencies'
-require 'packo/blockers'
-require 'packo/stages'
-require 'packo/features'
-require 'packo/flavors'
+require 'packo/package/categories'
+require 'packo/package/version'
 
 module Packo
 
 class Package
-  def self.parse (text, pack=false)
-    result = OpenStruct.new
+  def self.parse (text, type=:standard)
+    data = {}
 
-    matches = text.match(/^(.*?)(\[(.*?)\])?(\{(.*?)\})?$/)
-
-    result.features = Hash[(matches[3] || '').split(/\s*,\s*/).map {|feature|
-      if feature[0] == '-'
-        [feature[1, feature.length], false]
-      else
-        [(feature[0] == '+' ? feature[1, feature.length] : feature), true]
-      end
-    }]
-
-    result.flavors = (matches[5] || '').split(/\s*,\s*/)
-
-    matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
-
-    result.categories = matches[1].split('/')
-
-    if matches[1][matches[1].length - 1] != '/'
-      result.name = result.categories.pop
+    case type
+      when :standard
+        matches = text.match(/^(.*?)(\[(.*?)\])?(\{(.*?)\})?$/)
+    
+        data[:features] = Hash[(matches[3] || '').split(/\s*,\s*/).map {|feature|
+          if feature[0] == '-'
+            [feature[1, feature.length], false]
+          else
+            [(feature[0] == '+' ? feature[1, feature.length] : feature), true]
+          end
+        }]
+    
+        data[:flavor] = (matches[5] || '').split(/\s*,\s*/)
+    
+        matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
+    
+        data[:categories] = matches[1].split('/')
+    
+        if matches[1][matches[1].length - 1] != '/'
+          data[:name] = data[:categories].pop
+        end
+    
+        if matches[3]
+          matches = matches[3].match(/^(.*?)(%(.*)$)?$/)
+    
+          data[:version] = matches[1]
+          data[:slot]    = matches[3]
+        end
     end
 
-    if matches[3]
-      matches = matches[3].match(/^(.*?)(%(.*)$)?$/)
-
-      result.version = matches[1]
-      result.slot    = matches[3]
-    end
-
-    return result
+    Package.new(result)
   end
 
-  attr_reader :environment, :name, :categories, :version, :slot, :revision, :modules, :dependencies, :blockers, :stages
+  attr_accessor :categories, :name, :version, :slot, :revision,
+                :repository,
+                :flavor, :features,
+                :description, :homepage, :license
 
-  def initialize (name, version=nil, slot=nil, revision=nil, &block)
-    tmp         = name.split('/')
-    @name       = tmp.pop
-    @categories = tmp
-    @version    = version.is_a?(Versionomy) ? version : Versionomy.parse(version.to_s) if version
-    @slot       = slot
-    @revision   = revision.to_i
+  def initialize (data)
+    self.categories = data[:categories]
+    self.name       = data[:name]
+    self.version    = data[:version]
+    self.slot       = data[:slot]
+    self.revision   = data[:revision]
 
-    Packages["#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"] = self
-    Packages[:last] = self
+    self.repository = data[:repository]
 
-    if !version || !(tmp = Packages[(@categories + [@name]).join('/')])
-      @modules      = []
-      @dependencies = Packo::Dependencies.new(self)
-      @blockers     = Packo::Blockers.new(self)
-      @stages       = Packo::Stages.new(self)
-      @features     = Packo::Features.new(self)
-      @flavors      = Packo::Flavors.new(self)
-      @data         = {}
-      @pre          = []
-      @post         = []
-    else
-      @modules      = tmp.instance_eval('@modules.clone')
-      @dependencies = tmp.instance_eval('@dependencies.clone')
-      @blockers     = tmp.instance_eval('@blockers.clone')
-      @stages       = tmp.instance_eval('@stages.clone')
-      @features     = tmp.instance_eval('@features.clone')
-      @flavors      = tmp.instance_eval('@flavors.clone')
-      @data         = tmp.instance_eval('@data.clone')
-      @pre          = tmp.instance_eval('@pre.clone')
-      @post         = tmp.instance_eval('@post.clone')
+    self.flavor   = data[:flavor]
+    self.features = data[:features]
 
-      @modules.each {|mod|
-        mod.owner = self
-      }
-
-      @flavors = Flavors.new(self)
-
-      @dependencies.owner = self
-      @blockers.owner     = self
-      @stages.owner       = self
-      @features.owner     = self
-      @flavors.owner      = self
-    end
-
-    @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
-    @stages.add :blockers, @blockers.method(:check), :at => :beginning
-
-    @environment = Environment.new(self)
-
-    self.directory = "#{package.environment['TMP']}/#{(@categories + [@name]).join('/')}/#{@version}"
-    self.workdir   = "#{package.directory}/work"
-    self.distdir   = "#{package.directory}/dist"
-    self.tempdir   = "#{package.directory}/temp"
-
-    @default_to_self = true
-    @stages.call :initialize, self
-    self.instance_exec(self, &block) if block
-    @stages.call :initialized, self
-    @default_to_self = false
-
-    self.envify!
+    self.description = data[:description]
+    self.homepage    = data[:homepage]
+    self.license     = data[:license]
   end
 
-  def create!
-    FileUtils.mkpath self.workdir
-    FileUtils.mkpath self.distdir
-    FileUtils.mkpath self.tempdir
-  rescue; end
-
-  def envify!
-    ['headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
-      if Packo::Environment[:FLAVOR].include?(flavor)
-        self.flavors.send "#{flavor}!"
-      else
-        self.flavors.send "not_#{flavor}!"
-      end
-    }
-
-    Packo::Environment[:FEATURES].split(/\s+/).each {|feature|
-      feature = Packo::Feature.parse(feature)
-
-      self.features {
-				next if !self.has(feature.name)
-
-				(feature.enabled?) ?
-        	self.get(feature.name).enabled! :
-					self.get(feature.name).disabled!
-      }
-    }
+  def categories= (value)
+    @categories = (value.is_a?(Package::Categories)) ? value : Package::Categories.parse(value.to_s)
   end
 
-  def build
-    self.create!
-
-    if (error = @stages.call(:build, self).find {|result| result.is_a? Exception})
-      Packo.debug error
-      return
-    end
-
-    @stages.each {|stage|
-      yield stage if block_given?
-
-      stage.call
-    }
-
-    @stages.call :build!, self
+  def version= (value)
+    @version = (value.is_a?(Package::Version)) ? value : Package::Version.parse(value)
   end
 
-  def use (klass)
-    @modules << klass.new(self)
-  end
-  
-  def behavior (uses)
-    uses.each {|use|
-      self.use(use)
-    }
+  def revision= (value)
+    @revision = value.to_i rescue 0
   end
 
-  def features (&block)
-    if !block
-      @features
-    else
-      @features.instance_eval &block
-    end
+  def flavor= (value)
+    @flavor = (value.is_a?(Package::Flavor)) ? value : Flavor.parse(value.to_s)
   end
 
-  def flavors (&block)
-    if !block
-      @flavors
-    else
-      @flavors.instance_eval &block
-    end
+  def features= (value)
+    @features = (value.is_a?(Package::Features)) ? value : Features.parse(value.to_s)
   end
 
-  def on (what, priority=0, binding=nil, &block)
-    @stages.register(what, priority, block, binding || @default_to_self ? self : nil)
+  def == (package)
+    self.name == package.name &&
+    self.categories == package.categories
   end
 
-  def pre (name=nil, content=nil)
-    if !name || !content
-      @pre
-    else
-      @pre << { :name => name, :content => content.lines.map {|line| line.strip}.join("\n") }
-    end
+  def === (package)
+    self.name == package.name &&
+    self.categories == package.categories &&
+    self.version == package.version &&
+    self.slot == package.slot &&
+    self.revision == package.revision
   end
 
-  def post (name=nil, content=nil)
-    if !name || !content
-      @post
-    else
-      @post << { :name => name, :content => content.lines.map {|line| line.strip}.join("\n") }
-    end
+	alias eql? ===
+
+	def hash
+    "#{self.categories}/#{self.name}-#{self.version}%#{self.slot}".hash
   end
 
-  def method_missing (id, *args)
-    id = id.to_s.sub(/=$/, '').to_sym
-
-    if args.length == 0
-      return @data[id]
-    else
-      @data[id] = (args.length > 1) ? args : args.first
-    end
-  end
-
-  def package; self end
-
-  def to_s (pack=false)
-    if pack && @version
-      "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavors.to_s(true)}" if !@flavors.to_s(true).empty?}#{"-#{@features.to_s(true)}" if !@features.to_s(true).empty?}"
-    else
-      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavors.to_s}}" if !@flavors.to_s.empty?}"
+  def to_s (type=:whole)
+    case type
+      when :whole; "#{self.to_s(:name)}#{"-#{@version}" if @version}#{"%#{@slot}" if @slot}"
+      when :name;  (@categories + [@name]).join('/')
     end
   end
 end

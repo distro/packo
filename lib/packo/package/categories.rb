@@ -17,4 +17,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/helpers'
+module Packo; class Package
+
+class Categories < Array
+  def self.parse (text)
+    Categories.new(*text.split('/'))
+  end
+
+  def initialize (*parts)
+    parts.each {|part|
+      self << part
+    }
+  end
+end
+
+end; end
