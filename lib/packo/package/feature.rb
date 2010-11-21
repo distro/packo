@@ -17,36 +17,23 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild
+module Packo; class Package
 
-class Feature < Packo::Package::Feature
-  attr_reader :package, :name, :block, :dependencies
+class Feature
+  attr_reader :name
 
-  def initialize (package, name, enabled=false, &block)
-    super(name, enabled)
-
-    @package = package
-    @block   = block
-
-    @dependencies = []
-
-    if @package && Packo::Features::Default[self.name]
-      self.instance_exec(self, &Packo::Features::Default[self.name])
-    end
-
-    self.instance_exec(self, &@block) if @block
+  def initialize (name, enabled=false, description=nil)
+    @name        = name.to_sym
+    @enabled     = !!enabled
+    @description = description
   end
 
-  def needs (*names)
-    @dependencies = @dependencies.concat(names).flatten.compact.uniq
-  end
+  def enabled?;  @enabled         end
+  def enabled!;  @enabled = true  end
+  def disabled!; @enabled = false end
 
-  def on (what, priority=0, &block)
-    @package.stages.register(what, priority, block, self)
-  end
-
-  def owner= (value)
-    @package = value
+  def description (value=nil)
+    value ? @description = value : @description
   end
 end
 

@@ -6,14 +6,9 @@ to be even more flexible and easy to work with.
 
 These environment variables are needed for testing.
 
-    export PACKO_CACHE=/tmp/packo_cache
-    export PACKO_BUILD_CACHE=/tmp/packo_build
-    export PACKO_SELECTOR_CACHE=/tmp/packo_select
-    export PACKO_SELECTOR_MODULES=/tmp/packo_selectors
-    export PACKO_REPOSITORY_DIRECTORY=/tmp/packo_repositories
-    export PACKO_REPOSITORY_CACHE=/tmp/packo_repository
-    export PACKO_BINARY_CACHE=/tmp/packo_binary
-    export PACKO_SOURCE_CACHE=/tmp/packo_source
+    export PACKO_DATABASE=sqlite:///tmp/packo_database
+    export PACKO_SELECTORS=/tmp/packo_selectors
+    export PACKO_REPOSITORIES=/tmp/packo_repositories
     export PACKO_TMP=/tmp
     export PACKO_PROFILE=~/projects/distro/profiles/default
     export PACKO_VERBOSE=true

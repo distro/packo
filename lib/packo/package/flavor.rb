@@ -25,22 +25,14 @@ class Flavor
   class Element
     attr_reader :name, :value
 
-    def initialize (name, value)
-      @name  = name.to_sym
-      @value = !!value
+    def initialize (name, enabled=false)
+      @name    = name.to_sym
+      @enabled = !!enabled
     end
 
-    def enabled?
-      @value == true
-    end
-    
-    def enable!
-      @value = true
-    end
-
-    def disable!
-      @value = false
-    end
+    def enabled?;  @enabled         end
+    def enabled!;  @enabled = true  end
+    def disabled!; @enabled = false end
   end
 
   def self.parse (text)
@@ -56,21 +48,21 @@ class Flavor
   end
 
   def initialize (values)
-    @values = {}
+    @elements = {}
 
     Names.each {|name|
-      @values[name] = Element.new(name, values[name] || false)
+      @elements[name] = Element.new(name, values[name] || false)
     }
   end
 
   def to_h
-    Hash[*@values.map {|(name, element)|
+    Hash[*@elements.map {|(name, element)|
       [name, element.value]
     }]
   end
 
   def to_a
-    @values.map {|(name, element)|
+    @elements.map {|(name, element)|
       element
     }
   end
@@ -78,15 +70,15 @@ end
 
 Flavor::Names.each {|name|
   Flavor.define_method "#{name}?" do
-    @values[name]
+    @elements[name]
   end
 
   Flavor.define_method "#{name}!" do
-    @values[name].enable!
+    @elements[name].enable!
   end
 
   Flavor.define_method "not_#{name}!" do
-    @values[name].disable!
+    @elements[name].disable!
   end
 }
 

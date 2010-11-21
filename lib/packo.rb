@@ -117,5 +117,3 @@ module Kernel
     return result
   end
 end
-
-require 'packo/package'
