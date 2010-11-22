@@ -25,15 +25,14 @@ require 'open-uri'
 require 'nokogiri'
 
 require 'packo'
-require 'packo_binary'
+require 'packo/binary'
+require 'packo/models'
 
 class Application < Optitron::CLI
   include PackoBinary::Helpers
-  include Packo::Binary::Models::Repository
+  include Packo::Models::Repository
 
   @@scm = ['git'] # implement others
-
-  class_opt 'database', 'The path to the repository cache', :default => Packo::Environment[:REPOSITORY_CACHE]
 
   desc 'Outputs version'
   def version
@@ -42,9 +41,6 @@ class Application < Optitron::CLI
 
   desc 'Adds binary/source repositories'
   def add (*uri)
-    FileUtils.mkpath "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/binary" rescue nil
-    FileUtils.mkpath "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/source" rescue nil
-
     uri.each {|uri|
       uri  = URI.parse(uri)
       kind = nil
@@ -90,9 +86,9 @@ class Application < Optitron::CLI
         next
       end
 
-      path = "#{Packo::Environment[:REPOSITORY_DIRECTORY]}/#{type}/#{name}"
+      path = "#{Packo::Environment[:REPOSITORIES]}/#{type}/#{name}"
 
-      if _exists?(type, name)
+      if Repository.find(:type => type, :name => name)
         fatal "#{type}/#{name} already exists, delete it first"
         exit! 10
       end
@@ -100,6 +96,8 @@ class Application < Optitron::CLI
       case type
         when :binary
           path << '.xml'
+
+          FileUtils.mkpath(File.dirname(path))
 
           file = File.new(path, 'w')
           file.write(open(kind == :file && !uri.to_s.match(/\.xml$/) ? "#{uri}/repository.xml" : uri).read)
@@ -138,12 +136,12 @@ class Application < Optitron::CLI
     name.each {|name|
       repository = Repository.parse(name)
 
-      if repository.type && !['binary', 'source'].member?(repository.type)
+      if repository.type && ![:binary, :source, :virtual].member?(repository.type)
         fatal "#{repository.type} is not a valid repository type"
         exit! 20
       end
 
-      if !_exists?(repository.type, repository.name)
+      if !Repository.find(:type.eql => repository.type, :name.eql => repository.name)
         fatal "#{repository.type}/#{repository.name} doesn't exist"
         exit! 21
       end
@@ -151,6 +149,7 @@ class Application < Optitron::CLI
       _info "Deleting #{[repository.type, repository.name].join('/')}"
 
       begin
+        Repository.all(:name.eql => repository.name
         @db.execute("SELECT * FROM repositories WHERE name = ? #{'AND type = ?' if repository.type}", [
           repository.name, repository.type
         ].compact).each {|repo|
@@ -420,111 +419,18 @@ class Application < Optitron::CLI
     }
   end
 
-  def params= (params)
-    @params = params
-
-    if File.directory? params['database']
-      fatal "#{params['database']} is a directory"
-      exit 42
-    end
-
-    begin
-      FileUtils.mkpath(File.dirname(params['database']))
-    rescue Exception => e
-      fatal "Could not create #{File.dirname(params['database'])}"
-      exit 42
-    end
-
-    @db = SQLite3::Database.new(params['database'])
-    @db.results_as_hash = true
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS repositories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-        name TEXT,
-        type TEXT,
-
-        uri  TEXT,
-        path TEXT,
-
-        UNIQUE (name, type)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS packages ( 
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        repository INTEGER,
-
-        categories TEXT,
-        name       TEXT,
-        version    TEXT,
-        slot       TEXT,
-        revision   INTEGER,
-
-        description TEXT,
-        homepage    TEXT,
-        license     TEXT,
-
-        UNIQUE (repository, categories, name, version, slot)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS source_features (
-        package INTEGER,
-
-        name        TEXT,
-        description TEXT,
-
-        enabled INTEGER,
-
-        UNIQUE (package, name)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS binary_mirrors (
-        repository INTEGER,
-        uri        TEXT,
-
-        UNIQUE (repository, uri)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS binary_features (
-        package INTEGER,
-
-        features TEXT,
-
-        UNIQUE (package, features)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS binary_builds (
-        package INTEGER,
-
-        features TEXT,
-        flavors  TEXT,
-
-        digest TEXT,
-
-        UNIQUE (package, features, flavors, digest)
-      )
-    })
-  end
-
   private
 
-  def _exists? (type, name)
-    @db.execute('SELECT id FROM repositories WHERE name = ? AND type = ?', [name.to_s, type.to_s]).length > 0
-  end
-
   def _add (type, uri, path)
-    PackoBinary::Repository.create(@db, type, Nokogiri::XML.parse(File.read(type == :source ? "#{path}/repository.xml" : path)), uri.to_s, File.realpath(path)).update
+    dom = Nokogiri::XML.parse(File.read(type == :source ? "#{path}/repository.xml" : path))
+
+    Packo::Binary::Repository.wrap(Packo::Models::Repository::Repository.create(
+      :type => type,
+      :name => dom.root['name'],
+
+      :uri  => uri,
+      :path => path
+    )).populate
   end
 
   def _delete (name, type)

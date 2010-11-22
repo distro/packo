@@ -30,14 +30,13 @@ end
 
 DataMapper::Model.raise_on_save_failure = true
 
-class DataMapper::Model
+module DataMapper::Model
   def self.create_or_replace (stuff)
     obj = self.first_or_new(stuff)
     obj.update(stuff)
     obj
   end
 end
-
 
 DataMapper.setup(:default, Packo::Environment[:DATABASE])
 

@@ -17,13 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/module'
+require 'packo/rbuild/module'
 
-module Packo
-
-module Modules
-
-module Packaging
+module Packo; module RBuild; module Modules; module Packaging
 
 class PKO < Module
   def self.pack (name, *files)
@@ -79,8 +75,4 @@ class PKO < Module
   end
 end
 
-end
-
-end
-
-end
+end; end; end; end

@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Binary; module Models; module Main; class Package
+module Packo; module Models; module Main; class Package
 
 class Content
   include DataMapper::Resource
@@ -29,4 +29,4 @@ class Content
   property :meta, Text
 end
 
-end; end; end; end; end
+end; end; end; end

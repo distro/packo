@@ -18,6 +18,7 @@
 #++
 
 require 'fileutils'
+require 'versionomy'
 
 require 'packo/environment'
 

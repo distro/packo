@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Binary; module Models; module Main; class Package
+module Packo; module Models; module Main; class Package
 
 class Dependency
   include DataMapper::Resource
@@ -34,4 +34,4 @@ class Dependency
   property :features, Text, :default => ''
 end
 
-end; end; end; end; end
+end; end; end; end

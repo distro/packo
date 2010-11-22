@@ -17,18 +17,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/models/repository/repository/package/source/feature'
+require 'packo/models/repository/repository/package/source/feature'
 
-module Packo; module Binary; module Models; module Repository; class Repository; class Package
+module Packo; module Models; module Repository; class Repository; class Package
   
 class Source
   include DataMapper::Resource
 
-  property :package_id, Integer, :key => true
-
   belongs_to :package
+
+  property :package_id, Integer, :key => true
 
   has n, :features
 end
 
-end; end; end; end; end; end
+end; end; end; end; end

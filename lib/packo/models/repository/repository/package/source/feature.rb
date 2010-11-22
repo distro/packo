@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Binary; module Models; module Repository; class Repository; class Package; class Source
+module Packo; module Models; module Repository; class Repository; class Package; class Source
 
 class Feature
   include DataMapper::Resource
@@ -32,4 +32,4 @@ class Feature
   belongs_to :source
 end
 
-end; end; end; end; end; end; end
+end; end; end; end; end; end

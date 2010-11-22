@@ -17,10 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/models/repository/repository/package/source'
-require 'packo/binary/models/repository/repository/package/binary'
+require 'packo/models/repository/repository/package/binary'
+require 'packo/models/repository/repository/package/source'
+require 'packo/models/repository/repository/package/virtual'
 
-module Packo; module Binary; module Models; module Repository; class Repository
+module Packo; module Models; module Repository; class Repository
 
 class Package
   include DataMapper::Resource
@@ -39,15 +40,17 @@ class Package
   property :homepage,     Text, :default => ''
   property :license,      Text, :default => ''
 
-  has 1, :source, :required => false, :accessor => :private
-  has 1, :binary, :required => false, :accessor => :private
+  has 1, :binary,  :required => false, :accessor => :private
+  has 1, :source,  :required => false, :accessor => :private
+  has 1, :virtual, :required => false, :accessor => :private
 
   def data
     case self.repo.type
-      when :binary; self.binary
-      when :source; self.source
+      when :binary;  self.binary
+      when :source;  self.source
+      when :virtual; self.virtual
     end
   end
 end
 
-end; end; end; end; end
+end; end; end; end

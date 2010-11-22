@@ -17,10 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/models/main/package/dependency'
-require 'packo/binary/models/main/package/content'
+require 'packo/models/main/package/dependency'
+require 'packo/models/main/package/content'
 
-module Packo; module Binary; module Models; module Main
+module Packo; module Models; module Main
 
 class Package
   include DataMapper::Resource
@@ -45,4 +45,4 @@ class Package
   has n, :contents
 end
 
-end; end; end; end
+end; end; end

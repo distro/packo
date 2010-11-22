@@ -26,11 +26,13 @@ require 'digest/sha1'
 require 'find'
 
 require 'packo'
-require 'packo/modules/packaging'
 require 'packo/binary'
+require 'packo/models'
+require 'packo/rbuild/modules/packaging'
 
 class Application < Optitron::CLI
   include Packo::Binary::Helpers
+  include Packo::Models::Main
 
   desc 'Outputs version'
   def version
@@ -167,7 +169,7 @@ class Application < Optitron::CLI
 
       case File.extname(name)
         when '.pko'
-          Packo::Modules::Packaging::PKO.unpack(File.realpath(name), path)
+          Packo::RBuild::Modules::Packaging::PKO.unpack(File.realpath(name), path)
 
           manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
 
@@ -200,7 +202,7 @@ class Application < Optitron::CLI
 
       if !(outside && !params['force'])
         begin
-          pkg = Packo::Binary::Modules::Main::Package.new(:repo => [params['repository'],
+          pkg = Package.new(:repo => params['repository'],
             :categories => manifest.package.categories.join('/'),
             :name       => manifest.package.name,
             :version    => manifest.package.version,
@@ -303,7 +305,7 @@ class Application < Optitron::CLI
   end
 
   def show
-    Packo::Binary::Models::Main::Package.all.each {|package|
+    Package.all.each {|package|
       print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
       print "-#{colorize(package.version, :RED)}"
       print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if !package.slot.empty?
@@ -371,7 +373,7 @@ class Application < Optitron::CLI
   private
 
   def _installed? (package)
-    Packo::Binary::Models::Main::Package.first(
+    Package.first(
       :categories => package.categories.join('/'),
       :name       => package.name,
       :version    => package.version,
@@ -400,7 +402,7 @@ class Application < Optitron::CLI
     conditions[Query::Operator.new(:version, op)]    = package.version if package.version
     conditions[Query::Operator.new(:slot, op)]       = package.slot if package.slot
 
-    result = Packo::Binary::Models::Main::Package.all(conditions)
+    result = Package.all(conditions)
 
     return result if !validity
 
@@ -423,7 +425,7 @@ class Application < Optitron::CLI
 
         pkg = Packo::Package.parse(matches[1])
 
-        Packo::Binary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
+        Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
           :type => matches[2].to_sym,
           :name => matches[3],
           :uri  => matches[4],
@@ -496,7 +498,7 @@ class Application < Optitron::CLI
   end
 
   def _exists? (path)
-    Packo::Binary::Models::Main::Package::Content.first(:path.eql => path, :type.not => :dir).package rescue false
+    Package::Content.first(:path.eql => path, :type.not => :dir).package rescue false
   end
 end
 

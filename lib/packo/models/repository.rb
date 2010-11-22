@@ -17,4 +17,4 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/models/repository/repository'
+require 'packo/models/repository/repository'
