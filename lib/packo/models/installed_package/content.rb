@@ -17,16 +17,16 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Models; module Main; class Package
+module Packo; module Models; class InstalledPackage
 
 class Content
   include DataMapper::Resource
 
-  belongs_to :package
+  belongs_to :installed_package
 
   property :type, Enum[:dir, :obj, :sym]
   property :path, Text, :key => true
   property :meta, Text
 end
 
-end; end; end; end
+end; end; end

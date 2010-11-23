@@ -17,9 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/dependency'
+require 'packo/rbuild/dependency'
 
-module Packo
+module Packo; module RBuild
 
 class Dependencies < Array
   attr_reader :package
@@ -48,4 +48,4 @@ class Dependencies < Array
   end
 end
 
-end
+end; end

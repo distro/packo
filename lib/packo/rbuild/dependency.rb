@@ -37,14 +37,14 @@ class Dependency < Packo::Package
 
     parsed = Packo::Package.parse(text)
 
-    self.new(, validity, runtime)
+    self.new(parsed, validity, runtime)
   end
 
   def initialize (data, validity=nil, runtime=true)
     super(data)
 
-    @validity   = validity
-    @runtime    = runtime
+    @validity = validity
+    @runtime  = runtime
   end
 
   def runtime?; @runtime end
@@ -70,4 +70,4 @@ class Dependency < Packo::Package
   end
 end
 
-end
+end; end

@@ -69,17 +69,9 @@ class Flavor
 end
 
 Flavor::Names.each {|name|
-  Flavor.define_method "#{name}?" do
-    @elements[name]
-  end
-
-  Flavor.define_method "#{name}!" do
-    @elements[name].enable!
-  end
-
-  Flavor.define_method "not_#{name}!" do
-    @elements[name].disable!
-  end
+  Flavor.class_eval("def #{name}?;     @elements[name] end")
+  Flavor.class_eval("def #{name}!;     @elements[name].enable! end")
+  Flavor.class_eval("def not_#{name}!; @elements[name].disable! end")
 }
 
 end; end

@@ -18,12 +18,12 @@
 #++
 
 require 'fileutils'
-require 'versionomy'
 
 require 'packo/environment'
+require 'packo/package'
 
 module Packo
-  Version = Versionomy.parse('0.0.1')
+  Version = Packo::Package::Version.new('0.0.1')
 
   def self.interpolate (string, on)
     on.instance_eval('"' + string + '"') rescue nil

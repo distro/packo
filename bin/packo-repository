@@ -29,8 +29,8 @@ require 'packo/binary'
 require 'packo/models'
 
 class Application < Optitron::CLI
-  include PackoBinary::Helpers
-  include Packo::Models::Repository
+  include Packo::Binary::Helpers
+  include Packo::Models
 
   @@scm = ['git'] # implement others
 
@@ -88,7 +88,7 @@ class Application < Optitron::CLI
 
       path = "#{Packo::Environment[:REPOSITORIES]}/#{type}/#{name}"
 
-      if Repository.find(:type => type, :name => name)
+      if Repository.first(:type => type, :name => name)
         fatal "#{type}/#{name} already exists, delete it first"
         exit! 10
       end
@@ -136,12 +136,17 @@ class Application < Optitron::CLI
     name.each {|name|
       repository = Repository.parse(name)
 
-      if repository.type && ![:binary, :source, :virtual].member?(repository.type)
+      if repository.type && !Repository::Types.member?(repository.type)
         fatal "#{repository.type} is not a valid repository type"
         exit! 20
       end
 
-      if !Repository.find(:type.eql => repository.type, :name.eql => repository.name)
+      conditions        = Hash[:name => repository.name]
+      conditions[:type] = repository.type if repository.type
+
+      repositories = Repository.all(conditions)
+
+      if !repositories
         fatal "#{repository.type}/#{repository.name} doesn't exist"
         exit! 21
       end
@@ -149,13 +154,10 @@ class Application < Optitron::CLI
       _info "Deleting #{[repository.type, repository.name].join('/')}"
 
       begin
-        Repository.all(:name.eql => repository.name
-        @db.execute("SELECT * FROM repositories WHERE name = ? #{'AND type = ?' if repository.type}", [
-          repository.name, repository.type
-        ].compact).each {|repo|
-          FileUtils.rm_rf repo['path'], :secure => true
+        repositories.each {|repository|
+          FileUtils.rm_rf repository['path'], :secure => true
 
-          _delete(repo['name'], repo['type'])
+          _delete(repository['name'], repository['type'])
         }
       rescue Exception => e
         fatal "Something went wrong while deleting #{name}"
@@ -163,34 +165,34 @@ class Application < Optitron::CLI
         Packo.debug e, :force => true
       end
     }
-
-    @db.commit rescue nil
   end
 
   desc 'Updates installed repositories'
   def update
-    @db.execute('SELECT * FROM repositories').each {|repo|
+    Repository.all.each {|repository|
       updated = false
 
-      case repo['type'].to_sym
+      case repository.type
         when :binary
-          if (content = open(repo['uri']).read) != File.read(repo['path'])
-            _delete(repo['name'], :binary)
-            file = File.new(repo['path'], 'w')
+          if (content = open(repository.uri).read) != File.read(repository.path)
+            _delete(repository.name, :binary)
+            file = File.new(repository.path, 'w')
             file.write(content)
             file.close
-            _add(:binary, repo['uri'], repo['path'])
+            _add(:binary, repository.uri, repository.path)
 
             updated = true
           end
 
         when :source
-          if _update(repo['path'])
-            _delete(repo['name'], :source)
-            _add(:source, repo['uri'], repo['path'])
+          if _update(repository.path)
+            _delete(repository.name, :source)
+            _add(:source, repository.uri, repository.path)
 
             updated = true
           end
+
+        when :virtual
       end
 
       if updated
@@ -210,22 +212,18 @@ class Application < Optitron::CLI
     packages = []
 
     if params['repository'] && !params['repository'].empty?
-      repository      = PackoBinary::Repository.parse(params['repository'])
+      repository      = Repository.parse(params['repository'])
       repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
-      repository      = PackoBinary::Repository.find(@db, repository.name, repository.type)
+      repository      = Repository.first(:name => repository.name, :type => repository.type)
 
       if repository
-        packages << repository.search(expression, params['exact']).map {|package|
-          PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
-        }
+        packages << repository.search(expression, params['exact'])
       end
     else
-      [:binary, :source].each {|type|
+      Repository::Types.each {|type|
         if params['type'] == 'all' || params['type'] == type.to_s
-          PackoBinary::Repository.all(@db, type.to_s).each {|repository|
-            packages << repository.search(expression, params['exact']).map {|package|
-              PackoBinary::Package.new(package['categories'], package['name'], package['version'], package['slot'], repository)
-            }
+          Repository.all(:type => type).each {|repository|
+            packages << repository.search(expression, params['exact'])
           }
         end
       }
@@ -257,15 +255,13 @@ class Application < Optitron::CLI
     if params['repository'] && !params['repository'].empty?
       repository      = Repository.parse(params['repository'])
       repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
-      repository      = PackoBinary::Repository.find(@db, repository.name, repository.type)
+      repository      = Repository.first(:name => repository.name, :type => repository.type)
 
       if repository
-        packages << repository.search(expression, params['exact']).map {|package|
-          package[:type] = repository.type; package
-        }
+        packages << repository.search(expression, params['exact'])
       end
     else
-      [:binary, :source].each {|type|
+      Repository::Types.each {|type|
         if params['type'] == 'all' || params['type'] == type.to_s
           Repository.all(:type => type).each {|repository|
             packages << repository.search(expression, params['exact'])
@@ -284,60 +280,56 @@ class Application < Optitron::CLI
           when :binary
             print "[#{colorize("binary/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
             print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
-            print "-#{colorize(package['version'], :RED)}"
-            print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
-            print " {#{colorize(package['revision'], :MAGENTA)}}" if package['revision'] != 0
+            print "-#{colorize(package.version, :RED)}"
+            print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if !package.slot.empty?
+            print " {#{colorize(package.revision, :MAGENTA)}}" if package.revision != 0
             print "\n"
 
-            puts "    #{colorize('Description', :GREEN)}: #{package['description']}"
-            puts "    #{colorize('Homepage', :GREEN)}:    #{package['homepage']}"
-            puts "    #{colorize('License', :GREEN)}:     #{package['license']}"
+            puts "    #{colorize('Description', :GREEN)}: #{package.description}"
+            puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
+            puts "    #{colorize('License', :GREEN)}:     #{package.license}"
 
-            print "    #{colorize('Features', :GREEN)}:    "
-            @db.execute('SELECT * FROM binary_features WHERE package = ?', package['id']).each {|version|
-              print version['features']
-            }
-            print "\n"
+            puts "    #{colorize('Features', :GREEN)}:    #{package.data.features}"
 
             print "    #{colorize('Builds', :GREEN)}:      "
-            @db.execute('SELECT * FROM binary_builds WHERE package = ?', package['id']).each {|build|
+            package.data.builds.each {|build|
               print 'With '
 
-              if build['features']
-                print colorize(build['features'], :DEFAULT, :DEFAULT, :BOLD)
+              if build.features
+                print colorize(build.features, :DEFAULT, :DEFAULT, :BOLD)
               else
                 print 'nothing'
               end
 
-              print " in #{colorize(build['flavors'], :DEFAULT, :DEFAULT, :BOLD)} flavor" if build['flavors']
-              print colorize(" (SHA1 #{build['digest']})", :BLACK, :DEFAULT, :BOLD) if build['digest']
+              print " in #{colorize(build.flavors, :DEFAULT, :DEFAULT, :BOLD)} flavor" if build.flavors
+              print colorize(" (SHA1 #{build.digest})", :BLACK, :DEFAULT, :BOLD) if build.digest
               print "\n                 "
             }
 
           when :source
-            print "[#{colorize("source/#{_repository(package).name}", :BLACK, :DEFAULT, :BOLD)}] "
-            print "#{package['categories']}/#{colorize(package['name'], :DEFAULT, :DEFAULT, :BOLD)}"
-            print "-#{colorize(package['version'], :RED)}"
-            print " (#{colorize(package['slot'], :BLUE, :DEFAULT, :BOLD)})" if !package['slot'].empty?
+            print "[#{colorize("source/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
+            print "#{package['categories']}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+            print "-#{colorize(package.version, :RED)}"
+            print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
             print "\n"
 
-            puts "    #{colorize('Description', :GREEN)}: #{package['description']}"
-            puts "    #{colorize('Homepage', :GREEN)}:    #{package['homepage']}"
-            puts "    #{colorize('License', :GREEN)}:     #{package['license']}"
+            puts "    #{colorize('Description', :GREEN)}: #{package.description}"
+            puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
+            puts "    #{colorize('License', :GREEN)}:     #{package.license}"
 
             print "    #{colorize('Features', :GREEN)}:    "
 
-            features = @db.execute('SELECT * FROM source_features WHERE package = ?', package['id'])
+            features = package.data.features
             length   = features.map {|feature| feature['name'].length}.max
 
             features.each {|feature|
-              if feature['enabled'] == 1
-                print "#{colorize(feature['name'], :WHITE, :DEFAULT, :BOLD)}#{Packo::Environment[:NO_COLORS] ? '!' : ''}"
+              if feature.enabled
+                print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{Packo::Environment[:NO_COLORS] ? '!' : ''}"
               else
-                print colorize(feature['name'], :BLACK, :DEFAULT, :BOLD)
+                print colorize(feature.name, :BLACK, :DEFAULT, :BOLD)
               end
 
-              print "#{' ' * (4 + length - feature['name'].length + (Packo::Environment[:NO_COLORS] && feature['enabled'] == 0 ? 1 : 0))}#{feature['description'] || '...'}"
+              print "#{' ' * (4 + length - feature.name.length + (Packo::Environment[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
 
               print "\n                 "
             }
@@ -350,26 +342,27 @@ class Application < Optitron::CLI
 
   desc 'Shows installed repositories'
   def show (type='all')
-    if type == 'binary' || type == 'source'
+    if Repository::Types.member?(type.to_sym)
       _info "Installed #{type} repositories:"
 
-      repositories = @db.execute('SELECT * FROM repositories WHERE type = ?', type)
-      length       = repositories.map {|repo| "#{repo['type']}/#{repo['name']}".length}.max
+      repositories = Repository.all(:type => type)
+      length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
 
-      repositories.each {|repo|
-        puts "  #{repo['type']}/#{repo['name']}#{' ' * (4 + length - "#{repo['type']}/#{repo['name']}".length)}#{repo['uri']} (#{repo['path']})"
+      repositories.each {|repository|
+        puts "  #{repository.type}/#{repository.name}#{' ' * (4 + length - "#{repository.type}/#{repository.name}".length)}#{repository.uri} (#{repository.path})"
       }
 
       puts ''
     elsif type == 'all'
-      show('binary')
-      show('source')
+      Repository::Types.each {|type|
+        show(type)
+      }
     end
   end
 
   desc 'Outputs the path of a given repository'
   def path (name)
-    repository = PackoBinary::Repository.find(@db, name)
+    repository = Repository.first(:name => name)
 
     exit! if !repository
 
@@ -378,13 +371,14 @@ class Application < Optitron::CLI
 
   desc 'Outputs the URI of a given package'
   def uri (name)
-    repository = PackoBinary::Repository.find(@db, name)
+    repository = Repository.first(:name => name)
 
     exit! if !repository
 
     case repository.type
-      when :binary; puts repository.mirrors.join("\n")
-      when :source; puts repository.uri
+      when :binary;  puts repository.data.mirrors.join("\n")
+      when :source;  puts repository.data.address
+      when :virtual; puts repository.data.address
     end
   end
 
@@ -393,10 +387,10 @@ class Application < Optitron::CLI
     repositories = []
 
     if names.empty?
-      repositories << PackoBinary::Repository.all(@db)
+      repositories << Repository.all
     else
       names.each {|name|
-        repositories << PackoBinary::Repository.find(@db, name)
+        repositories << Repository.all(:name => name)
       }
     end
 
@@ -424,13 +418,17 @@ class Application < Optitron::CLI
   def _add (type, uri, path)
     dom = Nokogiri::XML.parse(File.read(type == :source ? "#{path}/repository.xml" : path))
 
-    Packo::Binary::Repository.wrap(Packo::Models::Repository::Repository.create(
+    repository = Repository.new(
       :type => type,
       :name => dom.root['name'],
 
       :uri  => uri,
       :path => path
-    )).populate
+    )
+    
+    Packo::Binary::Repository.wrap(repository).populate
+    
+    repository.save
   end
 
   def _delete (name, type)

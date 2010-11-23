@@ -17,6 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/binary/repository/binary'
+require 'packo/binary/repository/source'
+require 'packo/binary/repository/virtual'
+
 module Packo; module Binary
 
 class Repository

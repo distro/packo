@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; class Repository
+module Packo; module Binary; class Repository
 
 class Binary < Repository
   def initialize (name, uri, path)
@@ -42,10 +42,10 @@ class Binary < Repository
             :description => e['description'],
             :homepage    => e['homepage'],
             :license     => e['license']
-          ))
+          )
 
           package.data.builds.create(
-            :flavor   => (build.elements.xpath('.//flavor').first.text rescue nil)
+            :flavor   => (build.elements.xpath('.//flavor').first.text rescue nil),
             :features => (build.elements.xpath('.//features').first.text rescue nil),
 
             :digest => build['digest']
@@ -62,4 +62,4 @@ class Binary < Repository
   end
 end
 
-end; end
+end; end; end

@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; class Repository
+module Packo; module Binary; class Repository
 
 class Virtual < Repository
   def initialize (repo)
@@ -25,4 +25,4 @@ class Virtual < Repository
   end
 end
 
-end; end
+end; end; end

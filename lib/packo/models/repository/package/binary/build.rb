@@ -17,35 +17,19 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/blocker'
+module Packo; module Models; class Repository; class Package; class Binary
+ 
+class Build
+  include DataMapper::Resource
 
-module Packo; module RBuild
+  belongs_to :binary
 
-class Blockers < Array
-  attr_reader :package
+  property :binary_id, Integer, :key => true
 
-  def initialize (package)
-    @package = package
-  end
+  property :flavor,   Text
+  property :features, Text
 
-  alias __push push
-
-  def push (blocker)
-    __push(blocker.is_a?(Blocker) ? blocker : Blocker.parse(blocker))
-    self.compact!
-    self
-  end
-
-  alias << push
-
-  def check
-    package.stages.call :blockers, package
-    package.stages.call :blockers!, package
-  end
-
-  def owner= (value)
-    @package = value
-  end
+  property :digest, Text
 end
 
-end; end
+end; end; end; end; end

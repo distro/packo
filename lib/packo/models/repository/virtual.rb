@@ -17,19 +17,16 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Models; module Repository; class Repository; class Package; class Source
+module Packo; module Models; class Repository
 
-class Feature
+class Virtual
   include DataMapper::Resource
 
-  property :source_id, Integer, :key => true
+  belongs_to :repository
 
-  property :name,        String
-  property :description, Text
+  property :repository_id, Integer, :key => true
 
-  property :enabled, Boolean, :default => false
-
-  belongs_to :source
+  property :address, Text
 end
 
-end; end; end; end; end; end
+end; end; end

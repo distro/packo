@@ -40,7 +40,7 @@ end
 
 DataMapper.setup(:default, Packo::Environment[:DATABASE])
 
-require 'packo/models/main'
+require 'packo/models/installed_package'
 require 'packo/models/repository'
 
 DataMapper.finalize

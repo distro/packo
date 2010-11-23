@@ -32,7 +32,7 @@ require 'packo/rbuild/modules/packaging'
 
 class Application < Optitron::CLI
   include Packo::Binary::Helpers
-  include Packo::Models::Main
+  include Packo::Models
 
   desc 'Outputs version'
   def version
@@ -202,7 +202,7 @@ class Application < Optitron::CLI
 
       if !(outside && !params['force'])
         begin
-          pkg = Package.new(:repo => params['repository'],
+          pkg = InstalledPackage.new(:repo => params['repository'],
             :categories => manifest.package.categories.join('/'),
             :name       => manifest.package.name,
             :version    => manifest.package.version,
@@ -305,7 +305,7 @@ class Application < Optitron::CLI
   end
 
   def show
-    Package.all.each {|package|
+    InstalledPackage.all.each {|package|
       print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
       print "-#{colorize(package.version, :RED)}"
       print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if !package.slot.empty?
@@ -373,7 +373,7 @@ class Application < Optitron::CLI
   private
 
   def _installed? (package)
-    Package.first(
+    InstalledPackage.first(
       :categories => package.categories.join('/'),
       :name       => package.name,
       :version    => package.version,
@@ -402,7 +402,7 @@ class Application < Optitron::CLI
     conditions[Query::Operator.new(:version, op)]    = package.version if package.version
     conditions[Query::Operator.new(:slot, op)]       = package.slot if package.slot
 
-    result = Package.all(conditions)
+    result = InstalledPackage.all(conditions)
 
     return result if !validity
 
@@ -425,7 +425,7 @@ class Application < Optitron::CLI
 
         pkg = Packo::Package.parse(matches[1])
 
-        Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
+        InstalledPackage.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
           :type => matches[2].to_sym,
           :name => matches[3],
           :uri  => matches[4],
@@ -498,7 +498,7 @@ class Application < Optitron::CLI
   end
 
   def _exists? (path)
-    Package::Content.first(:path.eql => path, :type.not => :dir).package rescue false
+    InstalledPackage::Content.first(:path.eql => path, :type.not => :dir).package rescue false
   end
 end
 

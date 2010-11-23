@@ -17,9 +17,13 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; class Repository
+require 'packo/binary/helpers'
+
+module Packo; module Binary; class Repository
 
 class Source < Repository
+  include Packo::Binary::Helpers
+
   def initialize (repo)
     super(repo)
   end
@@ -40,7 +44,11 @@ class Source < Repository
 
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
-          package = Packo::Binary::Package.new(categories, File.basename(what), version.match(/-(\d.*?)\.(rbuild|xml)$/)[1])
+          package = Packo::Package.new(
+            :categories => categories,
+            :name       => File.basename(what),
+            :version    => version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
+          )
 
           begin
             loadPackage(what, package)
@@ -48,7 +56,7 @@ class Source < Repository
             warn e.to_s if Packo::Environment[:VERBOSE]
           end
 
-          package = Packo::Packages[package.to_s]
+          package = Packo::RBuild::Packages[package.to_s]
 
           if !package
             warn "Package not found: #{File.basename(what)}" if Packo::Environment[:VERBOSE]
@@ -65,7 +73,7 @@ class Source < Repository
             :description => package.description,
             :homepage    => [package.homepage].flatten.join(' '),
             :license     => [package.license].flatten.join(' ')
-          ))
+          )
 
           package.features.each {|feature|
             pkg.features.create(
@@ -87,4 +95,4 @@ class Source < Repository
   end
 end
 
-end; end
+end; end; end

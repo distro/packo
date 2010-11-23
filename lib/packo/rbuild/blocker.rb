@@ -17,8 +17,57 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo
+module Packo; module RBuild
 
-Blocker = Dependency
+class Blocker < Packo::Package
+  def self.parse (text)
+    runtime = true
 
+    if text.end_with? '!'
+      text[-1] = ''
+      runtime = false
+    end
+
+    if matches = text.match(/^([<>]?=?)/)
+      validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
+      text.sub!(/^([<>]?=?)/, '')
+    else
+      validity = nil
+    end
+
+    parsed = Packo::Package.parse(text)
+
+    self.new(parsed, validity, runtime)
+  end
+
+  def initialize (data, validity=nil, runtime=true)
+    super(data)
+
+    @validity = validity
+    @runtime  = runtime
+  end
+
+  def runtime?; @runtime end
+
+  def to_s (name=false)
+    if name
+      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
+    else
+      features = @features.sort {|a, b|
+        if a[1] && b[1]
+          0
+        elsif a[1] && !b[1]
+          -1
+        else
+          1
+        end
+      }.to_a.map {|feature| (feature[1] ? '' : '-') + feature[0].to_s}.join(',')
+
+      flavors = @flavors.sort
+
+      "#{@validity}#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavors}}" if !flavors.empty?}"
+    end
+  end
 end
+
+end; end

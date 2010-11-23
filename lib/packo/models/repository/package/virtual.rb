@@ -17,20 +17,14 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/models/repository/repository/package/binary/build'
+module Packo; module Models; class Repository; class Package
 
-module Packo; module Models; module Repository; class Repository; class Package
-
-class Binary
+class Virtual
   include DataMapper::Resource
 
   belongs_to :package
 
   property :package_id, Integer, :key => true
-
-  property :features, Text
-
-  has n, :builds
 end
 
-end; end; end; end; end
+end; end; end; end

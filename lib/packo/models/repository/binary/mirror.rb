@@ -17,35 +17,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/blocker'
+require 'packo/models/repository/binary/mirror'
 
-module Packo; module RBuild
+module Packo; module Models; class Repository; class Binary
 
-class Blockers < Array
-  attr_reader :package
+class Mirror
+  include DataMapper::Resource
 
-  def initialize (package)
-    @package = package
-  end
+  belongs_to :binary
 
-  alias __push push
+  property :binary_id, Integer, :key => true
 
-  def push (blocker)
-    __push(blocker.is_a?(Blocker) ? blocker : Blocker.parse(blocker))
-    self.compact!
-    self
-  end
-
-  alias << push
-
-  def check
-    package.stages.call :blockers, package
-    package.stages.call :blockers!, package
-  end
-
-  def owner= (value)
-    @package = value
-  end
+  property :uri, Text
 end
 
-end; end
+end; end; end; end

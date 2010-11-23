@@ -17,21 +17,32 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Models; module Main; class Package
+require 'packo/models/installed_package/dependency'
+require 'packo/models/installed_package/content'
 
-class Dependency
+module Packo; module Models
+
+class InstalledPackage
   include DataMapper::Resource
 
-  belongs_to :package
+  property :id, Serial
 
-  property :categories, String, :length => 255, :key => true
-  property :name,       String,                 :key => true
-  property :version,    String,                 :key => true
-  property :slot,       String,  :default => ''
+  property :repo, String
+
+  property :categories, String, :length => 255, :required => true, :unique_index => :a
+  property :name,       String,                 :required => true, :unique_index => :a
+  property :version,    String,                 :required => true
+  property :slot,       String,  :default => '',                   :unique_index => :a
   property :revision,   Integer, :default => 0
 
   property :flavors,  Text, :default => ''
   property :features, Text, :default => ''
+
+  property :manual,  Boolean, :default => false
+  property :runtime, Boolean, :default => true  # Installed as build or runtime dependency
+
+  has n, :dependencies
+  has n, :contents
 end
 
-end; end; end; end
+end; end

@@ -17,10 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/stages/stage'
-require 'packo/stages/callback'
+require 'packo/rbuild/stages/stage'
+require 'packo/rbuild/stages/callback'
 
-module Packo
+module Packo; module RBuild
 
 class Stages
   @@cycles = 23
@@ -199,4 +199,4 @@ class Stages
   end
 end
 
-end
+end; end

@@ -17,11 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/models/repository/repository/package/binary'
-require 'packo/models/repository/repository/package/source'
-require 'packo/models/repository/repository/package/virtual'
+require 'packo/models/repository/package/binary'
+require 'packo/models/repository/package/source'
+require 'packo/models/repository/package/virtual'
 
-module Packo; module Models; module Repository; class Repository
+module Packo; module Models; class Repository
 
 class Package
   include DataMapper::Resource
@@ -32,7 +32,7 @@ class Package
 
   property :categories, String,  :length => 255, :required => true, :unique_index => :a
   property :name,       String,                  :required => true, :unique_index => :a
-  property :version,    String,                  :required => true, :unique_index => :a
+  property :version,    Object,                  :required => true, :unique_index => :a
   property :slot,       String,  :default => '',                    :unique_index => :a
   property :revision,   Integer, :default => 0
 
@@ -53,4 +53,4 @@ class Package
   end
 end
 
-end; end; end; end
+end; end; end

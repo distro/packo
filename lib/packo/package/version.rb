@@ -17,9 +17,23 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'versionomy'
+require 'forwardable'
+
 module Packo; class Package
 
-class Version < Versionomy
+class Version
+  extend Forwardable
+
+  attr_reader :value
+
+  def initialize (string)
+    @value = Versionomy.parse(string)
+
+    @value.methods.each {|method|
+      Version.def_delegator :@value, method if !Version.respond_to? method
+    }
+  end
 end
 
 end; end

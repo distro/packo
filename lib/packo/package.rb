@@ -18,6 +18,8 @@
 #++
 
 require 'packo/package/categories'
+require 'packo/package/flavor'
+require 'packo/package/features'
 require 'packo/package/version'
 
 module Packo
@@ -82,11 +84,11 @@ class Package
   end
 
   def categories= (value)
-    @categories = (value.is_a?(Package::Categories)) ? value : Package::Categories.parse(value.to_s)
+    @categories = (value.is_a?(Categories)) ? value : Categories.parse(value.to_s)
   end
 
   def version= (value)
-    @version = (value.is_a?(Package::Version)) ? value : Package::Version.parse(value)
+    @version = (value.is_a?(Version)) ? value : Version.new(value)
   end
 
   def revision= (value)
@@ -94,11 +96,11 @@ class Package
   end
 
   def flavor= (value)
-    @flavor = (value.is_a?(Package::Flavor)) ? value : Flavor.parse(value.to_s)
+    @flavor = (value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s)
   end
 
   def features= (value)
-    @features = (value.is_a?(Package::Features)) ? value : Features.parse(value.to_s)
+    @features = (value.is_a?(Features)) ? value : Features.parse(value.to_s)
   end
 
   def == (package)

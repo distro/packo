@@ -18,6 +18,7 @@
 #++
 
 require 'packo/environment'
+require 'packo/rbuild'
 
 module Packo
 
