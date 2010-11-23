@@ -17,33 +17,58 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo
+require 'packo/package/flavor'
 
-class Flavor
-  attr_reader :package, :name, :block
+module Packo; module RBuild
 
-  attr_accessor :description
+class Flavor < Packo::Package::Flavor
+  class Element < Packo::Package::Flavor::Element
+    attr_reader :package
 
-  def initialize (package, name, enabled=false, &block)
-    @package = package
-    @name    = name
-    @enabled = enabled
-    @block   = block
+    def initialize (package, name, &block)
+      super(name)
 
-    self.instance_exec(self, &@block) if @block
+      @package = package
+
+      self.instance_exec(self, &block) if block
+    end
+
+    def execute (&block)
+      self.instance_exec(self, &block) if block; self
+    end
+
+    def on (what, priority=0, &block)
+      @package.stages.register(what, priority, block, self)
+    end
+
+    def owner= (value)
+      @package = value
+    end
   end
 
-  def enabled?;  !!@enabled       end
-  def enabled!;  @enabled = true  end
-  def disabled!; @enabled = false end
+  attr_reader :package
 
-  def on (what, priority=0, &block)
-    @package.stages.register(what, priority, block, self)
+  def initialize (package, values={})
+    super(values)
+
+    @package = package
+  end
+
+  def method_missing (name, *args, &block)
+    if Packo::Package::Flavor::Names.member?(name)
+      @elements[name].is_a?(Element) ?
+        @elements[name].execute(&block) :
+        @elements[name] = Element.new(@package, name, &block)
+    end
   end
 
   def owner= (value)
     @package = value
+
+    @elements.each_value {|element|
+      element.owner = value
+    }
   end
 end
 
-end
+end; end

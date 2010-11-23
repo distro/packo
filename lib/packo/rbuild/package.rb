@@ -23,7 +23,7 @@ require 'packo/rbuild/dependencies'
 require 'packo/rbuild/blockers'
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
-require 'packo/rbuild/flavors'
+require 'packo/rbuild/flavor'
 
 module Packo; module RBuild
 

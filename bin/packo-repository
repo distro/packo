@@ -155,9 +155,9 @@ class Application < Optitron::CLI
 
       begin
         repositories.each {|repository|
-          FileUtils.rm_rf repository['path'], :secure => true
+          FileUtils.rm_rf repository.path, :secure => true
 
-          _delete(repository['name'], repository['type'])
+          _delete(repository.name, repository.type)
         }
       rescue Exception => e
         fatal "Something went wrong while deleting #{name}"
@@ -432,7 +432,7 @@ class Application < Optitron::CLI
   end
 
   def _delete (name, type)
-    PackoBinary::Repository.delete(@db, name, type.to_sym)
+    Repository.first(:name => name, :type => type).destroy
   end
 
   def _checkout (uri, path)

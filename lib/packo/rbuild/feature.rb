@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/package/feature'
+
 module Packo; module RBuild
 
 class Feature < Packo::Package::Feature
@@ -30,8 +32,8 @@ class Feature < Packo::Package::Feature
 
     @dependencies = []
 
-    if @package && Packo::Features::Default[self.name]
-      self.instance_exec(self, &Packo::Features::Default[self.name])
+    if @package && Features::Default[self.name]
+      self.instance_exec(self, &Features::Default[self.name])
     end
 
     self.instance_exec(self, &@block) if @block

@@ -23,6 +23,8 @@ require 'packo/models/repository/binary'
 require 'packo/models/repository/source'
 require 'packo/models/repository/virtual'
 
+require 'ostruct'
+
 module Packo; module Models
 
 class Repository
@@ -47,6 +49,8 @@ class Repository
   def self.parse (text)
     if text.include?('/')
       type, name = text.split('/')
+
+      type = type.to_sym
     else
       type, name = nil, name
     end

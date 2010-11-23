@@ -253,7 +253,7 @@ class Application < Optitron::CLI
           end
 
           case type
-            when 'dir'; puts colorize(">   #{path}", :DEFAULT, :DEFAULT, :BOLD)
+            when 'dir'; puts colorize("--- #{path}", :DEFAULT, :DEFAULT, :BOLD)
             when 'sym'; puts colorize(">>> #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
             when 'obj'; puts ">>> #{path}"
           end
@@ -294,7 +294,7 @@ class Application < Optitron::CLI
               FileUtils.rm_f(path)
 
             when :dir
-              puts colorize("<   #{path}", :DEFAULT, :DEFAULT, :BOLD)
+              puts colorize("--- #{path}", :DEFAULT, :DEFAULT, :BOLD)
               Dir.delete(path) rescue nil
           end
         }
@@ -308,10 +308,10 @@ class Application < Optitron::CLI
     InstalledPackage.all.each {|package|
       print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
       print "-#{colorize(package.version, :RED)}"
-      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if !package.slot.empty?
+      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
-      print " [#{package.features}]" if !package.features.empty?
-      print " {#{package.flavors}}" if !package.flavors.empty?
+      print " [#{package.features}]" if package.features
+      print " {#{package.flavors}}" if package.flavors
     }
   end
 

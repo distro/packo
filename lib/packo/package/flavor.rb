@@ -47,7 +47,7 @@ class Flavor
     Flavor.new(data)
   end
 
-  def initialize (values)
+  def initialize (values={})
     @elements = {}
 
     Names.each {|name|
@@ -65,6 +65,19 @@ class Flavor
     @elements.map {|(name, element)|
       element
     }
+  end
+
+  def to_s (type=:normal)
+    elements = @elements.map {|(name, element)|
+      next if name == :binary || !value.enabled?
+
+      name.to_s if value.enabled?
+    }.compact
+
+    case type
+      when :normal; elements.join(', ')
+      when :pack;   elements.join('.')
+    end
   end
 end
 

@@ -17,13 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/package/feature'
+
 module Packo; class Package
 
 class Features
-  class Feature
-
-  end
-
   def self.parse (text)
     data = {}
 
@@ -33,15 +31,31 @@ class Features
       data[matches[2].to_sym] = matches[1] != '-'
     }
 
-    Flavor.new(data)
+    self.new(data)
   end
 
-  def initialize (values)
+  def initialize (values={})
     @values = {}
 
-    Names.each {|name|
-      @values[name] = Feature.new(name, values[name] || false)
+    values.each {|name, value|
+      @values[name.to_sym] = Feature.new(name, value || false)
     }
+  end
+
+  def set (name, value)
+    @values[name.to_sym] = Feature.new(name, value)
+  end
+
+  def get (name)
+    @values[name.to_sym] ||= Feature.new(name, false)
+  end
+
+  def delete (name)
+    @values.delete(name.to_sym)
+  end
+
+  def has (name)
+    @values.key? name
   end
 
   def to_h
@@ -54,6 +68,23 @@ class Features
     @values.map {|(name, element)|
       element
     }
+  end
+
+  def to_s (type=:normal)
+    case type
+      when :pack
+        @values.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
+  
+      when :normal
+        @values.sort {|a, b|
+          if a[1].enabled? && b[1].enabled?     then  0
+          elsif a[1].enabled? && !b[1].enabled? then -1
+          else                                        1
+          end
+        }.to_a.map {|feature|
+          (feature[1].enabled? ? '' : '-') + feature[0].to_s
+        }.join(',')
+    end
   end
 end
 
