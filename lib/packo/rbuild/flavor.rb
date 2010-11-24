@@ -25,8 +25,8 @@ class Flavor < Packo::Package::Flavor
   class Element < Packo::Package::Flavor::Element
     attr_reader :package
 
-    def initialize (package, name, &block)
-      super(name)
+    def initialize (package, name, enabled=false, &block)
+      super(name, enabled)
 
       @package = package
 
@@ -49,13 +49,16 @@ class Flavor < Packo::Package::Flavor
   attr_reader :package
 
   def initialize (package, values={})
-    super(values)
+    @package  = package
+    @elements = {}
 
-    @package = package
+    Names.each {|name|
+      @elements[name] = Element.new(package, name, values[name] || false)
+    }
   end
 
   def method_missing (name, *args, &block)
-    if Packo::Package::Flavor::Names.member?(name)
+    if Names.member?(name)
       @elements[name].is_a?(Element) ?
         @elements[name].execute(&block) :
         @elements[name] = Element.new(@package, name, &block)

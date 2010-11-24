@@ -58,7 +58,7 @@ class Package
         end
     end
 
-    Package.new(result)
+    Package.new(data)
   end
 
   attr_accessor :tags, :name, :version, :slot, :revision,
@@ -115,6 +115,21 @@ class Package
 
 	def hash
     "#{self.tags}/#{self.name}-#{self.version}%#{self.slot}".hash
+  end
+
+  def to_h
+    Hash[
+      :tags     => self.tags,
+      :name     => self.name,
+      :version  => self.version,
+      :slot     => self.slot,
+      :revision => self.revision,
+
+      :repository => self.repository,
+
+      :flavor   => self.flavor,
+      :features => self.features
+    ]
   end
 
   def to_s (type=:whole)

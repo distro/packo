@@ -17,10 +17,16 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild
+module Packo; module Models
 
-Packages = Class.new(Hash) {
+class Tag
+  include DataMapper::Resource
 
-}.new
+  property :id, Serial
+
+  property :name, Text, :required => true
+
+  property :description, Text
+end
 
 end; end

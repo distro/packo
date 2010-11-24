@@ -23,7 +23,7 @@ require 'packo/environment'
 require 'packo/package'
 
 module Packo
-  Version = Packo::Package::Version.new('0.0.1')
+  Version = Package::Version.new('0.0.1')
 
   def self.interpolate (string, on)
     on.instance_eval('"' + string + '"') rescue nil
@@ -65,11 +65,11 @@ module Packo
   end
 
   def self.debug (argument, options={})
-    if !Packo::Environment['DEBUG'] && !options[:force]
+    if !Environment['DEBUG'] && !options[:force]
       return
     end
 
-    if Packo::Environment['DEBUG'].to_i < (options[:level] || 1) && !options[:force]
+    if Environment['DEBUG'].to_i < (options[:level] || 1) && !options[:force]
       return
     end
 
@@ -94,12 +94,12 @@ module Packo
     puts output
   end
 
-  def self.load (path, stuff={})
+  def self.load (path, options={})
     if !File.readable? path
       raise LoadError.new("no such file to load -- #{path}")
     end
 
-    eval("#{stuff[:before]}#{File.read(path, :encoding => 'utf-8')}#{stuff[:after]}", stuff[:binding] || binding, path, 1)
+    eval(options[:before] + File.read(path, :encoding => 'utf-8') + options[:after], options[:binding] || binding, path, 1)
   end
 
   def self.numeric? (what)

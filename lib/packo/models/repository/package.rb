@@ -28,17 +28,18 @@ class Package
 
   property :id, Serial
 
-  property :repo, Integer,                                        :unique_index => :a
+  belongs_to :repo, 'Repository',                                    :unique_index => :a
 
-  property :tags,     String,  :length => 40,  :required => true, :unique_index => :a
-  property :name,     String,                  :required => true, :unique_index => :a
-  property :version,  Object,                  :required => true, :unique_index => :a
-  property :slot,     String,  :default => '',                    :unique_index => :a
-  property :revision, Integer, :default => 0
+  has n,   :tags
+  property :tags_hashed, String,  :length => 40,  :required => true, :unique_index => :a
+  property :name,        String,                  :required => true, :unique_index => :a
+  property :version,     String,                  :required => true, :unique_index => :a
+  property :slot,        String,  :default => '',                    :unique_index => :a
+  property :revision,    Integer, :default => 0
 
-  property :description,  Text, :default => ''
-  property :homepage,     Text, :default => ''
-  property :license,      Text, :default => ''
+  property :description,  Text, :default => '', :required => false
+  property :homepage,     Text, :default => '', :required => false
+  property :license,      Text, :default => '', :required => false
 
   has 1, :binary,  :required => false, :accessor => :private
   has 1, :source,  :required => false, :accessor => :private

@@ -31,9 +31,9 @@ end
 DataMapper::Model.raise_on_save_failure = true
 
 module DataMapper::Model
-  def self.create_or_replace (stuff)
-    obj = self.first_or_new(stuff)
-    obj.update(stuff)
+  def self.replace_or_create (stuff, new)
+    obj = self.first_or_create(stuff)
+    obj.update(new)
     obj
   end
 end
@@ -42,6 +42,7 @@ DataMapper.setup(:default, Packo::Environment[:DATABASE])
 
 require 'packo/models/installed_package'
 require 'packo/models/repository'
+require 'packo/models/tag'
 
 DataMapper.finalize
 

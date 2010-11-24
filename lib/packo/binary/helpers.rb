@@ -20,13 +20,11 @@
 require 'packo/environment'
 require 'packo/rbuild'
 
-module Packo
-
-module Binary
+module Packo; module Binary
 
 module Helpers
   def colorize (text, fg, bg=nil, attr=nil)
-    return text if Packo::Environment[:NO_COLORS]
+    return text if Environment[:NO_COLORS]
 
     colors = {
       :DEFAULT => 9,
@@ -74,12 +72,17 @@ module Helpers
   alias _fatal fatal
 
   def loadPackage (path, package)
+    options = {
+      :before => 'module ::Packo::RBuild;',
+      :after  => ';end'
+    }
+
     if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
       features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
       
       features.text.split(' ').each {|feature|
         begin
-          Packo.load "#{Packo::Environment[:PROFILE]}/features/#{feature}"
+          Packo.load "#{Environment[:PROFILE]}/features/#{feature}", options
         rescue LoadError
         rescue Exception => e
           warn "Something went wrong while loading #{feature} feature."
@@ -88,11 +91,9 @@ module Helpers
       } if features
     end
 
-    Packo.load "#{path}/#{package.name}.rbuild", :binding => Kernel.binding
-    Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", :binding => Kernel.binding
+    Packo.load "#{path}/#{package.name}.rbuild", options
+    Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
   end
 end
 
-end
-
-end
+end; end

@@ -124,6 +124,8 @@ class Application < Optitron::CLI
       rescue Exception => e
         fatal 'Failed to add the cache'
         Packo.debug e, :force => true
+
+        Repository.first(:type => type, :name => name).destroy
       end
     }
 
@@ -171,22 +173,27 @@ class Application < Optitron::CLI
     Repository.all.each {|repository|
       updated = false
 
+      type = repository.type
+      name = repository.name
+      uri  = repository.uri
+      path = repository.path
+
       case repository.type
         when :binary
-          if (content = open(repository.uri).read) != File.read(repository.path)
+          if (content = open(uri).read) != File.read(path)
             repository.destroy
-            file = File.new(repository.path, 'w')
+            file = File.new(path, 'w')
             file.write(content)
             file.close
-            _add(:binary, repository.uri, repository.path)
+            _add(:binary, uri, path)
 
             updated = true
           end
 
         when :source
-          if _update(repository.path)
+          if _update(path)
             repository.destroy
-            _add(:source, repository.uri, repository.path)
+            _add(:source, uri, path)
 
             updated = true
           end
@@ -195,9 +202,9 @@ class Application < Optitron::CLI
       end
 
       if updated
-        _info "Updated #{repo['type']}/#{repo['name']}"
+        _info "Updated #{type}/#{name}"
       else
-        _info "#{repo['type']}/#{repo['name']} already up to date"
+        _info "#{type}/#{name} already up to date"
       end
     }
   end
@@ -393,21 +400,22 @@ class Application < Optitron::CLI
       }
     end
 
-    ap repositories
-    
-    repositories.flatten.compact.each {|repo|
-      _info "Rehashing #{repo.type}/#{repo.name}"
+    repositories.flatten.compact.each {|repository|
+      type = repository.type
+      name = repository.name
+      uri  = repository.uri
+      path = repository.path
 
-      ap repo
+      _info "Rehashing #{type}/#{name}"
+
+      repository.destroy
       
-      case repo.type
+      case type
         when :binary
-          _delete(repo.name, :binary)
-          _add(:binary, repo.uri, repo.path)
+          _add(:binary, uri, path)
 
         when :source
-          _delete(repo.name, :source)
-          _add(:source, repo.uri, repo.path)
+          _add(:source, uri, path)
       end
     }
   end

@@ -25,6 +25,8 @@ module Packo; module Binary
 
 class Repository
   def self.wrap (repo)
+    repo.save
+
     case repo.type
       when :binary;  Binary.new(repo)
       when :source;  Source.new(repo)

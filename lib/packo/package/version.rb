@@ -31,7 +31,7 @@ class Version
     @value = Versionomy.parse(string)
 
     @value.methods.each {|method|
-      Version.def_delegator :@value, method if !Version.respond_to? method
+      Version.def_delegator :@value, method if ![:__send__, :object_id].member?(method)
     }
   end
 end

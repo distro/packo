@@ -17,15 +17,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/models'
+require 'packo/rbuild'
 require 'packo/binary/helpers'
 
 module Packo; module Binary; class Repository
 
 class Source < Repository
   include Packo::Binary::Helpers
+  include Packo::Models
 
-  def initialize (repo)
-    super(repo)
+  def initialize (repository)
+    super(repository)
   end
 
   def populate (what=[self.path], root=self.path)
@@ -34,30 +37,30 @@ class Source < Repository
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
-          package = Packo::Package.new(
-            :name       => File.basename(what),
-            :version    => version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
+          pkg = Packo::Package.new(
+            :name    => File.basename(what),
+            :version => version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
           )
 
           begin
-            loadPackage(what, package)
+            loadPackage(what, pkg)
           rescue LoadError => e
-            warn e.to_s if Packo::Environment[:VERBOSE]
+            warn e.to_s if Environment[:VERBOSE]
           end
 
-          package = Packo::RBuild::Packages[package.to_s]
+          package = RBuild::Packages[:last]
 
-          if !package
-            warn "Package not found: #{File.basename(what)}" if Packo::Environment[:VERBOSE]
+          if package.name != pkg.name || package.version != pkg.version
+            warn "Package not found: #{pkg.name}" if Environment[:VERBOSE]
             next
           end
 
-          pkg = repository.packages.first_or_new(
-            :tags     => package.tags.hash,
-            :name     => package.name,
-            :version  => package.version,
-            :slot     => package.slot,
-            :revision => package.revision,
+          pkg = repository.packages.first_or_create(
+            :tags_hashed => package.tags.hash,
+            :name        => package.name,
+            :version     => package.version,
+            :slot        => package.slot,
+            :revision    => package.revision,
 
             :description => package.description,
             :homepage    => [package.homepage].flatten.join(' '),
@@ -65,14 +68,11 @@ class Source < Repository
           )
 
           package.tags.each {|tag|
-            Tagging::Tagged.create(
-              :package => package.id,
-              :tag     => Tagging::Tag.first_or_create(:name => tag)
-            )
+            pkg.tags.first_or_create(:name => tag.to_s)
           }
 
           package.features.each {|feature|
-            pkg.features.new(
+            pkg.data.features.create(
               :name        => feature.name,
               :description => feature.description,
               :enabled     => feature.enabled?
@@ -81,8 +81,8 @@ class Source < Repository
 
           pkg.save
 
-          Packo::Packages.delete package.to_s(:name)
-          Packo::Packages.delete package.to_s
+          RBuild::Packages.delete package.to_s(:name)
+          RBuild::Packages.delete package.to_s
         }
       else
         populate(Dir.entries(what).map {|e|

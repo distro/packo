@@ -39,9 +39,9 @@ class Flavor
     data = {}
 
     text.split(/\s+/).each {|part|
-      matches = part.match(/([\+\-])(.+)/)
-
-      data[matches[2].to_sym] = matches[1] != '-'
+      if (matches = part.match(/([\+\-])?(.+)/))
+        data[matches[2].to_sym] = (matches[1] != '-')
+      end
     }
 
     Flavor.new(data)

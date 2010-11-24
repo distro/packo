@@ -20,5 +20,3 @@
 require 'packo/rbuild/package'
 require 'packo/rbuild/modules'
 require 'packo/rbuild/behaviors'
-
-include Packo::RBuild

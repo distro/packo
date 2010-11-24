@@ -19,8 +19,6 @@
 
 require 'packo/package'
 
-require 'packo/rbuild/packages'
-
 require 'packo/rbuild/dependencies'
 require 'packo/rbuild/blockers'
 require 'packo/rbuild/stages'
@@ -28,6 +26,10 @@ require 'packo/rbuild/features'
 require 'packo/rbuild/flavor'
 
 module Packo; module RBuild
+
+Packages = Class.new(Hash) {
+
+}.new
 
 class Package < Packo::Package
   def self.define (name, version=nil, slot=nil, revision=nil, &block)
