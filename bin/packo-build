@@ -20,9 +20,7 @@
 #++
 
 require 'optitron'
-require 'sqlite3'
 require 'nokogiri'
-require 'rexml/document'
 require 'digest/sha1'
 
 require 'packo'

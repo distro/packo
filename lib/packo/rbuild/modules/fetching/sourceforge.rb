@@ -20,11 +20,7 @@
 require 'net/http'
 require 'uri'
 
-module Packo
-
-module Modules
-
-module Fetching
+module Packo; module RBuild; module Modules; module Fetching
 
 class SourceForge < Module
   def initialize (package)
@@ -68,8 +64,4 @@ class SourceForge < Module
   end
 end
 
-end
-
-end
-
-end
+end; end; end; end

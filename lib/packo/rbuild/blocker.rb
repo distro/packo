@@ -51,7 +51,7 @@ class Blocker < Packo::Package
 
   def to_s (name=false)
     if name
-      "#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}"
+      "#{@tags}/#{@name}#{"-#{@version}" if @version}"
     else
       features = @features.sort {|a, b|
         if a[1] && b[1]
@@ -65,7 +65,7 @@ class Blocker < Packo::Package
 
       flavors = @flavors.sort
 
-      "#{@validity}#{(@categories + [@name]).join('/')}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavors}}" if !flavors.empty?}"
+      "#{@validity}#{@tags}/#{@name}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavors}}" if !flavors.empty?}"
     end
   end
 end

@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/package'
+
 require 'packo/rbuild/packages'
 
 require 'packo/rbuild/dependencies'
@@ -34,25 +36,27 @@ class Package < Packo::Package
 
   attr_reader :environment, :modules, :dependencies, :blockers, :stages
 
-  def initialize (categories, name, version=nil, slot=nil, revision=nil, &block)
+  def initialize (tags, name, version=nil, slot=nil, revision=nil, &block)
     super(
-      :name       => categories,
-      :categories => name,
-      :version    => version,
-      :slot       => slot,
-      :revision   => revision
+      :tags     => tags,
+      :name     => name,
+      :version  => version,
+      :slot     => slot,
+      :revision => revision
     )
+
+    @data = {}
 
     Packages[self.to_s(:whole)] = self
     Packages[:last] = self
 
     if !self.version || !(tmp = Packages[self.to_s(:name)])
       @modules      = []
-      @dependencies = Packo::Dependencies.new(self)
-      @blockers     = Packo::Blockers.new(self)
-      @stages       = Packo::Stages.new(self)
-      @features     = Packo::Features.new(self)
-      @flavor       = Packo::Flavors.new(self)
+      @dependencies = Dependencies.new(self)
+      @blockers     = Blockers.new(self)
+      @stages       = Stages.new(self)
+      @features     = Features.new(self)
+      @flavor       = Flavor.new(self)
       @data         = {}
       @pre          = []
       @post         = []
@@ -62,7 +66,7 @@ class Package < Packo::Package
       @blockers     = tmp.instance_eval('@blockers.clone')
       @stages       = tmp.instance_eval('@stages.clone')
       @features     = tmp.instance_eval('@features.clone')
-      @flavors      = tmp.instance_eval('@flavors.clone')
+      @flavor       = tmp.instance_eval('@flavor.clone')
       @data         = tmp.instance_eval('@data.clone')
       @pre          = tmp.instance_eval('@pre.clone')
       @post         = tmp.instance_eval('@post.clone')
@@ -71,13 +75,11 @@ class Package < Packo::Package
         mod.owner = self
       }
 
-      @flavor = Flavors.new(self)
-
       @dependencies.owner = self
       @blockers.owner     = self
       @stages.owner       = self
       @features.owner     = self
-      @flavors.owner      = self
+      @flavor.owner       = self
     end
 
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
@@ -106,16 +108,16 @@ class Package < Packo::Package
   rescue; end
 
   def envify!
-    ['headers', 'documentation', 'debug', 'minimal', 'vanilla'].each {|flavor|
-      if Packo::Environment[:FLAVOR].include?(flavor)
-        self.flavors.send "#{flavor}!"
+    Flavor::Names.each {|flavor|
+      if Environment[:FLAVOR].include?(flavor.to_s)
+        self.flavor.send "#{flavor}!"
       else
-        self.flavors.send "not_#{flavor}!"
+        self.flavor.send "not_#{flavor}!"
       end
     }
 
-    Packo::Environment[:FEATURES].split(/\s+/).each {|feature|
-      feature = Packo::Feature.parse(feature)
+    Environment[:FEATURES].split(/\s+/).each {|feature|
+      feature = Feature.parse(feature)
 
       self.features {
 				next if !self.has(feature.name)
@@ -214,10 +216,10 @@ class Package < Packo::Package
   def package; self end
 
   def to_s (type=nil)
-    return result if (result = super(type))
+    return super(type) if super(type)
 
     case type
-      when :package; "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s(true)}" if !@flavor.to_s(true).empty?}#{"-#{@features.to_s(true)}" if !@features.to_s(true).empty?}"
+      when :package; "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s}" if !@flavor.to_s.empty?}#{"-#{@features.to_s}" if !@features.to_s.empty?}"
       else           "#{super(:whole)}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavor.to_s}}" if !@flavor.to_s.empty?}"
     end
   end

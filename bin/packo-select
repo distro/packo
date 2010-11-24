@@ -20,15 +20,12 @@
 #++
 
 require 'optitron'
-require 'sqlite3'
 
 require 'packo'
-require 'packo_binary/helpers'
+require 'packo/binary/helpers'
 
 class Application < Optitron::CLI
-  include PackoBinary::Helpers
-
-  class_opt 'database', 'The path to the cache file', :default => Packo::Environment['SELECTOR_CACHE']
+  include Packo::Binary::Helpers
 
   desc 'Output version'
   def version

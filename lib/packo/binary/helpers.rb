@@ -88,12 +88,8 @@ module Helpers
       } if features
     end
 
-    mod = Module.new {
-      include Packo::RBuild
-    }
-
-    Packo.load "#{path}/#{package.name}.rbuild", mod.instance_eval('binding')
-    Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", mod.instance_eval('binding')
+    Packo.load "#{path}/#{package.name}.rbuild", :binding => Kernel.binding
+    Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", :binding => Kernel.binding
   end
 end
 

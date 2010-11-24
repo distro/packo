@@ -17,8 +17,32 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/package'
-require 'packo/rbuild/modules'
-require 'packo/rbuild/behaviors'
+require 'digest/sha1'
 
-include Packo::RBuild
+module Packo; class Package
+
+class Tags < Array
+  def self.parse (value)
+    value.is_a?(Array) ?
+      Tags.new(value) :
+      Tags.new(value.to_s.split('/'))
+  end
+
+  def initialize (*tags)
+    tags.flatten.each {|tag|
+      self << tag.to_s
+    }
+  end
+
+  def hash
+    Digest::SHA1.hexdigest(self.sort.join('/'))
+  end
+
+  def to_s (minimized=false)
+    minimized ?
+      self.sort.map {|t| t[0]}.join :
+      self.join('/')
+  end
+end
+
+end; end

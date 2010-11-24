@@ -17,9 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo
-
-class Stages
+module Packo; module RBuild; class Stages
 
 class Callback
   @@last = 0
@@ -45,6 +43,4 @@ class Callback
   end
 end
 
-end
-
-end
+end; end; end

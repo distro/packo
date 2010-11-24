@@ -24,38 +24,45 @@ class Binary < Repository
     super(:binary, name, uri, path)
   end
 
-  def populate (dom=Nokogiri::XML.parse(File.read(self.path)), categories='')
-    categories[0, 1] = '' if categories[0] == '/'
+  def populate (dom=Nokogiri::XML.parse(File.read(self.path)), dir='')
+    dir[0, 1] = '' if dir[0] == '/'
 
     dom.elements.each {|e|
       if e.name != 'package'
-        populate(e, "#{categories}/#{e.name}")
+        populate(e, "#{dir}/#{e.name}")
       else
         e.xpath('.//build').each {|build|
-          package = repo.packages.create(
-            :categories => categories,
-            :name       => e['name'],
-            :version    => build.parent['name'],
-            :slot       => build.parent.parent['name'],
-            :revision   => build.parent['revision'],
+          tags = Packo::Package::Tags.new(e['tags'].split(/\s+/))
+
+          package = repo.packages.first_or_new(
+            :tags     => tags.hash,
+            :name     => e['name'],
+            :version  => build.parent['name'],
+            :slot     => build.parent.parent['name'],
+            :revision => build.parent['revision'],
 
             :description => e['description'],
             :homepage    => e['homepage'],
             :license     => e['license']
           )
 
-          package.data.builds.create(
+          tags.each {|tag|
+            Tagging::Tagged.create(
+              :package => package.id,
+              :tag     => Tagging::Tag.first_or_create(:name => tag)
+            )
+          }
+
+          package.data.builds.new(
             :flavor   => (build.elements.xpath('.//flavor').first.text rescue nil),
             :features => (build.elements.xpath('.//features').first.text rescue nil),
 
             :digest => build['digest']
           )
 
-          package.data.features
+          package.data.features = build.parent['features']
 
-          @db.execute('INSERT OR REPLACE INTO binary_builds VALUES(?, ?, ?, ?)', [id, features, flavors, digest])
-
-          @db.execute('INSERT OR IGNORE INTO binary_features VALUES(?, ?)', [id, build.parent['features']])
+          package.save
         }
       end
     }

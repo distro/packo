@@ -32,20 +32,9 @@ class Source < Repository
     last = nil
 
     what.select {|what| File.directory? what}.each {|what|
-      categories = File.dirname(what[(root || '').length + 1, what.length]) rescue nil
-
-      if categories && categories != '.'
-        next if categories[0] == '.'
-
-        info "Parsing #{categories}" if categories != last && Packo::Environment[:VERBOSE]
-
-        last = categories
-      end
-
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
           package = Packo::Package.new(
-            :categories => categories,
             :name       => File.basename(what),
             :version    => version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
           )
@@ -63,27 +52,36 @@ class Source < Repository
             next
           end
 
-          pkg = repository.packages.create(
-            :categories => package.categories.join('/'),
-            :name       => package.name,
-            :version    => package.version,
-            :slot       => package.slot,
-            :revision   => package.revision,
+          pkg = repository.packages.first_or_new(
+            :tags     => package.tags.hash,
+            :name     => package.name,
+            :version  => package.version,
+            :slot     => package.slot,
+            :revision => package.revision,
 
             :description => package.description,
             :homepage    => [package.homepage].flatten.join(' '),
             :license     => [package.license].flatten.join(' ')
           )
 
+          package.tags.each {|tag|
+            Tagging::Tagged.create(
+              :package => package.id,
+              :tag     => Tagging::Tag.first_or_create(:name => tag)
+            )
+          }
+
           package.features.each {|feature|
-            pkg.features.create(
+            pkg.features.new(
               :name        => feature.name,
               :description => feature.description,
               :enabled     => feature.enabled?
             )
           }
 
-          Packo::Packages.delete package.to_s(true)
+          pkg.save
+
+          Packo::Packages.delete package.to_s(:name)
           Packo::Packages.delete package.to_s
         }
       else

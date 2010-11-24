@@ -20,7 +20,6 @@
 #++
 
 require 'optitron'
-require 'sqlite3'
 require 'open-uri'
 require 'digest/sha1'
 require 'find'
@@ -82,7 +81,7 @@ class Application < Optitron::CLI
           end
   
           names = packages.group_by {|package|
-            "#{package.categories.join('/')}/#{package.name}"
+            "#{package.tags}/#{package.name}"
           }.map {|(name, package)| name}.uniq
   
           if names.length > 1
@@ -118,7 +117,7 @@ class Application < Optitron::CLI
   
         case package.repository.type
           when :binary
-            name = "#{package.categories.join('/')}/#{package.name}-#{package.version}"
+            name = "#{package.tags.to_s(true)}/#{package.name}-#{package.version}"
   
             flavors = ''
             env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.each {|f|
@@ -158,7 +157,7 @@ class Application < Optitron::CLI
   
           when :source
             name = _build(package, env)
-            path = "#{env[:TMP]}/.__packo_unpacked/#{package.categories.join('/')}/#{name[env[:TMP].length + '.__packo_build/'.length, name.length]}"
+            path = "#{env[:TMP]}/.__packo_unpacked/#{package.tags.to_s(true)}/#{name[env[:TMP].length + '.__packo_build/'.length, name.length]}"
         end
       else
         env  = Packo::Environment.new
@@ -200,26 +199,19 @@ class Application < Optitron::CLI
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
       }
 
-      if !(outside && !params['force'])
-        begin
-          pkg = InstalledPackage.new(:repo => params['repository'],
-            :categories => manifest.package.categories.join('/'),
-            :name       => manifest.package.name,
-            :version    => manifest.package.version,
-            :slot       => manifest.package.slot,
-            :revision   => manifest.package.revision,
+      pkg = InstalledPackage.new(:repo => params['repository'],
+        :tags     => manifest.package.tags.hash,
+        :name     => manifest.package.name,
+        :version  => manifest.package.version,
+        :slot     => manifest.package.slot,
+        :revision => manifest.package.revision,
 
-            :flavors  => manifest.package.flavors,
-            :features => manifest.package.features,
-            
-            :manual  => manual,
-            :runtime => true
-          )
-        rescue SQLite3::ConstraintException
-          fatal "#{manifest.package.categories.join('/')}/#{manifest.package.name} is already installed"
-          exit! 16
-        end
-      end
+        :flavors  => manifest.package.flavors,
+        :features => manifest.package.features,
+        
+        :manual  => manual,
+        :runtime => true
+      )
 
       length = "#{path}/dist".length
 
@@ -258,13 +250,11 @@ class Application < Optitron::CLI
             when 'obj'; puts ">>> #{path}"
           end
   
-          if !(outside && !params['force'])
-            pkg.contents.new(
-              :type => type.to_sym,
-              :path => fake,
-              :meta => meta
-            )
-          end
+          pkg.contents.new(
+            :type => type.to_sym,
+            :path => fake,
+            :meta => meta
+          )
         }
       rescue Exception => e
         fatal 'Something went deeply wrong when installing package contents'
@@ -272,7 +262,9 @@ class Application < Optitron::CLI
         exit! 17
       end
 
-      pkg.save
+      if !(outside && !params['force'])
+        pkg.save
+      end
     }
   end
 
@@ -280,7 +272,7 @@ class Application < Optitron::CLI
   opt 'destination', 'Set the destination where to install the package', :default => '/'
   def uninstall (*name)
     name.each {|name|
-      _search_installed(name).each {|installed|
+      InstalledPackage.search(name).each {|installed|
         installed.contents.each {|content|
           path = "#{params['destination']}/#{content['path']}".gsub(%r{/*/}, '/')
 
@@ -306,7 +298,8 @@ class Application < Optitron::CLI
 
   def show
     InstalledPackage.all.each {|package|
-      print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+      # TODO: real tagging
+      print "#{package.tags}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
       print "-#{colorize(package.version, :RED)}"
       print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
@@ -374,46 +367,11 @@ class Application < Optitron::CLI
 
   def _installed? (package)
     InstalledPackage.first(
-      :categories => package.categories.join('/'),
-      :name       => package.name,
-      :version    => package.version,
-      :slot       => package.slot
+      :tags     => package.tags.hashed,
+      :name     => package.name,
+      :version  => package.version,
+      :slot     => package.slot
     )
-  end
-
-  def _search_installed (expression, exact=false)
-    if matches = expression.match(/^([<>]?=?)/)
-      validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
-      expression = expression.sub(/^([<>]?=?)/, '')
-
-      validity = nil if validity == '='
-    else
-      validity = nil
-    end
-
-    package = Packo::Package.parse(expression)
-
-    conditions = {}
-
-    op = exact ? :eql : :like
-
-    conditions[Query::Operator.new(:categories, op)] = package.categories.join('/') if !package.categories.empty?
-    conditions[Query::Operator.new(:name, op)]       = package.name if package.name
-    conditions[Query::Operator.new(:version, op)]    = package.version if package.version
-    conditions[Query::Operator.new(:slot, op)]       = package.slot if package.slot
-
-    result = InstalledPackage.all(conditions)
-
-    return result if !validity
-
-    result.select {|pkg|
-      case validity
-        when '>';  Versionomy.parse(pkg['version']) >  package.version
-        when '>='; Versionomy.parse(pkg['version']) >= package.version
-        when '<';  Versionomy.parse(pkg['version']) <  package.version
-        when '<='; Versionomy.parse(pkg['version']) <= package.version
-      end
-    }
   end
 
   def _search (package, type, repository=nil)
@@ -425,12 +383,19 @@ class Application < Optitron::CLI
 
         pkg = Packo::Package.parse(matches[1])
 
-        InstalledPackage.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
-          :type => matches[2].to_sym,
-          :name => matches[3],
-          :uri  => matches[4],
-          :path => matches[5]
-        ))
+        Packo::Package.new(
+          :tags    => pkg.tags,
+          :name    => pkg.name,
+          :version => pkg.version,
+          :slot    => pkg.slot,
+
+          :repository =>OpenStruct.new(
+            :type => matches[2].to_sym,
+            :name => matches[3],
+            :uri  => matches[4],
+            :path => matches[5]
+          )
+        )
       }.compact
     }
   end

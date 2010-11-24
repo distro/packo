@@ -28,13 +28,13 @@ class Package
 
   property :id, Serial
 
-  property :repo, Integer,                                          :unique_index => :a
+  property :repo, Integer,                                        :unique_index => :a
 
-  property :categories, String,  :length => 255, :required => true, :unique_index => :a
-  property :name,       String,                  :required => true, :unique_index => :a
-  property :version,    Object,                  :required => true, :unique_index => :a
-  property :slot,       String,  :default => '',                    :unique_index => :a
-  property :revision,   Integer, :default => 0
+  property :tags,     String,  :length => 40,  :required => true, :unique_index => :a
+  property :name,     String,                  :required => true, :unique_index => :a
+  property :version,  Object,                  :required => true, :unique_index => :a
+  property :slot,     String,  :default => '',                    :unique_index => :a
+  property :revision, Integer, :default => 0
 
   property :description,  Text, :default => ''
   property :homepage,     Text, :default => ''

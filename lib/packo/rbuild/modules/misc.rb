@@ -17,8 +17,4 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/package'
-require 'packo/rbuild/modules'
-require 'packo/rbuild/behaviors'
-
-include Packo::RBuild
+require 'packo/rbuild/modules/misc/unpack'

@@ -17,9 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo
-
-class Stages
+module Packo; module RBuild; class Stages;
 
 class Stage
   attr_reader :name, :options
@@ -43,6 +41,4 @@ class Stage
   end
 end
 
-end
-
-end
+end; end; end

@@ -20,7 +20,6 @@
 #++
 
 require 'optitron'
-require 'sqlite3'
 require 'open-uri'
 require 'nokogiri'
 
@@ -146,7 +145,7 @@ class Application < Optitron::CLI
 
       repositories = Repository.all(conditions)
 
-      if !repositories
+      if repositories.empty?
         fatal "#{repository.type}/#{repository.name} doesn't exist"
         exit! 21
       end
@@ -157,7 +156,7 @@ class Application < Optitron::CLI
         repositories.each {|repository|
           FileUtils.rm_rf repository.path, :secure => true
 
-          _delete(repository.name, repository.type)
+          repository.destroy
         }
       rescue Exception => e
         fatal "Something went wrong while deleting #{name}"
@@ -175,7 +174,7 @@ class Application < Optitron::CLI
       case repository.type
         when :binary
           if (content = open(repository.uri).read) != File.read(repository.path)
-            _delete(repository.name, :binary)
+            repository.destroy
             file = File.new(repository.path, 'w')
             file.write(content)
             file.close
@@ -186,7 +185,7 @@ class Application < Optitron::CLI
 
         when :source
           if _update(repository.path)
-            _delete(repository.name, :source)
+            repository.destroy
             _add(:source, repository.uri, repository.path)
 
             updated = true

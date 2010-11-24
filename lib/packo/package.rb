@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package/categories'
+require 'packo/package/tags'
 require 'packo/package/flavor'
 require 'packo/package/features'
 require 'packo/package/version'
@@ -44,10 +44,10 @@ class Package
     
         matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
     
-        data[:categories] = matches[1].split('/')
+        data[:tags] = matches[1].split('/')
     
         if matches[1][matches[1].length - 1] != '/'
-          data[:name] = data[:categories].pop
+          data[:name] = data[:tags].pop
         end
     
         if matches[3]
@@ -61,13 +61,12 @@ class Package
     Package.new(result)
   end
 
-  attr_accessor :categories, :name, :version, :slot, :revision,
+  attr_accessor :tags, :name, :version, :slot, :revision,
                 :repository,
-                :flavor, :features,
-                :description, :homepage, :license
+                :flavor, :features
 
   def initialize (data)
-    self.categories = data[:categories]
+    self.tags       = data[:tags]
     self.name       = data[:name]
     self.version    = data[:version]
     self.slot       = data[:slot]
@@ -77,18 +76,14 @@ class Package
 
     self.flavor   = data[:flavor]
     self.features = data[:features]
-
-    self.description = data[:description]
-    self.homepage    = data[:homepage]
-    self.license     = data[:license]
   end
 
-  def categories= (value)
-    @categories = (value.is_a?(Categories)) ? value : Categories.parse(value.to_s)
+  def tags= (value)
+    @tags = (value.is_a?(Tags)) ? value : Tags.parse(value) if value
   end
 
   def version= (value)
-    @version = (value.is_a?(Version)) ? value : Version.new(value)
+    @version = (value.is_a?(Version)) ? value : Version.new(value) if value
   end
 
   def revision= (value)
@@ -96,21 +91,21 @@ class Package
   end
 
   def flavor= (value)
-    @flavor = (value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s)
+    @flavor = (value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s) if value
   end
 
   def features= (value)
-    @features = (value.is_a?(Features)) ? value : Features.parse(value.to_s)
+    @features = (value.is_a?(Features)) ? value : Features.parse(value.to_s) if value
   end
 
   def == (package)
     self.name == package.name &&
-    self.categories == package.categories
+    self.tags == package.tags
   end
 
   def === (package)
     self.name == package.name &&
-    self.categories == package.categories &&
+    self.tags == package.tags &&
     self.version == package.version &&
     self.slot == package.slot &&
     self.revision == package.revision
@@ -119,13 +114,13 @@ class Package
 	alias eql? ===
 
 	def hash
-    "#{self.categories}/#{self.name}-#{self.version}%#{self.slot}".hash
+    "#{self.tags}/#{self.name}-#{self.version}%#{self.slot}".hash
   end
 
   def to_s (type=:whole)
     case type
       when :whole; "#{self.to_s(:name)}#{"-#{@version}" if @version}#{"%#{@slot}" if @slot}"
-      when :name;  (@categories + [@name]).join('/')
+      when :name;  "#{@tags}/#{@name}"
     end
   end
 end

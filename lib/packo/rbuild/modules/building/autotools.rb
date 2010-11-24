@@ -17,13 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/module'
-
-module Packo
-
-module Modules
-
-module Building
+module Packo; module RBuild; module Modules; module Building
 
 class Autotools < Module
   class Configuration
@@ -245,8 +239,4 @@ class Autotools < Module
   end
 end
 
-end
-
-end
-
-end
+end; end; end; end

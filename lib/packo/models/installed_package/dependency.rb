@@ -24,11 +24,11 @@ class Dependency
 
   belongs_to :installed_package
 
-  property :categories, String, :length => 255, :key => true
-  property :name,       String,                 :key => true
-  property :version,    String,                 :key => true
-  property :slot,       String,  :default => ''
-  property :revision,   Integer, :default => 0
+  property :tags,     String, :length => 40,  :key => true
+  property :name,     String,                 :key => true
+  property :version,  String,                 :key => true
+  property :slot,     String,  :default => ''
+  property :revision, Integer, :default => 0
 
   property :flavors,  Text, :default => ''
   property :features, Text, :default => ''

@@ -17,22 +17,12 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/modules/fetching/wget'
-require 'packo/modules/misc/unpack'
-require 'packo/modules/building/patch'
-require 'packo/modules/building/autotools'
-require 'packo/modules/packaging/pko'
-
-module Packo
-
-module Behaviors
+module Packo; module RBuild; module Behaviors
 
 GNU = [
-  Packo::Modules::Fetching::Wget, Packo::Modules::Misc::Unpack,
-  Packo::Modules::Building::Patch, Packo::Modules::Building::Autotools,
-  Packo::Modules::Packaging::PKO
+  Modules::Fetching::Wget, Modules::Misc::Unpack,
+  Modules::Building::Patch, Modules::Building::Autotools,
+  Modules::Packaging::PKO
 ]
 
-end
-
-end
+end; end; end

@@ -29,7 +29,7 @@ class InstalledPackage
 
   property :repo, String
 
-  property :categories, String, :length => 255, :required => true, :unique_index => :a
+  property :tags,       String, :length => 40,  :required => true, :unique_index => :a # hashed tags
   property :name,       String,                 :required => true, :unique_index => :a
   property :version,    String,                 :required => true
   property :slot,       String,  :default => '',                   :unique_index => :a
@@ -43,6 +43,46 @@ class InstalledPackage
 
   has n, :dependencies
   has n, :contents
+
+  def self.search (expression, exact=false)
+    if matches = expression.match(/^([<>]?=?)/)
+      validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
+      expression = expression.sub(/^([<>]?=?)/, '')
+
+      validity = nil if validity == '='
+    else
+      validity = nil
+    end
+
+    package = Packo::Package.parse(expression)
+
+    conditions = {}
+
+    op = exact ? :eql : :like
+
+    conditions[Query::Operator.new(:name, op)]       = package.name if package.name
+    conditions[Query::Operator.new(:version, op)]    = package.version if package.version
+    conditions[Query::Operator.new(:slot, op)]       = package.slot if package.slot
+
+    result = InstalledPackage.all(conditions)
+
+    result.delete_if {|pkg|
+      !Tagging::Tagged.all(:type => :installed, :package => pkg.id).find {|tagged|
+        pkg.tags.member? tagged.tag.name
+      }
+    }
+
+    return result if !validity
+
+    result.select {|pkg|
+      case validity
+        when '>';  Versionomy.parse(pkg['version']) >  package.version
+        when '>='; Versionomy.parse(pkg['version']) >= package.version
+        when '<';  Versionomy.parse(pkg['version']) <  package.version
+        when '<='; Versionomy.parse(pkg['version']) <= package.version
+      end
+    }
+  end
 end
 
 end; end

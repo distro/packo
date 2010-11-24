@@ -20,87 +20,16 @@
 #++
 
 require 'optitron'
-require 'sqlite3'
-require 'digest/sha1'
-require 'find'
 
 require 'packo'
-require 'packo_binary/helpers'
+require 'packo/binary/helpers'
 
 class Application < Optitron::CLI
   include PackoBinary::Helpers
 
-  class_opt 'database', 'The path to the database', :default => Packo::Environment[:CACHE]
-
   desc 'Outputs version'
   def version
-    puts "packø #{Packo::Version}"
-  end
-
-  def params= (params)
-    @params = params
-
-    if File.directory? params['database']
-      fatal "#{params['database']} is a directory"
-      exit 42
-    end
-
-    begin
-      FileUtils.mkpath(File.dirname(params['database']))
-    rescue Exception => e
-      fatal "Could not create #{File.dirname(params['database'])}"
-      exit 42
-    end
-
-    @db = SQLite3::Database.new(params['database'])
-    @db.results_as_hash = true
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS packages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-        repository TEXT,
-
-        categories TEXT,
-        name       TEXT,
-        version    TEXT,
-        slot       TEXT,
-        revision   INTEGER,
-
-        flavors  TEXT,
-        features TEXT,
-
-        manual  INTEGER DEFAULT 0,
-        runtime INTEGER DEFAULT 1,
-
-        UNIQUE (categories, name, slot)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS dependencies (
-        package    INTEGER,
-        dependency INTEGER
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS contents (
-        package INTEGER,
-
-        type TEXT,
-        path TEXT,
-        meta TEXT
-      )
-    })
-  end
-
-  def _exists? (path)
-    path = @db.execute("SELECT * FROM contents WHERE path = ? AND type != 'dir'", path).first
-
-    return false unless path
-
-    @db.execute('SELECT * FROM packages WHERE id = ?', path['package']).first
+    puts "packø files checking #{Packo::Version}"
   end
 end
 

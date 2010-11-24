@@ -20,11 +20,7 @@
 require 'net/http'
 require 'uri'
 
-module Packo
-
-module Modules
-
-module Fetching
+module Packo; module RBuild; module Modules; module Fetching
 
 class GNU < Module
   def initialize (package)
@@ -94,8 +90,4 @@ class GNU < Module
   end
 end
 
-end
-
-end
-
-end
+end; end; end; end

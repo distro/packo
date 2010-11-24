@@ -94,12 +94,12 @@ module Packo
     puts output
   end
 
-  def self.load (path, __binding=nil)
+  def self.load (path, stuff={})
     if !File.readable? path
       raise LoadError.new("no such file to load -- #{path}")
     end
 
-    eval(File.read(path, :encoding => 'utf-8'), __binding || binding, path, 1)
+    eval("#{stuff[:before]}#{File.read(path, :encoding => 'utf-8')}#{stuff[:after]}", stuff[:binding] || binding, path, 1)
   end
 
   def self.numeric? (what)

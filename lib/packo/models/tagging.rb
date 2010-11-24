@@ -17,8 +17,27 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/package'
-require 'packo/rbuild/modules'
-require 'packo/rbuild/behaviors'
+module Packo; module Models
 
-include Packo::RBuild
+module Tagging
+
+class Tagged
+  include DataMapper::Resource
+
+  property :type,    Enum[:normal, :installed], :default => :normal, :key => true
+  property :package, Integer,                                        :key => true
+  
+  belongs_to :tag, :key => true
+end
+
+class Tag
+  include DataMapper::Resource
+
+  property :id, Serial
+
+  property :name, Text, :required => true
+
+  property :description, Text
+end
+
+end; end

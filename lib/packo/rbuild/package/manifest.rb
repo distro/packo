@@ -29,10 +29,10 @@ class Manifest
     dom = Nokogiri::XML.parse(File.read(path))
 
     Manifest.new(OpenStruct.new(
-      :name       => dom.xpath('//package/name').first.text,
-      :categories => dom.xpath('//package/categories').first.text.split('/'),
-      :version    => Versionomy.parse(dom.xpath('//package/version').first.text),
-      :slot       => dom.xpath('//package/slot').first.text,
+      :tags    => Packo::Package::Tags.parse(dom.xpath('//package/tags').first.text),
+      :name    => dom.xpath('//package/name').first.text,
+      :version => Versionomy.parse(dom.xpath('//package/version').first.text),
+      :slot    => dom.xpath('//package/slot').first.text,
 
       :flavors  => (dom.xpath('//package/flavor').first.text || '').split(/\s+/),
       :features => (dom.xpath('//package/features').first.text || '').split(/\s+/),
@@ -63,10 +63,10 @@ class Manifest
 
   def initialize (what)
     @package = OpenStruct.new(
-      :name       => what.name,
-      :categories => what.categories,
-      :version    => what.version,
-      :slot       => what.slot,
+      :name    => what.name,
+      :tags    => what.tags,
+      :version => what.version,
+      :slot    => what.slot,
 
       :flavors  => what.flavors.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
       :features => what.features.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
@@ -83,11 +83,11 @@ class Manifest
     @builder = Nokogiri::XML::Builder.new {|xml|
       xml.manifest(:version => '1.0') {
         xml.package {
-          xml.categories self.package.categories.join('/')
-          xml.name       self.package.name
-          xml.version    self.package.version
-          xml.slot       self.package.slot
-          xml.revision   self.package.revision
+          xml.tags     self.package.tags.to_s
+          xml.name     self.package.name
+          xml.version  self.package.version
+          xml.slot     self.package.slot
+          xml.revision self.package.revision
 
           xml.flavor   self.package.flavors.join(' ')
           xml.features self.package.features.join(' ')

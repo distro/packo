@@ -40,9 +40,13 @@ class Repository
   property :uri,  Text, :required => true
   property :path, Text, :required => true
 
-  has 1, :binary,  :required => false, :accessor => :private
-  has 1, :source,  :required => false, :accessor => :private
-  has 1, :virtual, :required => false, :accessor => :private
+  has 1, :binary
+  has 1, :source
+  has 1, :virtual
+
+  property :binary_id,  Integer
+  property :source_id,  Integer
+  property :virtual_id, Integer
 
   has n, :packages
 
@@ -85,21 +89,26 @@ class Repository
 
     op = exact ? :eql : :like
 
-    conditions[Query::Operator.new(:categories, op)] = package.categories.join('/') if !package.categories.empty?
-    conditions[Query::Operator.new(:name, op)]       = package.name if package.name
-    conditions[Query::Operator.new(:version, op)]    = package.version if package.version
-    conditions[Query::Operator.new(:slot, op)]       = package.slot if package.slot
+    conditions[Query::Operator.new(:name, op)]    = package.name if package.name
+    conditions[Query::Operator.new(:version, op)] = package.version if package.version
+    conditions[Query::Operator.new(:slot, op)]    = package.slot if package.slot
 
     result = packages.all(conditions)
+
+    result.delete_if {|pkg|
+      !Tagging::Tagged.all(:package => pkg.id).find {|tagged|
+        pkg.tags.member? tagged.tag.name
+      }
+    }
 
     return result if !validity
 
     result.select {|pkg|
       case validity
-        when '>';  Versionomy.parse(pkg.version) >  package.version
-        when '>='; Versionomy.parse(pkg.version) >= package.version
-        when '<';  Versionomy.parse(pkg.version) <  package.version
-        when '<='; Versionomy.parse(pkg.version) <= package.version
+        when '>';  pkg.version >  package.version
+        when '>='; pkg.version >= package.version
+        when '<';  pkg.version <  package.version
+        when '<='; pkg.version <= package.version
       end
     }
   end

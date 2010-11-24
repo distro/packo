@@ -30,9 +30,9 @@ class Flavor
       @enabled = !!enabled
     end
 
-    def enabled?;  @enabled         end
-    def enabled!;  @enabled = true  end
-    def disabled!; @enabled = false end
+    def enabled?; @enabled         end
+    def enable!;  @enabled = true  end
+    def disable!; @enabled = false end
   end
 
   def self.parse (text)
@@ -69,9 +69,9 @@ class Flavor
 
   def to_s (type=:normal)
     elements = @elements.map {|(name, element)|
-      next if name == :binary || !value.enabled?
+      next if name == :binary || !element.enabled?
 
-      name.to_s if value.enabled?
+      name.to_s if element.enabled?
     }.compact
 
     case type
@@ -82,9 +82,10 @@ class Flavor
 end
 
 Flavor::Names.each {|name|
-  Flavor.class_eval("def #{name}?;     @elements[name] end")
-  Flavor.class_eval("def #{name}!;     @elements[name].enable! end")
-  Flavor.class_eval("def not_#{name}!; @elements[name].disable! end")
+  Flavor.class_eval("def #{name};      @elements[:#{name}]          end")
+  Flavor.class_eval("def #{name}?;     @elements[:#{name}].enabled? end")
+  Flavor.class_eval("def #{name}!;     @elements[:#{name}].enable!  end")
+  Flavor.class_eval("def not_#{name}!; @elements[:#{name}].disable! end")
 }
 
 end; end

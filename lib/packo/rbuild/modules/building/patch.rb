@@ -17,13 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/module'
-
-module Packo
-
-module Modules
-
-module Building
+module Packo; module RBuild; module Modules; module Building
 
 class Patch < Module
   def initialize (package)
@@ -36,8 +30,4 @@ class Patch < Module
   end
 end
 
-end
-
-end
-
-end
+end; end; end; end
