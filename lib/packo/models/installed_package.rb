@@ -17,6 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/models/tag'
 require 'packo/models/installed_package/dependency'
 require 'packo/models/installed_package/content'
 
@@ -28,8 +29,8 @@ class InstalledPackage
   property :id, Serial
 
   property :repo, String
+  has n,   :tags, :through => Resource
 
-  has n,   :tags
   property :tags_hashed, String, :length => 40,  :required => true, :unique_index => :a # hashed tags
   property :name,        String,                 :required => true, :unique_index => :a
   property :version,     String,                 :required => true

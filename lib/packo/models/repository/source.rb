@@ -22,11 +22,11 @@ module Packo; module Models; class Repository
 class Source
   include DataMapper::Resource
 
-  belongs_to :repository
+  belongs_to :repo, 'Repository'
 
-  property :repository_id, Integer, :key => true
+  property :repo_id, Integer, :key => true
 
-  property :address, Text
+  property :address, Text, :required => false
 end
 
 end; end; end

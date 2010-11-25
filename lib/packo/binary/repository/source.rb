@@ -36,7 +36,7 @@ class Source < Repository
 
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
-        Dir.glob("#{what}/#{File.basename(what)}-*.{rbuild,xml}").each {|version|
+        Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
           pkg = Packo::Package.new(
             :name    => File.basename(what),
             :version => version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
@@ -56,12 +56,16 @@ class Source < Repository
           end
 
           pkg = repository.packages.first_or_create(
+            :repo => repository,
+
             :tags_hashed => package.tags.hash,
             :name        => package.name,
             :version     => package.version,
             :slot        => package.slot,
-            :revision    => package.revision,
+            :revision    => package.revision
+          )
 
+          pkg.update(
             :description => package.description,
             :homepage    => [package.homepage].flatten.join(' '),
             :license     => [package.license].flatten.join(' ')

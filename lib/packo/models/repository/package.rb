@@ -17,6 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/models/tag'
 require 'packo/models/repository/package/binary'
 require 'packo/models/repository/package/source'
 require 'packo/models/repository/package/virtual'
@@ -26,11 +27,14 @@ module Packo; module Models; class Repository
 class Package
   include DataMapper::Resource
 
+  attr_accessor :data
+
   property :id, Serial
 
-  belongs_to :repo, 'Repository',                                    :unique_index => :a
+  belongs_to :repo, 'Repository'
+  has n,     :tags, :through => Resource
 
-  has n,   :tags
+  property :repo_id,     Integer,                                    :unique_index => :a
   property :tags_hashed, String,  :length => 40,  :required => true, :unique_index => :a
   property :name,        String,                  :required => true, :unique_index => :a
   property :version,     String,                  :required => true, :unique_index => :a
@@ -41,16 +45,28 @@ class Package
   property :homepage,     Text, :default => '', :required => false
   property :license,      Text, :default => '', :required => false
 
-  has 1, :binary,  :required => false, :accessor => :private
-  has 1, :source,  :required => false, :accessor => :private
-  has 1, :virtual, :required => false, :accessor => :private
-
-  def data
-    case self.repo.type
-      when :binary;  self.binary
-      when :source;  self.source
-      when :virtual; self.virtual
+  after :create do |package|
+    case package.repo.type
+      when :binary;  package.data = Binary.create(:package => package)
+      when :source;  package.data = Source.create(:package => package)
+      when :virtual; package.data = Virtual.create(:package => package)
     end
+  end
+
+  after_class_method :find do |package|
+    case package.repo.type
+      when :binary;  package.data = Binary.first(:package => package)
+      when :source;  package.data = Source.first(:package => package)
+      when :virtual; package.data = Virtual.first(:package => package)
+    end
+  end
+  
+  after :save do |package|
+    package.data.save if package.data
+  end
+
+  after :destroy do |package|
+    package.data.destroy! if package.data
   end
 end
 

@@ -25,8 +25,6 @@ module Packo; module Binary
 
 class Repository
   def self.wrap (repo)
-    repo.save
-
     case repo.type
       when :binary;  Binary.new(repo)
       when :source;  Source.new(repo)
@@ -37,6 +35,8 @@ class Repository
   attr_reader :repository
 
   def initialize (repo)
+    repo.save
+
     @repository = repo
   end
 

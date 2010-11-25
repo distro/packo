@@ -32,6 +32,8 @@ class Repository
 
   Types = [:binary, :source, :virtual]
 
+  attr_accessor :data
+
   property :id, Serial
 
   property :name, String,                           :required => true
@@ -40,15 +42,19 @@ class Repository
   property :uri,  Text, :required => true
   property :path, Text, :required => true
 
-  has 1, :binary
-  has 1, :source
-  has 1, :virtual
-
-  property :binary_id,  Integer
-  property :source_id,  Integer
-  property :virtual_id, Integer
-
   has n, :packages
+
+  after :create do |repo|
+    case repo.type
+      when :binary;  repo.data = Binary.create(:repo => repo)
+      when :source;  repo.data = Source.create(:repo => repo)
+      when :virtual; repo.data = Virtual.create(:repo => repo)
+    end
+  end
+
+  after :destroy do |repo|
+    repo.data.destroy! if repo.data
+  end
 
   def self.parse (text)
     if text.include?('/')
@@ -63,14 +69,6 @@ class Repository
       :type => type,
       :name => name
     )
-  end
-
-  def data
-    case self.type
-      when :binary;  self.binary
-      when :source;  self.source
-      when :virtual; self.virtual
-    end
   end
 
   def search (expression, exact=false)
