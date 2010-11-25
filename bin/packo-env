@@ -29,7 +29,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs version'
   def version
-    puts "packø env manager #{Packo::Version}"
+    puts "packø env manager #{Packo::VERSION}"
   end
 
   desc 'Shows the environment'

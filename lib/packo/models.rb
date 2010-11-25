@@ -18,31 +18,59 @@
 #++
 
 require 'packo/environment'
+require 'versionomy'
 
 require 'dm-core'
 require 'dm-constraints'
 require 'dm-migrations'
 require 'dm-types'
 
+module DataMapper
+
 if Packo::Environment[:DEBUG].to_i > 0
-  DataMapper::Logger.new($stdout, :debug)
+  Logger.new($stdout, :debug)
 end
 
-DataMapper::Model.raise_on_save_failure = true
+Model.raise_on_save_failure = true
 
-module DataMapper::Model
-  def self.replace_or_create (stuff, new)
-    obj = self.first_or_create(stuff)
-    obj.update(new)
-    obj
+class Property
+  class Version < String
+    # Hopefully the max length of a version won't go over 255 chars
+    length 255
+
+    def custom?
+      true
+    end
+
+    def primitive? (value)
+      value.is_a?(Versionomy::Value)
+    end
+
+    def valid? (value, negated = false)
+      super || primitive?(value) || value.is_a?(::String)
+    end
+
+    def load (value)
+      Versionomy.parse(value.to_s)
+    end
+
+    def dump (value)
+      value.to_s unless value.nil?
+    end
+
+    def typecast_to_primitive (value)
+      load(value)
+    end
   end
 end
 
-DataMapper.setup(:default, Packo::Environment[:DATABASE])
+setup :default, Packo::Environment[:DATABASE]
 
 require 'packo/models/installed_package'
 require 'packo/models/repository'
 
-DataMapper.finalize
+finalize
 
-DataMapper.auto_upgrade!
+auto_upgrade!
+
+end

@@ -20,7 +20,6 @@
 require 'packo/package/tags'
 require 'packo/package/flavor'
 require 'packo/package/features'
-require 'packo/package/version'
 
 module Packo
 
@@ -83,7 +82,11 @@ class Package
   end
 
   def version= (value)
-    @version = ((value.is_a?(Version)) ? value : Version.new(value)) if value
+    @version = ((value.is_a?(Versionomy::Value)) ? value : Versionomy.parse(value.to_s)) if value
+  end
+
+  def slot= (value)
+    @slot = ((value.is_a?(Versionomy::Value)) ? value : Versionomy.parse(value.to_s)) if value
   end
 
   def revision= (value)

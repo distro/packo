@@ -35,7 +35,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs version'
   def version
-    puts "packø repository manager #{Packo::Version}"
+    puts "packø repository manager #{Packo::VERSION}"
   end
 
   desc 'Adds binary/source repositories'

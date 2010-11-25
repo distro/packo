@@ -31,10 +31,10 @@ class InstalledPackage
   property :repo, String
   has n,   :tags, :through => Resource
 
-  property :tags_hashed, String, :length => 40,  :required => true, :unique_index => :a # hashed tags
-  property :name,        String,                 :required => true, :unique_index => :a
-  property :version,     String,                 :required => true
-  property :slot,        String,  :default => '',                   :unique_index => :a
+  property :tags_hashed, String, :length => 40,    :required => true, :unique_index => :a # hashed tags
+  property :name,        String,                   :required => true, :unique_index => :a
+  property :version,     Version,                  :required => true
+  property :slot,        Version, :default => '0',                    :unique_index => :a
   property :revision,    Integer, :default => 0
 
   property :flavors,  Text, :default => ''

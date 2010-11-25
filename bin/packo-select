@@ -29,7 +29,7 @@ class Application < Optitron::CLI
 
   desc 'Output version'
   def version
-    puts "packø selection tool #{Packo::Version}"
+    puts "packø selection tool #{Packo::VERSION}"
   end
 
   desc 'Show current selection modules'

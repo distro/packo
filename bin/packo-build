@@ -32,7 +32,7 @@ class Application < Optitron::CLI
 
   desc 'Output version'
   def version
-    puts "packø building tool #{Packo::Version}"
+    puts "packø building tool #{Packo::VERSION}"
   end
 
   desc 'Creates a package'

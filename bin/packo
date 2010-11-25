@@ -35,7 +35,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs version'
   def version
-    puts "packø #{Packo::Version}"
+    puts "packø #{Packo::VERSION}"
   end
 
   desc 'Installs packages'

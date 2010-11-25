@@ -39,7 +39,7 @@ class Source < Repository
         Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
           pkg = Packo::Package.new(
             :name    => File.basename(what),
-            :version => version.match(/-(\d.*?)\.(rbuild|xml)$/)[1]
+            :version => version.match(/-(\d.*?)\.rbuild$/)[1]
           )
 
           begin
