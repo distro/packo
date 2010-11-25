@@ -79,11 +79,11 @@ class Package
   end
 
   def tags= (value)
-    @tags = (value.is_a?(Tags)) ? value : Tags.parse(value) if value
+    @tags = ((value.is_a?(Tags)) ? value : Tags.parse(value)) if value
   end
 
   def version= (value)
-    @version = (value.is_a?(Version)) ? value : Version.new(value) if value
+    @version = ((value.is_a?(Version)) ? value : Version.new(value)) if value
   end
 
   def revision= (value)
@@ -91,11 +91,11 @@ class Package
   end
 
   def flavor= (value)
-    @flavor = (value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s) if value
+    @flavor = ((value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s)) if value
   end
 
   def features= (value)
-    @features = (value.is_a?(Features)) ? value : Features.parse(value.to_s) if value
+    @features = ((value.is_a?(Features)) ? value : Features.parse(value.to_s)) if value
   end
 
   def == (package)

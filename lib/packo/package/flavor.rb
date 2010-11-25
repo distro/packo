@@ -55,6 +55,12 @@ class Flavor
     }
   end
 
+  def each
+    @elements.each_value {|e|
+      yield e
+    }
+  end
+
   def to_h
     Hash[*@elements.map {|(name, element)|
       [name, element.value]

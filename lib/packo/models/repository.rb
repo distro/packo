@@ -52,8 +52,34 @@ class Repository
     end
   end
 
+  after :save do |repo|
+    repo.data.save if repo.data
+  end
+
   after :destroy do |repo|
     repo.data.destroy! if repo.data
+  end
+
+  after_class_method :first do |repo, options|
+    next if !repo
+
+    case repo.type
+      when :binary;  repo.data = Binary.first(:repo => repo)
+      when :source;  repo.data = Source.first(:repo => repo)
+      when :virtual; repo.data = Virtual.first(:repo => repo)
+    end
+  end
+
+  after_class_method :all do |repos, options|
+    repos.each {|repo|
+      next if !repo
+
+      case repo.type
+        when :binary;  repo.data = Binary.first(:repo => repo)
+        when :source;  repo.data = Source.first(:repo => repo)
+        when :virtual; repo.data = Virtual.first(:repo => repo)
+      end
+    }
   end
 
   def self.parse (text)

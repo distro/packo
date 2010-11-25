@@ -42,6 +42,12 @@ class Features
     }
   end
 
+  def each
+    @values.each_value {|f|
+      yield f
+    }
+  end
+
   def set (name, value)
     @values[name.to_sym] = Feature.new(name, value)
   end

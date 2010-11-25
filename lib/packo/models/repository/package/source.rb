@@ -26,7 +26,7 @@ class Source
 
   belongs_to :package
 
-  property :package_id, Integer, :key => true
+  property :id, Serial
 
   has n, :features
 end

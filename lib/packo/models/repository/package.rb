@@ -53,20 +53,34 @@ class Package
     end
   end
 
-  after_class_method :find do |package|
-    case package.repo.type
-      when :binary;  package.data = Binary.first(:package => package)
-      when :source;  package.data = Source.first(:package => package)
-      when :virtual; package.data = Virtual.first(:package => package)
-    end
-  end
-  
   after :save do |package|
     package.data.save if package.data
   end
 
   after :destroy do |package|
     package.data.destroy! if package.data
+  end
+
+  after_class_method :first do |package, options|
+    next if !package
+
+    case package.repo.type
+      when :binary;  package.data = Binary.first(:package => package)
+      when :source;  package.data = Source.first(:package => package)
+      when :virtual; package.data = Virtual.first(:package => package)
+    end
+  end
+
+  after_class_method :all do |packages, options|
+    packages.each {|package|
+      next if !package
+
+      case package.repo.type
+        when :binary;  package.data = Binary.first(:package => package)
+        when :source;  package.data = Source.first(:package => package)
+        when :virtual; package.data = Virtual.first(:package => package)
+      end
+    }
   end
 end
 

@@ -53,7 +53,7 @@ class Dependency < Packo::Package
     if name
       "#{@tags}/#{@name}#{"-#{@version}" if @version}"
     else
-      features = @features.sort {|a, b|
+      features = @features.to_a.sort {|a, b|
         if a[1] && b[1]
           0
         elsif a[1] && !b[1]
@@ -63,7 +63,7 @@ class Dependency < Packo::Package
         end
       }.to_a.map {|feature| (feature[1] ? '' : '-') + feature[0].to_s}.join(',')
 
-      flavors = @flavors.sort
+      flavors = @flavors.to_a.sort
 
       "#{@validity}#{@tags}/#{@name}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavors}}" if !flavors.empty?}"
     end

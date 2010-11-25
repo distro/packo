@@ -76,8 +76,12 @@ class Source < Repository
           }
 
           package.features.each {|feature|
-            pkg.data.features.create(
-              :name        => feature.name,
+            feature = pkg.data.features.first_or_create(
+              :source => pkg.data,
+              :name   => feature.name
+            )
+
+            feature.update(
               :description => feature.description,
               :enabled     => feature.enabled?
             )

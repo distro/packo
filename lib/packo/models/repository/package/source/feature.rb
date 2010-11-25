@@ -22,14 +22,13 @@ module Packo; module Models; class Repository; class Package; class Source
 class Feature
   include DataMapper::Resource
 
-  property :source_id, Integer, :key => true
-
-  property :name,        String
-  property :description, Text
-
-  property :enabled, Boolean, :default => false
-
   belongs_to :source
+
+  property :source_id, Integer, :key => true
+  property :name,      String,  :key => true
+
+  property :description, Text,    :default => '',    :required => false
+  property :enabled,     Boolean, :default => false, :required => false
 end
 
 end; end; end; end; end

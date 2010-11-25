@@ -30,9 +30,7 @@ class Version
   def initialize (string)
     @value = Versionomy.parse(string)
 
-    @value.methods.each {|method|
-      Version.def_delegator :@value, method if ![:__send__, :object_id].member?(method)
-    }
+    Version.def_delegators :@value, :to_s, :<, :>, :>=, :<=, :==, :===, :eql?, :equal?, :hash, :bump
   end
 end
 
