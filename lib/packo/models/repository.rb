@@ -32,8 +32,6 @@ class Repository
 
   Types = [:binary, :source, :virtual]
 
-  attr_accessor :data
-
   property :id, Serial
 
   property :name, String,                           :required => true
@@ -44,19 +42,19 @@ class Repository
 
   has n, :packages
 
-  after :create do |repo|
+  before :create do |repo|
     case repo.type
-      when :binary;  repo.data = Binary.create(:repo => repo)
-      when :source;  repo.data = Source.create(:repo => repo)
-      when :virtual; repo.data = Virtual.create(:repo => repo)
+      when :binary;  Binary.create(:repo => repo)
+      when :source;  Source.create(:repo => repo)
+      when :virtual; Virtual.create(:repo => repo)
     end
   end
 
-  after :save do |repo|
+  before :save do |repo|
     repo.data.save if repo.data
   end
 
-  after :destroy do |repo|
+  before :destroy do |repo|
     repo.data.destroy! if repo.data
   end
 

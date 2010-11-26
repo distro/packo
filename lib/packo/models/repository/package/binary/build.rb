@@ -22,14 +22,12 @@ module Packo; module Models; class Repository; class Package; class Binary
 class Build
   include DataMapper::Resource
 
-  belongs_to :binary
+  belongs_to :binary,                       :key => true
 
-  property :binary_id, Integer, :key => true
+  property :flavor,   Text, :default => '', :key => true
+  property :features, Text, :default => '', :key => true
 
-  property :flavor,   Text
-  property :features, Text
-
-  property :digest, Text
+  property :digest, Text, :default => ''
 end
 
 end; end; end; end; end

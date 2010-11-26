@@ -27,8 +27,6 @@ module Packo; module Models; class Repository
 class Package
   include DataMapper::Resource
 
-  attr_accessor :data
-
   property :id, Serial
 
   belongs_to :repo, 'Repository'
@@ -45,19 +43,19 @@ class Package
   property :homepage,     Text, :default => '', :required => false
   property :license,      Text, :default => '', :required => false
 
-  after :create do |package|
+  before :create do |package|
     case package.repo.type
-      when :binary;  package.data = Binary.create(:package => package)
-      when :source;  package.data = Source.create(:package => package)
-      when :virtual; package.data = Virtual.create(:package => package)
+      when :binary;  Binary.create(:package => package)
+      when :source;  Source.create(:package => package)
+      when :virtual; Virtual.create(:package => package)
     end
   end
 
-  after :save do |package|
+  before :save do |package|
     package.data.save if package.data
   end
 
-  after :destroy do |package|
+  before :destroy do |package|
     package.data.destroy! if package.data
   end
 

@@ -17,54 +17,60 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/models'
+
 module Packo; module Binary; class Repository
 
 class Binary < Repository
-  def initialize (name, uri, path)
-    super(:binary, name, uri, path)
+  def initialize (repository)
+    super(repository)
   end
 
-  def populate (dom=Nokogiri::XML.parse(File.read(self.path)), dir='')
-    dir[0, 1] = '' if dir[0] == '/'
+  def populate
+    dom = Nokogiri::XML.parse(File.read(self.path))
 
-    dom.elements.each {|e|
-      if e.name != 'package'
-        populate(e, "#{dir}/#{e.name}")
-      else
-        e.xpath('.//build').each {|build|
-          tags = Packo::Package::Tags.new(e['tags'].split(/\s+/))
 
-          package = repo.packages.first_or_new(
-            :tags     => tags.hash,
-            :name     => e['name'],
-            :version  => build.parent['name'],
-            :slot     => build.parent.parent['name'],
-            :revision => build.parent['revision'],
+    dom.xpath('//packages/package').each {|e|
+      e.xpath('.//build').each {|build|
+        package = Packo::Package.new(
+          :tags     => e['tags'].split(/\s+/),
+          :name     => e['name'],
+          :version  => build.parent['name'],
+          :slot     => (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
+          :revision => build.parent['revision'],
+        )
 
-            :description => e['description'],
-            :homepage    => e['homepage'],
-            :license     => e['license']
-          )
+        pkg = repository.packages.first_or_create(
+          :repo => repository,
 
-          tags.each {|tag|
-            Tagging::Tagged.create(
-              :package => package.id,
-              :tag     => Tagging::Tag.first_or_create(:name => tag)
-            )
-          }
+          :tags_hashed => package.tags.hash,
+          :name        => package.name,
+          :version     => package.version,
+          :slot        => package.slot,
+          :revision    => package.revision
+        )
 
-          package.data.builds.new(
-            :flavor   => (build.elements.xpath('.//flavor').first.text rescue nil),
-            :features => (build.elements.xpath('.//features').first.text rescue nil),
+        pkg.update(
+          :description => e['description'],
+          :homepage    => e['homepage'],
+          :license     => e['license']
+        )
 
-            :digest => build['digest']
-          )
-
-          package.data.features = build.parent['features']
-
-          package.save
+        package.tags.each {|tag|
+          pkg.tags.first_or_create(:name => tag.to_s)
         }
-      end
+
+        pkg.data.features = build.parent['features']
+
+        bld = pkg.data.builds.first_or_create(
+          :flavor   => (build.xpath('.//flavor').first.text rescue ''),
+          :features => (build.xpath('.//features').first.text rescue ''),
+        )
+
+        bld.update(
+          :digest => build['digest']
+        )
+      }
     }
   end
 end

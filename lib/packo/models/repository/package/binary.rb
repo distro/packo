@@ -28,7 +28,7 @@ class Binary
 
   property :package_id, Integer, :key => true
 
-  property :features, Text, :required => false
+  property :features, Text, :default => ''
 
   has n, :builds
 end

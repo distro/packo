@@ -125,7 +125,9 @@ class Application < Optitron::CLI
         fatal 'Failed to add the cache'
         Packo.debug e, :force => true
 
-        Repository.first(:type => type, :name => name).destroy
+        if (repository = Repository.first(:type => type, :name => name))
+          repository.destroy
+        end
       end
     }
 
@@ -287,7 +289,7 @@ class Application < Optitron::CLI
             print "[#{colorize("binary/#{package.repo.name}", :BLACK, :DEFAULT, :BOLD)}] "
             print "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package.version, :RED)}"
-            print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if !package.slot.empty?
+            print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
             print " {#{colorize(package.revision, :MAGENTA)}}" if package.revision != 0
             print "\n"
 
@@ -307,7 +309,7 @@ class Application < Optitron::CLI
                 print 'nothing'
               end
 
-              print " in #{colorize(build.flavors, :DEFAULT, :DEFAULT, :BOLD)} flavor" if build.flavors
+              print " in #{colorize(build.flavor, :DEFAULT, :DEFAULT, :BOLD)} flavor" if build.flavor
               print colorize(" (SHA1 #{build.digest})", :BLACK, :DEFAULT, :BOLD) if build.digest
               print "\n                 "
             }
