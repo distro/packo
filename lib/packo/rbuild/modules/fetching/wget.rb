@@ -25,7 +25,7 @@ class Wget < Module
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
 
-    package.on :initialize do |package|
+    before :initialize do |package|
       package.fetch = Class.new(Module::Helper) {
         def url (source=nil)
           if source.is_a? Integer
@@ -44,11 +44,10 @@ class Wget < Module
     version = package.version
 
     distfiles = []
+    sources   = [package.source].flatten.compact.map {|s| package.fetch.url(s)}
 
-    [package.source].flatten.compact.each {|source|
-      source = package.fetch.url(source)
-
-      package.stages.callbacks(:fetch).do {
+    package.stages.callbacks(:fetch).do(sources) {
+      sources.each {|source|
         distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
 
         Packo.sh 'wget', '-c', '-O', distfiles.last, source

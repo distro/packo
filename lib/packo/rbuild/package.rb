@@ -98,7 +98,7 @@ class Package < Packo::Package
 
     @default_to_self = true
 
-    stages.callbacks(:initialize).do {
+    stages.callbacks(:initialize).do(self) {
       self.instance_exec(self, &block) if block
     }
 
@@ -140,7 +140,7 @@ class Package < Packo::Package
 
     @build_start_at = Time.now
 
-    stages.callbacks(:build).do {
+    stages.callbacks(:build).do(self) {
       stages.each {|stage|
         yield stage if block_given?
 

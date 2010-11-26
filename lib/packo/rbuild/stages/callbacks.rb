@@ -70,9 +70,9 @@ class Callbacks
   def do (*args)
     self.sort!
 
-    @callbacks[:before].each {|c| c.call}
-    yield *args
-    @callbacks[:after].each {|c| c.call}
+    @callbacks[:before].each {|c| c.call(*args)}
+    yield *args if block_given?
+    @callbacks[:after].each {|c| c.call(*args)}
   end
 
   def owner= (value)

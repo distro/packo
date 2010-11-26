@@ -174,10 +174,8 @@ class Application < Optitron::CLI
   
       package = Packo::RBuild::Packages[:last]
   
-      package.on :fetched, -9001 do
+      package.after :fetch do
         package.stages.stop!
-    
-        raise 'YOU SHALL NOT PASS'
       end
     
       package.build

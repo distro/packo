@@ -60,27 +60,13 @@ class Repository
     repo.data.destroy! if repo.data
   end
 
-  after_class_method :first do |repo, options|
-    next if !repo
-
-    case repo.type
-      when :binary;  repo.data = Binary.first(:repo => repo)
-      when :source;  repo.data = Source.first(:repo => repo)
-      when :virtual; repo.data = Virtual.first(:repo => repo)
+  def data
+     case type
+      when :binary;  Binary.first(:repo => self)
+      when :source;  Source.first(:repo => self)
+      when :virtual; Virtual.first(:repo => self)
     end
-  end
-
-  after_class_method :all do |repos, options|
-    repos.each {|repo|
-      next if !repo
-
-      case repo.type
-        when :binary;  repo.data = Binary.first(:repo => repo)
-        when :source;  repo.data = Source.first(:repo => repo)
-        when :virtual; repo.data = Virtual.first(:repo => repo)
-      end
-    }
-  end
+  end  
 
   def self.parse (text)
     if text.include?('/')
@@ -113,17 +99,19 @@ class Repository
 
     op = exact ? :eql : :like
 
-    conditions[Query::Operator.new(:name, op)]    = package.name if package.name
-    conditions[Query::Operator.new(:version, op)] = package.version if package.version
-    conditions[Query::Operator.new(:slot, op)]    = package.slot if package.slot
+    conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name if package.name
+    conditions[DataMapper::Query::Operator.new(:version, op)] = package.version if package.version
+    conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot if package.slot
 
     result = packages.all(conditions)
 
-    result.delete_if {|pkg|
-      !Tagging::Tagged.all(:package => pkg.id).find {|tagged|
-        pkg.tags.member? tagged.tag.name
+    if !package.tags.empty?
+      result.delete_if {|pkg|
+        !pkg.tags.find {|tag|
+          package.tags.member?(tag.name)
+        }
       }
-    }
+    end
 
     return result if !validity
 

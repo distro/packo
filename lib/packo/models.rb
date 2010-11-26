@@ -51,7 +51,7 @@ class Property
     end
 
     def load (value)
-      Versionomy.parse(value.to_s)
+      Versionomy.parse(value.to_s) unless value.to_s.empty?
     end
 
     def dump (value)

@@ -120,7 +120,7 @@ class Autotools < Module
       }
     end
 
-    package.before :initialize do |package|
+    before :initialize do |package|
       package.autotools = Class.new(Module::Helper) {
         def initialize (package)
           super(package)
@@ -200,7 +200,7 @@ class Autotools < Module
     @configuration.set 'sharedstatedir', '/com'
     @configuration.set 'localstatedir',  '/var'
 
-    package.stages.callbacks(:configure).do {
+    package.stages.callbacks(:configure).do(@configuration) {
       if !File.exists? 'configure'
         package.autotools.autogen
       end
@@ -212,13 +212,13 @@ class Autotools < Module
   end
 
   def compile
-    package.stages.callbacks(:compile).do {
+    package.stages.callbacks(:compile).do(@configuration) {
       package.autotools.make "-j#{package.environment['MAKE_JOBS']}"
     }
   end
 
   def install
-    package.stages.callbacks(:install).do {
+    package.stages.callbacks(:install).do(@configuration) {
       package.autotools.install
     }
   end

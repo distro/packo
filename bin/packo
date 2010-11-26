@@ -39,7 +39,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Installs packages'
-  opt 'destination', 'Set the destination where to install the package', :default => '/'
+  opt 'destination', 'Set the destination where to install the package', :default => '/', :short_name => 'd'
   opt 'inherit', 'Apply the passed flags to the eventual dependencies', :type => :boolean, :default => false
   opt 'force', 'Force installation when something minor goes wrong', :type => :boolean, :default => false
   opt 'nodeps', 'Ignore blockers and dependencies', :type => :boolean, :default => false
@@ -269,7 +269,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Uninstalls packages'
-  opt 'destination', 'Set the destination where to install the package', :default => '/'
+  opt 'destination', 'Set the destination where to install the package', :default => '/', :short_name => 'd'
   def uninstall (*name)
     name.each {|name|
       InstalledPackage.search(name).each {|installed|

@@ -27,11 +27,11 @@ class Stages
 
   module Callable
     def before (name, priority=0, __binding=nil, &block)
-      self.package.stages.register(:before, name, priority, block, __binding || self)
+      self.package.stages.register(:before, name, priority, block, __binding || self) rescue nil
     end
 
-    def after (name, priority=0, binding=nil, &block)
-      self.package.stages.register(:after, name, priority, block, __binding || self)
+    def after (name, priority=0, __binding=nil, &block)
+      self.package.stages.register(:after, name, priority, block, __binding || self) rescue nil
     end
   end
 

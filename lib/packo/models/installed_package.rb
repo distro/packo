@@ -62,17 +62,19 @@ class InstalledPackage
 
     op = exact ? :eql : :like
 
-    conditions[Query::Operator.new(:name, op)]       = package.name if package.name
-    conditions[Query::Operator.new(:version, op)]    = package.version if package.version
-    conditions[Query::Operator.new(:slot, op)]       = package.slot if package.slot
+    conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name if package.name
+    conditions[DataMapper::Query::Operator.new(:version, op)] = package.version if package.version
+    conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot if package.slot
 
     result = InstalledPackage.all(conditions)
 
-    result.delete_if {|pkg|
-      !Tagging::Tagged.all(:type => :installed, :package => pkg.id).find {|tagged|
-        pkg.tags.member? tagged.tag.name
+    if !package.tags.empty?
+      result.delete_if {|pkg|
+        !pkg.tags.find {|tag|
+          package.tags.member?(tag.name)
+        }
       }
-    }
+    end
 
     return result if !validity
 

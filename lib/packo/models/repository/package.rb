@@ -38,7 +38,7 @@ class Package
   property :tags_hashed, String,  :length => 40,   :required => true, :unique_index => :a
   property :name,        String,                   :required => true, :unique_index => :a
   property :version,     Version,                  :required => true, :unique_index => :a
-  property :slot,        Version, :default => '0',                    :unique_index => :a
+  property :slot,        Version, :default => '',                     :unique_index => :a
   property :revision,    Integer, :default => 0
 
   property :description,  Text, :default => '', :required => false
@@ -61,27 +61,13 @@ class Package
     package.data.destroy! if package.data
   end
 
-  after_class_method :first do |package, options|
-    next if !package
-
-    case package.repo.type
-      when :binary;  package.data = Binary.first(:package => package)
-      when :source;  package.data = Source.first(:package => package)
-      when :virtual; package.data = Virtual.first(:package => package)
+  def data
+    case repo.type
+      when :binary;  Binary.first(:package => self)
+      when :source;  Source.first(:package => self)
+      when :virtual; Virtual.first(:package => self)
     end
-  end
-
-  after_class_method :all do |packages, options|
-    packages.each {|package|
-      next if !package
-
-      case package.repo.type
-        when :binary;  package.data = Binary.first(:package => package)
-        when :source;  package.data = Source.first(:package => package)
-        when :virtual; package.data = Virtual.first(:package => package)
-      end
-    }
-  end
+  end  
 end
 
 end; end; end

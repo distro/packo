@@ -236,16 +236,16 @@ class Application < Optitron::CLI
     end
 
     packages.flatten.compact.uniq.group_by {|package|
-      package.to_s
+      "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{package.name}"
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
         a.version <=> b.version
       }.each {|package|
-        print "#{package.categories.join('/')}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+        print "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
         print "-#{colorize(package.version, :RED)}"
         print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
-        print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.uri} | #{package.repository.path})" if params['full']
+        print " (#{package.repo.type}/#{package.repo.name} | #{package.repo.uri} | #{package.repo.path})" if params['full']
         print "\n"
       }
     }
@@ -277,15 +277,15 @@ class Application < Optitron::CLI
     end
 
     packages.flatten.compact.group_by {|package|
-      "#{package['categories']}/#{package['name']}"
+      "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{package.name}"
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
-        Versionomy.parse(a['version']) <=> Versionomy.parse(b['version'])
+        a.version <=> b.version
       }.each {|package|
-        case package.repository.type
+        case package.repo.type
           when :binary
-            print "[#{colorize("binary/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
-            print "#{package.categories}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+            print "[#{colorize("binary/#{package.repo.name}", :BLACK, :DEFAULT, :BOLD)}] "
+            print "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package.version, :RED)}"
             print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if !package.slot.empty?
             print " {#{colorize(package.revision, :MAGENTA)}}" if package.revision != 0
@@ -314,7 +314,7 @@ class Application < Optitron::CLI
 
           when :source
             print "[#{colorize("source/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
-            print "#{package['categories']}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+            print "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
             print "-#{colorize(package.version, :RED)}"
             print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
             print "\n"
@@ -326,7 +326,7 @@ class Application < Optitron::CLI
             print "    #{colorize('Features', :GREEN)}:    "
 
             features = package.data.features
-            length   = features.map {|feature| feature['name'].length}.max
+            length   = features.map {|feature| feature.name.length}.max
 
             features.each {|feature|
               if feature.enabled

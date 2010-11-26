@@ -39,8 +39,7 @@ class Dependencies < Array
   alias << push
 
   def check
-    package.stages.call :dependencies, package
-    package.stages.call :dependencies!, package
+    package.stages.callbacks(:dependencies).do(self)
   end
 
   def owner= (value)

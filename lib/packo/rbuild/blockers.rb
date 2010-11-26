@@ -39,8 +39,7 @@ class Blockers < Array
   alias << push
 
   def check
-    package.stages.call :blockers, package
-    package.stages.call :blockers!, package
+    package.stages.callbacks(:blockers).do(self)
   end
 
   def owner= (value)

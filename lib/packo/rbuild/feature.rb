@@ -29,16 +29,14 @@ class Feature < Packo::Package::Feature
   def initialize (package, name, enabled=false, &block)
     super(name, enabled)
 
-    @package = package
-    @block   = block
-
+    @package      = package
     @dependencies = []
 
-    if @package && Features::Default[self.name.to_sym]
+    if Features::Default[self.name.to_sym]
       self.instance_exec(self, &Features::Default[self.name.to_sym])
     end
 
-    self.instance_exec(self, &@block) if @block
+    self.instance_exec(self, &block) if block
   end
 
   def needs (*names)

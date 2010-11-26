@@ -77,15 +77,15 @@ class Source < Repository
             pkg.tags.first_or_create(:name => tag.to_s)
           }
 
-          package.features.each {|feature|
+          package.features.each {|f|
             feature = pkg.data.features.first_or_create(
               :source => pkg.data,
-              :name   => feature.name
+              :name   => f.name
             )
 
             feature.update(
-              :description => feature.description,
-              :enabled     => feature.enabled?
+              :description => f.description,
+              :enabled     => f.enabled?
             )
           }
 
