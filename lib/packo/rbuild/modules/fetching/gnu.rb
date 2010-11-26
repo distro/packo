@@ -28,7 +28,7 @@ class GNU < Module
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
 
-    package.on :initialize do |package|
+    before :initialize do |package|
       package.fetch = Class.new(Module::Helper) {
         def url (name=nil)
           matches = Packo.interpolate(name || package.source, self).match(%r{^(.*?)/(.*?)$})
@@ -74,19 +74,11 @@ class GNU < Module
   def fetch
     source = package.fetch.url
 
-    if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
-      Packo.debug error
-      return
-    end
+    package.stages.callbacks(:fetch).do {
+      package.distfiles ["#{package.fetchdir || '/tmp'}/#{File.basename(source).sub(/\?.*$/, '')}"]
 
-    package.distfiles ["#{package.fetchdir || '/tmp'}/#{File.basename(source).sub(/\?.*$/, '')}"]
-
-    Packo.sh 'wget', '-c', '-O', package.distfiles.last, source
-
-    if (error = package.stages.call(:fetched, source, package.distfiles.last).find {|result| result.is_a? Exception})
-      Packo.debug error
-      return
-    end
+      Packo.sh 'wget', '-c', '-O', package.distfiles.last, source
+    }
   end
 end
 

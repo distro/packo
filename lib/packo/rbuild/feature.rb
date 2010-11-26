@@ -22,6 +22,8 @@ require 'packo/package/feature'
 module Packo; module RBuild
 
 class Feature < Packo::Package::Feature
+  include Stages::Callable
+
   attr_reader :package, :name, :block, :dependencies
 
   def initialize (package, name, enabled=false, &block)
@@ -32,8 +34,8 @@ class Feature < Packo::Package::Feature
 
     @dependencies = []
 
-    if @package && Features::Default[self.name]
-      self.instance_exec(self, &Features::Default[self.name])
+    if @package && Features::Default[self.name.to_sym]
+      self.instance_exec(self, &Features::Default[self.name.to_sym])
     end
 
     self.instance_exec(self, &@block) if @block
@@ -41,10 +43,6 @@ class Feature < Packo::Package::Feature
 
   def needs (*names)
     @dependencies = @dependencies.concat(names).flatten.compact.uniq
-  end
-
-  def on (what, priority=0, &block)
-    @package.stages.register(what, priority, block, self)
   end
 
   def owner= (value)

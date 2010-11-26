@@ -28,27 +28,19 @@ class Unpack < Module
 
   def unpack
     package.distfiles.each {|file|
-      if (error = package.stages.call(:unpack, file).find {|result| result.is_a? Exception})
-        Packo.debug error
-        next
-      end
-
-      case File.extname(file)
-        when '.xz'
-          compression = 'J'
-
-        else
-          compression = ''
-      end
-
-      Packo.sh 'tar', "x#{compression}f", file, '-k', '-C', Packo.interpolate('#{package.directory}/work', self)
-
-      Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
-
-      if (error = package.stages.call(:unpacked, file).find {|result| result.is_a? Exception})
-        Packo.debug error
-        next
-      end
+      package.stages.callbacks(:unpack).do {
+        case File.extname(file)
+          when '.xz'
+            compression = 'J'
+  
+          else
+            compression = ''
+        end
+  
+        Packo.sh 'tar', "x#{compression}f", file, '-k', '-C', Packo.interpolate('#{package.directory}/work', self)
+  
+        Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
+      }
     }
   end
 end

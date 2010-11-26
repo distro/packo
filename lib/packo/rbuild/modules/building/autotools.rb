@@ -120,7 +120,7 @@ class Autotools < Module
       }
     end
 
-    package.on :initialize do |package|
+    package.before :initialize do |package|
       package.autotools = Class.new(Module::Helper) {
         def initialize (package)
           super(package)
@@ -200,42 +200,27 @@ class Autotools < Module
     @configuration.set 'sharedstatedir', '/com'
     @configuration.set 'localstatedir',  '/var'
 
-    if (error = package.stages.call(:configure, @configuration).find {|result| result.is_a? Exception})
-      Packo.debug error
-      return
-    end
+    package.stages.callbacks(:configure).do {
+      if !File.exists? 'configure'
+        package.autotools.autogen
+      end
 
-    if !File.exists? 'configure'
-      package.autotools.autogen
-    end
-
-    if !File.exists? 'Makefile'
-      package.autotools.configure(@configuration)
-    end
-
-    package.stages.call(:configured, @configuration)
+      if !File.exists? 'Makefile'
+        package.autotools.configure(@configuration)
+      end
+    }
   end
 
   def compile
-    if (error = package.stages.call(:compile, @configuration).find {|result| result.is_a? Exception})
-      Packo.debug error
-      return
-    end
-
-    package.autotools.make "-j#{package.environment['MAKE_JOBS']}"
-
-    package.stages.call(:compiled, @configuration)
+    package.stages.callbacks(:compile).do {
+      package.autotools.make "-j#{package.environment['MAKE_JOBS']}"
+    }
   end
 
   def install
-    if (error = package.stages.call(:install, @configuration).find {|result| result.is_a? Exception})
-      Packo.debug error
-      return
-    end
-
-    package.autotools.install
-
-    package.stages.call(:installed, @configuration)
+    package.stages.callbacks(:install).do {
+      package.autotools.install
+    }
   end
 end
 

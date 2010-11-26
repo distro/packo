@@ -32,6 +32,8 @@ Packages = Class.new(Hash) {
 }.new
 
 class Package < Packo::Package
+  include Stages::Callable
+
   def self.define (name, version=nil, slot=nil, revision=nil, &block)
     Package.new(name, version, slot, revision, &block)
   end
@@ -95,9 +97,11 @@ class Package < Packo::Package
     self.tempdir   = "#{package.directory}/temp"
 
     @default_to_self = true
-    @stages.call :initialize, self
-    self.instance_exec(self, &block) if block
-    @stages.call :initialized, self
+
+    stages.callbacks(:initialize).do {
+      self.instance_exec(self, &block) if block
+    }
+
     @default_to_self = false
 
     self.envify!
@@ -136,18 +140,13 @@ class Package < Packo::Package
 
     @build_start_at = Time.now
 
-    if (error = @stages.call(:build, self).find {|result| result.is_a? Exception})
-      Packo.debug error
-      return
-    end
+    stages.callbacks(:build).do {
+      stages.each {|stage|
+        yield stage if block_given?
 
-    @stages.each {|stage|
-      yield stage if block_given?
-
-      stage.call
+        stage.call
+      }
     }
-
-    @stages.call :build!, self
 
     @build_end_at = Time.now
   end
@@ -183,10 +182,6 @@ class Package < Packo::Package
     else
       @flavor.instance_eval &block
     end
-  end
-
-  def on (what, priority=0, binding=nil, &block)
-    @stages.register(what, priority, block, binding || @default_to_self ? self : nil)
   end
 
   def pre (name=nil, content=nil)

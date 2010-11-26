@@ -48,19 +48,11 @@ class Wget < Module
     [package.source].flatten.compact.each {|source|
       source = package.fetch.url(source)
 
-      if (error = package.stages.call(:fetch, source).find {|result| result.is_a? Exception})
-        Packo.debug error
-        next
-      end
+      package.stages.callbacks(:fetch).do {
+        distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
 
-      distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
-
-      Packo.sh 'wget', '-c', '-O', distfiles.last, source
-
-      if (error = package.stages.call(:fetched, source, distfiles.last).find {|result| result.is_a? Exception})
-        Packo.debug error
-        next
-      end
+        Packo.sh 'wget', '-c', '-O', distfiles.last, source
+      }
     }
 
     package.distfiles distfiles

@@ -20,6 +20,8 @@
 module Packo; module RBuild
 
 class Module
+  include Stages::Callable
+
   class Helper
     attr_accessor :package
 

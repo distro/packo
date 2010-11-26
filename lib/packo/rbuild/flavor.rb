@@ -23,6 +23,8 @@ module Packo; module RBuild
 
 class Flavor < Packo::Package::Flavor
   class Element < Packo::Package::Flavor::Element
+    include Stages::Callable
+
     attr_reader :package
 
     def initialize (package, name, enabled=false, &block)
@@ -35,10 +37,6 @@ class Flavor < Packo::Package::Flavor
 
     def execute (&block)
       self.instance_exec(self, &block) if block; self
-    end
-
-    def on (what, priority=0, &block)
-      @package.stages.register(what, priority, block, self)
     end
 
     def owner= (value)

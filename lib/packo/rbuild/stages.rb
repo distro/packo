@@ -18,12 +18,22 @@
 #++
 
 require 'packo/rbuild/stages/stage'
-require 'packo/rbuild/stages/callback'
+require 'packo/rbuild/stages/callbacks'
 
 module Packo; module RBuild
 
 class Stages
-  @@cycles = 23
+  Cycles = 23
+
+  module Callable
+    def before (name, priority=0, __binding=nil, &block)
+      self.package.stages.register(:before, name, priority, block, __binding || self)
+    end
+
+    def after (name, priority=0, binding=nil, &block)
+      self.package.stages.register(:after, name, priority, block, __binding || self)
+    end
+  end
 
   attr_reader :package, :stages, :callbacks
 
@@ -107,7 +117,7 @@ class Stages
     else
       old, @stages, cycles = @stages, [], 0
 
-      while old.length > 0 && cycles < @@cycles
+      while old.length > 0 && cycles < Cycles
         old.clone.each {|stage|
           if target = stage.options[:at]
             if target == :beginning
@@ -160,41 +170,19 @@ class Stages
     }
   end
 
-  def register (what, priority, callback, binding=nil)
-    (@callbacks[what.to_sym] ||= []) << Callback.new(what, priority, callback, binding)
-
-    @callbacks[what.to_sym].sort! {|a, b|
-      if a.priority == b.priority
-        a.position <=> b.position
-      else
-        a.priority <=> b.priority
-      end
-    }
+  def register (chain, name, priority, callback, binding=nil)
+    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).register(chain, priority, callback, binding)
   end
 
-  def call (what, *args)
-    result = []
-
-    (@callbacks[what.to_sym] ||= []).each {|callback|
-      begin
-        result << callback.call(*args)
-      rescue Exception => e
-        result << e
-      end
-    }
-
-    return result
+  def callbacks (name)
+    @callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)
   end
 
   def owner= (value)
     @package = value
 
     @callbacks.each_value {|callbacks|
-      callbacks.each {|callback|
-        if callback.binding.is_a? Package
-          callback.binding = @package
-        end
-      }
+      callbacks.owner = value
     }
   end
 end

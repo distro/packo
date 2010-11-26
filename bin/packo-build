@@ -24,11 +24,11 @@ require 'nokogiri'
 require 'digest/sha1'
 
 require 'packo'
-require 'packo_binary'
-require 'packo/modules/packaging'
+require 'packo/binary'
+require 'packo/rbuild/modules/packaging'
 
 class Application < Optitron::CLI
-  include PackoBinary::Helpers
+  include Packo::Binary::Helpers
 
   desc 'Output version'
   def version
@@ -161,19 +161,18 @@ class Application < Optitron::CLI
       end
 
       Dir.chdir(File.dirname(name))
-      
+
       name    = File.basename(name)
       package = Packo::Package.parse(name.sub(/\.rbuild$/, ''))
   
       begin
-        Packo.load "#{package.name}.rbuild" rescue nil
-        Packo.load name
+        loadPackage('.', package)
       rescue LoadError
         fatal 'Failed to load the rbuild'
         exit 80
       end
   
-      package = Packo::Packages[:last]
+      package = Packo::RBuild::Packages[:last]
   
       package.on :fetched, -9001 do
         package.stages.stop!
@@ -188,7 +187,7 @@ class Application < Optitron::CLI
       builder = Nokogiri::XML::Builder.new {|xml|
         xml.digest(:version => '1.0') {
           xml.build(:version => package.version.to_s, :slot => package.slot.to_s) {
-            xml.features package.features.to_a.join(' ')
+            xml.features package.features.to_a.map {|f| f.name}.join(' ')
 
             xml.files {
               package.distfiles.each {|file|

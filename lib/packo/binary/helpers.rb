@@ -79,8 +79,6 @@ module Helpers
 
     if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
       features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
-
-      ap features
       
       features.text.split(' ').each {|feature|
         begin

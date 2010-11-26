@@ -100,7 +100,7 @@ module Packo
       raise LoadError.new("no such file to load -- #{path}")
     end
 
-    eval(options[:before] + File.read(path, :encoding => 'utf-8') + options[:after], options[:binding] || binding, path, 1)
+    eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8')}#{options[:after]}", options[:binding] || binding, path, 1)
   end
 
   def self.numeric? (what)
