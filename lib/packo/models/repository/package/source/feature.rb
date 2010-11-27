@@ -24,11 +24,13 @@ class Feature
 
   belongs_to :source
 
-  property :source_id, Integer, :key => true
-  property :name,      String,  :key => true
+  property :id, Serial
 
-  property :description, Text,    :default => '',    :required => false
-  property :enabled,     Boolean, :default => false, :required => false
+  property :source_id, Integer, :unique_index => :a
+  property :name,      String,  :unique_index => :a
+
+  property :description, Text,    :default => ''
+  property :enabled,     Boolean, :default => false
 end
 
 end; end; end; end; end

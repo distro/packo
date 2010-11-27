@@ -24,9 +24,7 @@ module Packo; module Models; class Repository; class Package
 class Binary
   include DataMapper::Resource
 
-  belongs_to :package
-
-  property :package_id, Integer, :key => true
+  belongs_to :package, :key => true
 
   property :features, Text, :default => ''
 

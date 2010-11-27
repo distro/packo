@@ -24,9 +24,7 @@ module Packo; module Models; class Repository
 class Binary
   include DataMapper::Resource
 
-  belongs_to :repo, 'Repository'
-
-  property :repo_id, Integer, :key => true
+  belongs_to :repo, 'Repository', :key => true
 
   has n, :mirrors
 end

@@ -43,7 +43,7 @@ class Package
   property :homepage,     Text, :default => '', :required => false
   property :license,      Text, :default => '', :required => false
 
-  before :create do |package|
+  after :create do |package|
     case package.repo.type
       when :binary;  Binary.create(:package => package)
       when :source;  Source.create(:package => package)
@@ -51,19 +51,19 @@ class Package
     end
   end
 
-  before :save do |package|
+  after :save do |package|
     package.data.save if package.data
   end
 
-  before :destroy do |package|
+  after :destroy do |package|
     package.data.destroy! if package.data
   end
 
   def data
     case repo.type
-      when :binary;  Binary.first(:package => self)
-      when :source;  Source.first(:package => self)
-      when :virtual; Virtual.first(:package => self)
+      when :binary;  Binary.first_or_new(:package => self)
+      when :source;  Source.first_or_new(:package => self)
+      when :virtual; Virtual.first_or_new(:package => self)
     end
   end  
 end

@@ -119,7 +119,7 @@ class Application < Optitron::CLI
       end
 
       begin
-        _add type, uri, path
+        _add type, name, uri, path
         _info "Added #{type}/#{name}"
       rescue Exception => e
         fatal 'Failed to add the cache'
@@ -187,7 +187,7 @@ class Application < Optitron::CLI
             file = File.new(path, 'w')
             file.write(content)
             file.close
-            _add(:binary, uri, path)
+            _add(:binary, name, uri, path)
 
             updated = true
           end
@@ -195,7 +195,7 @@ class Application < Optitron::CLI
         when :source
           if _update(path)
             repository.destroy
-            _add(:source, uri, path)
+            _add(:source, name, uri, path)
 
             updated = true
           end
@@ -303,7 +303,7 @@ class Application < Optitron::CLI
             package.data.builds.each {|build|
               print 'With '
 
-              if build.features
+              if !build.features.empty?
                 print colorize(build.features, :DEFAULT, :DEFAULT, :BOLD)
               else
                 print 'nothing'
@@ -414,30 +414,24 @@ class Application < Optitron::CLI
       
       case type
         when :binary
-          _add(:binary, uri, path)
+          _add(:binary, name, uri, path)
 
         when :source
-          _add(:source, uri, path)
+          _add(:source, name, uri, path)
       end
     }
   end
 
   private
 
-  def _add (type, uri, path)
-    dom = Nokogiri::XML.parse(File.read(type == :source ? "#{path}/repository.xml" : path))
-
-    repository = Repository.new(
+  def _add (type, name, uri, path)
+    Packo::Binary::Repository.wrap(Repository.new(
       :type => type,
-      :name => dom.root['name'],
+      :name => name,
 
       :uri  => uri,
       :path => path
-    )
-    
-    Packo::Binary::Repository.wrap(repository).populate
-    
-    repository.save
+    )).populate
   end
 
   def _delete (name, type)

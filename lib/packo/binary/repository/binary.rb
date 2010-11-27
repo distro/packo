@@ -29,7 +29,6 @@ class Binary < Repository
   def populate
     dom = Nokogiri::XML.parse(File.read(self.path))
 
-
     dom.xpath('//packages/package').each {|e|
       e.xpath('.//build').each {|build|
         package = Packo::Package.new(
@@ -60,7 +59,9 @@ class Binary < Repository
           pkg.tags.first_or_create(:name => tag.to_s)
         }
 
-        pkg.data.features = build.parent['features']
+        pkg.data.update(
+          :features => build.parent['features']
+        )
 
         bld = pkg.data.builds.first_or_create(
           :flavor   => (build.xpath('.//flavor').first.text rescue ''),

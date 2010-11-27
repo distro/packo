@@ -17,18 +17,17 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/models/repository/binary/mirror'
-
 module Packo; module Models; class Repository; class Binary
 
 class Mirror
   include DataMapper::Resource
 
+  property :id, Serial
+
   belongs_to :binary
 
-  property :binary_id, Integer, :key => true
-
-  property :uri, Text
+  property :binary_id, Integer, :unique_index => :a
+  property :uri,       Text,    :unique_index => :a
 end
 
 end; end; end; end

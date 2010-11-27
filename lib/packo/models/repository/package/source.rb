@@ -24,9 +24,7 @@ module Packo; module Models; class Repository; class Package
 class Source
   include DataMapper::Resource
 
-  belongs_to :package
-
-  property :id, Serial
+  belongs_to :package, :key => true
 
   has n, :features
 end

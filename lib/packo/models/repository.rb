@@ -42,7 +42,7 @@ class Repository
 
   has n, :packages
 
-  before :create do |repo|
+  after :create do |repo|
     case repo.type
       when :binary;  Binary.create(:repo => repo)
       when :source;  Source.create(:repo => repo)
@@ -50,19 +50,19 @@ class Repository
     end
   end
 
-  before :save do |repo|
+  after :save do |repo|
     repo.data.save if repo.data
   end
 
-  before :destroy do |repo|
+  after :destroy do |repo|
     repo.data.destroy! if repo.data
   end
 
   def data
      case type
-      when :binary;  Binary.first(:repo => self)
-      when :source;  Source.first(:repo => self)
-      when :virtual; Virtual.first(:repo => self)
+      when :binary;  Binary.first_or_new(:repo => self)
+      when :source;  Source.first_or_new(:repo => self)
+      when :virtual; Virtual.first_or_new(:repo => self)
     end
   end  
 
