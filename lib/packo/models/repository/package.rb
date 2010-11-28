@@ -30,7 +30,7 @@ class Package
   property :id, Serial
 
   belongs_to :repo, 'Repository'
-  has n,     :tags, :through => Resource
+  has n,     :tags, :through => Resource, :constraint => :destroy
 
   property :repo_id,     Integer,                                     :unique_index => :a
   property :tags_hashed, String,  :length => 40,   :required => true, :unique_index => :a

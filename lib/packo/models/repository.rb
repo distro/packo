@@ -38,7 +38,7 @@ class Repository
   property :uri,  URI,  :required => true
   property :path, Text, :required => true
 
-  has n, :packages
+  has n, :packages, :constraint => :destroy
 
   after :create do |repo|
     case repo.type

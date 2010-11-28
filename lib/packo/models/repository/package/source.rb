@@ -28,7 +28,7 @@ class Source
 
   property :path, Text, :default => ''
 
-  has n, :features
+  has n, :features, :constraint => :destroy
 end
 
 end; end; end; end

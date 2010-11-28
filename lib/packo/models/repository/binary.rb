@@ -26,7 +26,7 @@ class Binary
 
   belongs_to :repo, 'Repository', :key => true
 
-  has n, :mirrors
+  has n, :mirrors, :constraint => :destroy
 end
 
 end; end; end

@@ -28,7 +28,7 @@ class Binary
 
   property :features, Text, :default => ''
 
-  has n, :builds
+  has n, :builds, :constraint => :destroy
 end
 
 end; end; end; end
