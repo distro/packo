@@ -34,8 +34,16 @@ class Tags < Array
     }
   end
 
-  def hash
+  def == (tags)
+    self.to_a.sort == tags.to_a.sort
+  end
+
+  def hashed
     Digest::SHA1.hexdigest(self.sort.join('/'))
+  end
+
+  def hash
+    self.sort.join('/').hash
   end
 
   def to_s (minimized=false)

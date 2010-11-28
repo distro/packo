@@ -21,7 +21,6 @@ require 'fileutils'
 require 'versionomy'
 
 require 'packo/environment'
-require 'packo/package'
 
 module Packo
   VERSION = Versionomy.parse('0.0.1')
@@ -119,3 +118,7 @@ module Kernel
     return result
   end
 end
+
+require 'packo/models'
+require 'packo/rbuild'
+require 'packo/fixes'

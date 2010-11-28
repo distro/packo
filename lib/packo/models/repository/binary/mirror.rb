@@ -27,7 +27,7 @@ class Mirror
   belongs_to :binary
 
   property :binary_id, Integer, :unique_index => :a
-  property :uri,       Text,    :unique_index => :a
+  property :uri,       URI,     :unique_index => :a, :key => true
 end
 
 end; end; end; end

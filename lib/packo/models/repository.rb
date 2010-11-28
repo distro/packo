@@ -17,13 +17,13 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/package/repository'
+
 require 'packo/models/repository/package'
 
 require 'packo/models/repository/binary'
 require 'packo/models/repository/source'
 require 'packo/models/repository/virtual'
-
-require 'ostruct'
 
 module Packo; module Models
 
@@ -37,7 +37,7 @@ class Repository
   property :name, String,                           :required => true
   property :type, Enum[:binary, :source, :virtual], :required => true
 
-  property :uri,  Text, :required => true
+  property :uri,  URI,  :required => true
   property :path, Text, :required => true
 
   has n, :packages
@@ -66,62 +66,115 @@ class Repository
     end
   end  
 
-  def self.parse (text)
-    if text.include?('/')
-      type, name = text.split('/')
-
-      type = type.to_sym
-    else
-      type, name = nil, name
-    end
-
-    OpenStruct.new(
-      :type => type,
-      :name => name
-    )
-  end
-
   def search (expression, exact=false)
-    if matches = expression.match(/^([<>]?=?)/)
-      validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
-      expression = expression.sub(/^([<>]?=?)/, '')
-
-      validity = nil if validity == '='
-    else
-      validity = nil
-    end
-
-    package = Packo::Package.parse(expression)
-
-    conditions = {}
-
-    op = exact ? :eql : :like
-
-    conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name if package.name
-    conditions[DataMapper::Query::Operator.new(:version, op)] = package.version if package.version
-    conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot if package.slot
-
-    result = packages.all(conditions)
-
-    if !package.tags.empty?
-      result.delete_if {|pkg|
-        !pkg.tags.find {|tag|
-          package.tags.member?(tag.name)
-        }
+    if expression.start_with?('[') && expression.end_with?(']')
+      result = _find_by_expression(expression[1, expression.length - 2]).map {|id|
+        Package.get(id)
       }
+    else
+      if matches = expression.match(/^([<>]?=?)/)
+        validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
+        expression = expression.sub(/^([<>]?=?)/, '')
+  
+        validity = nil if validity == '='
+      else
+        validity = nil
+      end
+  
+      package = Packo::Package.parse(expression)
+  
+      conditions = {}
+  
+      op = exact ? :eql : :like
+  
+      conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name if package.name
+      conditions[DataMapper::Query::Operator.new(:version, op)] = package.version if package.version
+      conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot if package.slot
+  
+      result = packages.all(conditions)
+
+      if !package.tags.empty?
+        result = result.to_a.select {|pkg|
+          Packo::Package.wrap(pkg).tags == package.tags
+        }
+      end
+
+      if validity
+        result = result.select {|pkg|
+          case validity
+            when '>';  pkg.version >  package.version
+            when '>='; pkg.version >= package.version
+            when '<';  pkg.version <  package.version
+            when '<='; pkg.version <= package.version
+          end
+        }
+      end
     end
 
-    return result if !validity
-
-    result.select {|pkg|
-      case validity
-        when '>';  pkg.version >  package.version
-        when '>='; pkg.version >= package.version
-        when '<';  pkg.version <  package.version
-        when '<='; pkg.version <= package.version
-      end
-    }
+    return result
   end
+
+  private
+    def _expression_to_sql (value)
+      value.downcase!
+      value.gsub!(/(\s+and\s+|\s*&&\s*)/i, ' && ')
+      value.gsub!(/(\s+or\s+|\s*\|\|\s*)/i, ' || ')
+      value.gsub!(/(\s+not\s+|\s*!\s*)/i, ' !')
+      value.gsub!(/\(\s*!/, '(!')
+
+      joins      = String.new
+      names      = []
+      expression = value.clone
+
+      expression.scan(/(("(([^\\"]|\\.)*)")|([^\s&!|()]+))/) {|match|
+        names.push((match[2] || match[4]).downcase)
+      }
+
+      names.compact!
+      names.uniq!
+
+      names.each_index {|index|
+        joins << %{
+          LEFT JOIN (
+              SELECT ____u_t_#{index}.package_id
+
+              FROM packo_models_package_tags AS ____u_t_#{index}
+
+              INNER JOIN packo_models_tags AS ____t_#{index}
+                  ON ____u_t_#{index}.tag_id = ____t_#{index}.id AND ____t_#{index}.name = ?
+          ) AS ____t_i_#{index}
+              ON packo_models_repository_packages.id = ____t_i_#{index}.package_id
+        }
+
+        if (replace = names[index]).match(/[\s&!|]/)
+          replace = %{"#{replace}"}
+        end
+
+        expression.gsub!(/([\s()]|\G)!\s*#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (____t_i_#{index}.package_id IS NULL) \\2")
+        expression.gsub!(/([\s()]|\G)#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (____t_i_#{index}.package_id IS NOT NULL) \\2")
+      }
+
+      expression.gsub!(/([\G\s()])&&([\s()\A])/, '\1 AND \2')
+      expression.gsub!(/([\G\s()])\|\|([\s()\A])/, '\1 OR \2')
+      expression.gsub!(/([\G\s()])!([\s()\A])/, '\1 NOT \2')
+
+      return joins, names, expression
+    end
+
+    def _find_by_expression (expression)
+      joins, names, expression = _expression_to_sql(expression)
+
+      # It's an array to use the ? thing of select
+      repository.adapter.select(*[%{
+          SELECT DISTINCT packo_models_repository_packages.id
+          
+          FROM packo_models_repository_packages
+
+          #{joins}
+          
+          WHERE #{expression}
+      }].concat(names))
+    end
 end
 
 end; end

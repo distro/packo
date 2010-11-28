@@ -29,6 +29,12 @@ class Source < Repository
 
   def initialize (repository)
     super(repository)
+
+    dom = Nokogiri::XML.parse(File.read("#{self.path}/repository.xml"))
+
+    repository.data.update(
+      :address => dom.xpath('//address').first.text
+    )
   end
 
   def populate (what=[self.path], root=self.path)
@@ -60,7 +66,7 @@ class Source < Repository
           pkg = repository.packages.first_or_create(
             :repo => repository,
 
-            :tags_hashed => package.tags.hash,
+            :tags_hashed => package.tags.hashed,
             :name        => package.name,
             :version     => package.version,
             :slot        => package.slot,

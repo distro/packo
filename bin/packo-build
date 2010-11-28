@@ -245,7 +245,7 @@ class Application < Optitron::CLI
         pkg = Packo::Package.parse(matches[1])
 
         PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
-		  		:type => matches[2].to_sym,
+          :type => matches[2].to_sym,
           :name => matches[3],
           :uri  => matches[4],
           :path => matches[5]

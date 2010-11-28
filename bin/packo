@@ -200,14 +200,14 @@ class Application < Optitron::CLI
       }
 
       pkg = InstalledPackage.new(:repo => params['repository'],
-        :tags     => manifest.package.tags.hash,
-        :name     => manifest.package.name,
-        :version  => manifest.package.version,
-        :slot     => manifest.package.slot,
-        :revision => manifest.package.revision,
+        :tags_hashed => manifest.package.tags.hashed,
+        :name        => manifest.package.name,
+        :version     => manifest.package.version,
+        :slot        => manifest.package.slot,
+        :revision    => manifest.package.revision,
 
-        :flavors  => manifest.package.flavors,
-        :features => manifest.package.features,
+        :flavors     => manifest.package.flavors,
+        :features    => manifest.package.features,
         
         :manual  => manual,
         :runtime => true

@@ -17,6 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/package/repository'
 require 'packo/package/tags'
 require 'packo/package/flavor'
 require 'packo/package/features'
@@ -60,9 +61,34 @@ class Package
     Package.new(data)
   end
 
+  def self.wrap (model)
+    Package.new(
+      :tags     => model.tags.map {|t| t.name},
+      :name     => model.name,
+      :version  => model.version,
+      :slot     => model.slot,
+      :revision => model.revision,
+
+      :features => (case model.repo.type
+        when :binary; model.data.features
+        when :source; model.data.features.map {|f| f.name}.join(' ')
+      end),
+
+      :description => model.description,
+      :homepage    => model.homepage,
+      :license     => model.license,
+
+      :repository => Repository.wrap(model.repo),
+      :model      => model
+    )
+  end
+
   attr_accessor :tags, :name, :version, :slot, :revision,
                 :repository,
-                :flavor, :features
+                :flavor, :features,
+                :description, :homepage, :license
+
+  attr_reader :model
 
   def initialize (data)
     self.tags       = data[:tags]
@@ -75,6 +101,12 @@ class Package
 
     self.flavor   = data[:flavor]
     self.features = data[:features]
+
+    self.description = data[:description]
+    self.homepage    = data[:homepage]
+    self.license     = data[:license]
+
+    @model = data[:model]
   end
 
   def tags= (value)
@@ -103,36 +135,31 @@ class Package
 
   def == (package)
     self.name == package.name &&
-    self.tags == package.tags
+    self.tags == (package.is_a?(Models::Repository::Package) ? Package.wrap(package).tags : package.tags)
   end
 
   def === (package)
-    self.name == package.name &&
-    self.tags == package.tags &&
-    self.version == package.version &&
-    self.slot == package.slot &&
+    self.name     == package.name &&
+    self.tags     == (package.is_a?(Models::Repository::Package) ? Package.wrap(package).tags : package.tags) &&
+    self.version  == package.version &&
+    self.slot     == package.slot &&
     self.revision == package.revision
   end
 
-	alias eql? ===
+  alias eql? ===
 
-	def hash
-    "#{self.tags}/#{self.name}-#{self.version}%#{self.slot}".hash
+  def hash
+    "#{self.tags.hashed}/#{self.name}-#{self.version}%#{self.slot}".hash
   end
 
   def to_h
-    Hash[
-      :tags     => self.tags,
-      :name     => self.name,
-      :version  => self.version,
-      :slot     => self.slot,
-      :revision => self.revision,
+    result = {}
 
-      :repository => self.repository,
+    [:tags, :name, :version, :slot, :revision, :repository, :flavor, :features].each {|name|
+      result[name] = self.send(name) unless self.send(name).nil?
+    }
 
-      :flavor   => self.flavor,
-      :features => self.features
-    ]
+    return result
   end
 
   def to_s (type=:whole)

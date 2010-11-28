@@ -24,6 +24,12 @@ module Packo; module Binary; class Repository
 class Binary < Repository
   def initialize (repository)
     super(repository)
+
+    dom = Nokogiri::XML.parse(File.read(self.path))
+
+    dom.xpath('//mirrors/mirror').each {|e|
+      repository.data.mirrors.first_or_create(:uri => e.text)
+    }
   end
 
   def populate
@@ -42,7 +48,7 @@ class Binary < Repository
         pkg = repository.packages.first_or_create(
           :repo => repository,
 
-          :tags_hashed => package.tags.hash,
+          :tags_hashed => package.tags.hashed,
           :name        => package.name,
           :version     => package.version,
           :slot        => package.slot,

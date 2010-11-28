@@ -25,7 +25,6 @@ require 'nokogiri'
 
 require 'packo'
 require 'packo/binary'
-require 'packo/models'
 
 class Application < Optitron::CLI
   include Packo::Binary::Helpers
@@ -137,7 +136,7 @@ class Application < Optitron::CLI
   desc 'Deletes installed repositories'
   def delete (*name)
     name.each {|name|
-      repository = Repository.parse(name)
+      repository = Packo::Package::Repository.parse(name)
 
       if repository.type && !Repository::Types.member?(repository.type)
         fatal "#{repository.type} is not a valid repository type"
@@ -220,7 +219,7 @@ class Application < Optitron::CLI
     packages = []
 
     if params['repository'] && !params['repository'].empty?
-      repository      = Repository.parse(params['repository'])
+      repository      = Packo::Package::Repository.parse(params['repository'])
       repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
       repository      = Repository.first(:name => repository.name, :type => repository.type)
 
@@ -237,13 +236,15 @@ class Application < Optitron::CLI
       }
     end
 
-    packages.flatten.compact.uniq.group_by {|package|
-      "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{package.name}"
+    packages.map.flatten.compact.map {|package|
+      Packo::Package.wrap(package)
+    }.uniq.group_by {|package|
+      "#{package.tags}/#{package.name}"
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
         a.version <=> b.version
       }.each {|package|
-        print "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
+        print "#{package.tags}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
         print "-#{colorize(package.version, :RED)}"
         print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
@@ -261,7 +262,7 @@ class Application < Optitron::CLI
     packages = []
 
     if params['repository'] && !params['repository'].empty?
-      repository      = Repository.parse(params['repository'])
+      repository      = Packo::Package::Repository.parse(params['repository'])
       repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
       repository      = Repository.first(:name => repository.name, :type => repository.type)
 
@@ -278,29 +279,31 @@ class Application < Optitron::CLI
       }
     end
 
-    packages.flatten.compact.group_by {|package|
-      "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{package.name}"
+    packages.flatten.compact.map {|package|
+      Packo::Package.wrap(package)
+    }.group_by {|package|
+      package.name
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
         a.version <=> b.version
       }.each {|package|
-        case package.repo.type
+        print "[#{colorize("source/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
+        print colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)
+        print "-#{colorize(package.version, :RED)}"
+        print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
+        print " [#{colorize(package.tags.join(' '), :MAGENTA)}]"
+        print "\n"
+
+        puts "    #{colorize('Description', :GREEN)}: #{package.description}"
+        puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
+        puts "    #{colorize('License', :GREEN)}:     #{package.license}"
+
+        case package.repository.type
           when :binary
-            print "[#{colorize("binary/#{package.repo.name}", :BLACK, :DEFAULT, :BOLD)}] "
-            print "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
-            print "-#{colorize(package.version, :RED)}"
-            print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
-            print " {#{colorize(package.revision, :MAGENTA)}}" if package.revision != 0
-            print "\n"
-
-            puts "    #{colorize('Description', :GREEN)}: #{package.description}"
-            puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
-            puts "    #{colorize('License', :GREEN)}:     #{package.license}"
-
-            puts "    #{colorize('Features', :GREEN)}:    #{package.data.features}"
+            puts "    #{colorize('Features', :GREEN)}:    #{package.features.to_a.select {|f| f.enabled?}.map {|f| f.name}.join(' ')}"
 
             print "    #{colorize('Builds', :GREEN)}:      "
-            package.data.builds.each {|build|
+            package.model.data.builds.each {|build|
               print 'With '
 
               if !build.features.empty?
@@ -315,19 +318,9 @@ class Application < Optitron::CLI
             }
 
           when :source
-            print "[#{colorize("source/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
-            print "#{Packo::Package::Tags.new(package.tags.map {|t| t.name})}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
-            print "-#{colorize(package.version, :RED)}"
-            print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
-            print "\n"
-
-            puts "    #{colorize('Description', :GREEN)}: #{package.description}"
-            puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
-            puts "    #{colorize('License', :GREEN)}:     #{package.license}"
-
             print "    #{colorize('Features', :GREEN)}:    "
 
-            features = package.data.features
+            features = package.model.data.features
             length   = features.map {|feature| feature.name.length}.max
 
             features.each {|feature|
@@ -370,7 +363,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs the path of a given repository'
   def path (name)
-    repository = Repository.first(:name => name)
+    repository = Repository.first(Packo::Package::Repository.parse(name).to_h)
 
     exit! if !repository
 
@@ -379,7 +372,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs the URI of a given package'
   def uri (name)
-    repository = Repository.first(:name => name)
+    repository = Repository.first(Packo::Package::Repository.parse(name).to_h)
 
     exit! if !repository
 

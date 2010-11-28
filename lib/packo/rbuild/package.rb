@@ -32,6 +32,8 @@ Packages = Class.new(Hash) {
 }.new
 
 class Package < Packo::Package
+  undef :description, :homepage, :license
+
   include Stages::Callable
 
   def self.define (name, version=nil, slot=nil, revision=nil, &block)
@@ -126,11 +128,11 @@ class Package < Packo::Package
       feature = Feature.parse(feature)
 
       self.features {
-				next if !self.has(feature.name)
+        next if !self.has(feature.name)
 
-				(feature.enabled?) ?
-        	self.get(feature.name).enabled! :
-					self.get(feature.name).disabled!
+        (feature.enabled?) ?
+          self.get(feature.name).enabled! :
+          self.get(feature.name).disabled!
       }
     }
   end

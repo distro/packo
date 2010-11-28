@@ -20,8 +20,8 @@
 module Packo; module Binary; class Repository
 
 class Virtual < Repository
-  def initialize (repo)
-    super(repo)
+  def initialize (repository)
+    super(repository)
   end
 end
 
