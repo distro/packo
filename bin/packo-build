@@ -36,7 +36,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Creates a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
+  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP], :short_name => 't'
   opt 'output', 'The directory where to save packages', :default => Packo::Environment[:TMP]
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
   opt 'repository', 'Set a specific source repository', :type => :string
@@ -47,7 +47,7 @@ class Application < Optitron::CLI
       pkg = nil
 
       packages = _search(package, true, params['repository'])
-      
+
       names = packages.group_by {|package|
         "#{package.categories.join('/')}/#{package.name}"
       }.map {|(name, package)| name}.uniq
@@ -129,7 +129,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Clean a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP]
+  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP], :short_name => 't'
   def clean (*name)
     name.map {|package|
       tmp = _search(package, true)
@@ -223,7 +223,7 @@ class Application < Optitron::CLI
 
     package = tmp.last
 
-    loadPackage("#{package.repository.path}/#{package.categories.join('/')}/#{package.name}", package)
+    loadPackage("#{package.repository.path}/#{package.tags}/#{package.name}", package)
 
     if Packo::Packages[package.to_s]
       puts Packo::Package::Manifest.new(Packo::Packages[package.to_s]).to_s(4)
@@ -244,12 +244,14 @@ class Application < Optitron::CLI
 
         pkg = Packo::Package.parse(matches[1])
 
-        PackoBinary::Package.new(pkg.categories.join('/'), pkg.name, pkg.version, pkg.slot, OpenStruct.new(
+        pkg.repository = Packo::Package::Repository.new(
           :type => matches[2].to_sym,
           :name => matches[3],
           :uri  => matches[4],
           :path => matches[5]
-        ))
+        )
+
+        pkg
       }.compact
     }
   end

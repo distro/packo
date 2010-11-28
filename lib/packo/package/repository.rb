@@ -49,6 +49,8 @@ class Repository
     )
   end
 
+  Types = [:binary, :source, :virtual]
+
   attr_accessor :type, :name, :uri, :path
 
   attr_reader :model

@@ -138,7 +138,7 @@ class Application < Optitron::CLI
     name.each {|name|
       repository = Packo::Package::Repository.parse(name)
 
-      if repository.type && !Repository::Types.member?(repository.type)
+      if repository.type && !Packo::Package::Repository::Types.member?(repository.type)
         fatal "#{repository.type} is not a valid repository type"
         exit! 20
       end
@@ -220,14 +220,14 @@ class Application < Optitron::CLI
 
     if params['repository'] && !params['repository'].empty?
       repository      = Packo::Package::Repository.parse(params['repository'])
-      repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
-      repository      = Repository.first(:name => repository.name, :type => repository.type)
+      repository.type = params['type'] if Packo::Package::Repository::Types.member?(params['type'].to_sym)
+      repository      = Repository.first(repository.to_h)
 
       if repository
         packages << repository.search(expression, params['exact'])
       end
     else
-      Repository::Types.each {|type|
+      Packo::Package::Repository::Types.each {|type|
         if params['type'] == 'all' || params['type'] == type.to_s
           Repository.all(:type => type).each {|repository|
             packages << repository.search(expression, params['exact'])
@@ -236,7 +236,7 @@ class Application < Optitron::CLI
       }
     end
 
-    packages.map.flatten.compact.map {|package|
+    packages.flatten.compact.map {|package|
       Packo::Package.wrap(package)
     }.uniq.group_by {|package|
       "#{package.tags}/#{package.name}"
@@ -248,7 +248,7 @@ class Application < Optitron::CLI
         print "-#{colorize(package.version, :RED)}"
         print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
-        print " (#{package.repo.type}/#{package.repo.name} | #{package.repo.uri} | #{package.repo.path})" if params['full']
+        print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.uri} | #{package.repository.path})" if params['full']
         print "\n"
       }
     }
@@ -263,14 +263,14 @@ class Application < Optitron::CLI
 
     if params['repository'] && !params['repository'].empty?
       repository      = Packo::Package::Repository.parse(params['repository'])
-      repository.type = params['type'] if ['source', 'binary'].member?(params['type'])
-      repository      = Repository.first(:name => repository.name, :type => repository.type)
+      repository.type = params['type'] if Packo::Package::Repository::Types.member?(params['type'].to_sym)
+      repository      = Repository.first(repository.to_h)
 
       if repository
         packages << repository.search(expression, params['exact'])
       end
     else
-      Repository::Types.each {|type|
+      Packo::Package::Repository::Types.each {|type|
         if params['type'] == 'all' || params['type'] == type.to_s
           Repository.all(:type => type).each {|repository|
             packages << repository.search(expression, params['exact'])
@@ -343,7 +343,7 @@ class Application < Optitron::CLI
 
   desc 'Shows installed repositories'
   def show (type='all')
-    if Repository::Types.member?(type.to_sym)
+    if Packo::Package::Repository::Types.member?(type.to_sym)
       _info "Installed #{type} repositories:"
 
       repositories = Repository.all(:type => type)
@@ -355,7 +355,7 @@ class Application < Optitron::CLI
 
       puts ''
     elsif type == 'all'
-      Repository::Types.each {|type|
+      Packo::Package::Repository::Types.each {|type|
         show(type)
       }
     end

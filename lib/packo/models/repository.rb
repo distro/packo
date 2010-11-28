@@ -30,8 +30,6 @@ module Packo; module Models
 class Repository
   include DataMapper::Resource
 
-  Types = [:binary, :source, :virtual]
-
   property :id, Serial
 
   property :name, String,                           :required => true
