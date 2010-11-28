@@ -85,20 +85,17 @@ class Application < Optitron::CLI
       }
 
       begin
-        loadPackage(path, package)
+        package = loadPackage(path, package)
       rescue LoadError
-        warn 'One of the rbuilds could not be found'
       end
-
-      package = RBuild::Packages[:last]
 
       if !package
         fatal 'The package could not be instantiated'
         exit 23
       end
 
-      if !RBuild::Packages[package.to_s(:name)]
-        warn 'The package does not have a parent'
+      if package.parent.nil?
+         warn 'The package does not have a parent'
       end
 
       package.path = path
@@ -176,14 +173,12 @@ class Application < Optitron::CLI
       package = Package.parse(name.sub(/\.rbuild$/, ''))
   
       begin
-        loadPackage('.', package)
+        package = loadPackage('.', package)
       rescue LoadError
         fatal 'Failed to load the rbuild'
         exit 80
       end
-  
-      package = RBuild::Packages[:last]
-  
+
       package.after :fetch do |result|
         package.stages.stop!
 
@@ -233,12 +228,10 @@ class Application < Optitron::CLI
       exit 2
     end
 
-    package = tmp.last
+    package = loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
 
-    loadPackage("#{package.repository.path}/#{package.model.data.path}", package)
-
-    if RBuild::Packages[package.to_s]
-      puts RBuild::Package::Manifest.new(RBuild::Packages[package.to_s]).to_s
+    if package
+      puts RBuild::Package::Manifest.new(package).to_s
     else
       fatal 'Package could not be instantiated'
       exit 23

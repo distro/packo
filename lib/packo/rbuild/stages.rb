@@ -121,27 +121,24 @@ class Stages
         old.clone.each {|stage|
           if target = stage.options[:at]
             if target == :beginning
-              @stages.unshift stage
+              @stages.unshift old.delete(stage)
             elsif target == :end
-              @stages.push stage
+              @stages.push old.delete(stage)
             end
-
-            old.delete(stage)
           elsif stage.options[:before] && stage.options[:before] != :end
             if (index = @stages.find_index {|s| s.name == stage.options[:before]})
               @stages.insert(index, old.delete(stage))
-              old.delete(stage)
             end
           elsif stage.options[:after] && stage.options[:after] != :beginning
             if (index = @stages.find_index {|s| s.name == stage.options[:after]})
               @stages.insert(index + 1, old.delete(stage))
-              old.delete(stage)
             end
           else
             index = @stages.reverse.find_index {|s| s.options[:at] == :beginning} || @stages.length + 1
             @stages.insert(@stages.length - index + 1, old.delete(stage))
-            old.delete(stage)
           end
+
+          @stages.compact!
         }
 
         cycles += 1
@@ -151,8 +148,6 @@ class Stages
 
       old
     end
-
-    @stages.compact!
 
     @sorted = true
   end

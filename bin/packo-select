@@ -25,7 +25,9 @@ require 'packo'
 require 'packo/binary/helpers'
 
 class Application < Optitron::CLI
-  include Packo::Binary::Helpers
+  include Packo
+  include Binary::Helpers
+  include Models
 
   desc 'Output version'
   def version
@@ -34,82 +36,49 @@ class Application < Optitron::CLI
 
   desc 'Show current selection modules'
   def show
-    @db.execute('SELECT * FROM modules').each {|select|
-      info "#{select['name']}\t\t#{select['description']}"
+    selectors = Selector.all
+
+    length = selectors.map {|s| s.name.length}.max
+    
+    selectors.each {|selector|
+      info "#{selector.name}#{' ' * (4 + length - selector.name.length)}#{selector.description}"
     }
   end
 
   desc 'Add a module to the database'
   def add (name, description, path)
-    @db.execute('INSERT OR REPLACE INTO modules VALUES(?, ?, ?)', [
-      name, description, File.realpath(path)
-    ])
+    Selector.first_or_create(:name => name).update(:description => description, :path => path)
 
     info "#{name} added"
   end
 
   desc 'Delete a module from the database'
   def delete (name)
-    @db.execute('DELETE FROM modules WHERE name = ?', name)
+    selector = Selector.first(:name => name)
+    
+    if !selector
+      fatal "#{name} doesn't exist"
+      exit! 30
+    end
+    
+    selector.destroy
 
     info "#{name} deleted"
   end
 
   def command_missing (command, *args)
-    cmd = @db.execute('SELECT * FROM modules WHERE name = ?', command).first['path'] rescue nil
+    cmd = Selector.first(:name => command).path rescue nil
 
     if !cmd
       fatal "#{command} not found"
       exit 1
     end
 
-    cmd << " --database='#{params['database']}'"
-
     args.each {|arg|
       cmd << %Q{ "#{arg}"}
     }
 
     system(cmd)
-  end
-
-  def params= (params)
-    @params = params
-
-    if File.directory? params['database']
-      fatal "#{params['database']} is a directory"
-      exit 42
-    end
-
-    begin
-      FileUtils.mkpath(File.dirname(params['database']))
-    rescue Exception => e
-      fatal "Could not create #{File.dirname(params['database'])}"
-      exit 42
-    end
-
-    @db = SQLite3::Database.new(params['database'])
-    @db.results_as_hash = true
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS modules (
-        name TEXT,
-        description TEXT,
-
-        path TEXT,
-
-        UNIQUE (name)
-      )
-    })
-
-    @db.execute(%{
-      CREATE TABLE IF NOT EXISTS data (
-        name TEXT,
-
-        data BLOB,
-
-        UNIQUE (name)
-      )
-    })
   end
 end
 

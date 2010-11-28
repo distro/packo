@@ -110,7 +110,7 @@ class Package
   end
 
   def tags= (value)
-    @tags = ((value.is_a?(Tags)) ? value : Tags.parse(value)) if value
+    @tags = Tags.parse(value) if value
   end
 
   def version= (value)

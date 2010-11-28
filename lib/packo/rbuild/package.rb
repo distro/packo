@@ -28,11 +28,13 @@ require 'packo/rbuild/package/manifest'
 
 module Packo; module RBuild
 
-Packages = Class.new(Hash) {
-
-}.new
-
 class Package < Packo::Package
+  @@packages = {}
+
+  def self.last
+    @@packages[:last]
+  end
+
   undef :description, :homepage, :license
 
   include Stages::Callable
@@ -41,56 +43,32 @@ class Package < Packo::Package
     Package.new(name, version, slot, revision, &block)
   end
 
-  attr_reader :environment, :modules, :dependencies, :blockers, :stages
+  attr_reader :parent, :environment, :modules, :dependencies, :blockers, :stages
 
-  def initialize (tags, name, version=nil, slot=nil, revision=nil, &block)
+  def initialize (name, version=nil, slot=nil, revision=nil, &block)
     super(
-      :tags     => tags,
       :name     => name,
       :version  => version,
       :slot     => slot,
       :revision => revision
     )
 
-    @data = {}
-
-    Packages[self.to_s(:whole)] = self
-    Packages[:last] = self
-
-    if !self.version || !(tmp = Packages[self.to_s(:name)])
-      @modules      = []
-      @dependencies = Dependencies.new(self)
-      @blockers     = Blockers.new(self)
-      @stages       = Stages.new(self)
-      @features     = Features.new(self)
-      @flavor       = Flavor.new(self)
-      @data         = {}
-      @pre          = []
-      @post         = []
-    else
-      @modules      = tmp.instance_eval('@modules.clone')
-      @dependencies = tmp.instance_eval('@dependencies.clone')
-      @blockers     = tmp.instance_eval('@blockers.clone')
-      @stages       = tmp.instance_eval('@stages.clone')
-      @features     = tmp.instance_eval('@features.clone')
-      @flavor       = tmp.instance_eval('@flavor.clone')
-      @data         = tmp.instance_eval('@data.clone')
-      @pre          = tmp.instance_eval('@pre.clone')
-      @post         = tmp.instance_eval('@post.clone')
-
-      @modules.each {|mod|
-        mod.owner = self
-      }
-
-      @dependencies.owner = self
-      @blockers.owner     = self
-      @stages.owner       = self
-      @features.owner     = self
-      @flavor.owner       = self
+    if !self.version
+      @block = block
+      
+      return @@packages[:last] = self
     end
 
-    @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
-    @stages.add :blockers, @blockers.method(:check), :at => :beginning
+    @data         = {}
+    @modules      = []
+    @dependencies = Dependencies.new(self)
+    @blockers     = Blockers.new(self)
+    @stages       = Stages.new(self)
+    @features     = Features.new(self)
+    @flavor       = Flavor.new(self)
+    @data         = {}
+    @pre          = []
+    @post         = []
 
     @environment = Environment.new(self)
 
@@ -99,15 +77,21 @@ class Package < Packo::Package
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
 
-    @default_to_self = true
+    @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
+    @stages.add :blockers,     @blockers.method(:check),     :at => :beginning
+
+    if (@parent = Package.last)
+      self.instance_exec(self, &@parent.instance_eval('@block'))
+    end
 
     stages.callbacks(:initialize).do(self) {
       self.instance_exec(self, &block) if block
     }
 
-    @default_to_self = false
-
     self.envify!
+
+    @@packages.clear
+    @@packages[:last] = self
   end
 
   def create!
@@ -169,6 +153,10 @@ class Package < Packo::Package
     uses.each {|use|
       self.use(use)
     }
+  end
+
+  def tags (*value)
+    value.flatten.compact.empty? ? @tags : self.tags = value
   end
 
   def features (&block)

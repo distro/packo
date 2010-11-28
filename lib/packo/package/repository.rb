@@ -51,7 +51,12 @@ class Repository
 
   Types = [:binary, :source, :virtual]
 
-  attr_accessor :type, :name, :uri, :path
+  [:type, :name, :uri, :path].each {|m|
+    self.class_eval %{
+      def #{m} (value=nil); value.nil? ? @#{m} : @#{m} = value; end
+      def #{m}= (value); @#{m} = value; end
+    }
+  }
 
   attr_reader :model
 

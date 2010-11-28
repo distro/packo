@@ -51,12 +51,10 @@ class Source < Repository
           )
 
           begin
-            loadPackage(what, pkg)
+            package = loadPackage(what, pkg)
           rescue LoadError => e
             warn e.to_s if Environment[:VERBOSE]
           end
-
-          package = RBuild::Packages[:last]
 
           if package.name != pkg.name || package.version != pkg.version
             warn "Package not found: #{pkg.name}" if Environment[:VERBOSE]
@@ -76,7 +74,9 @@ class Source < Repository
           pkg.update(
             :description => package.description,
             :homepage    => [package.homepage].flatten.join(' '),
-            :license     => [package.license].flatten.join(' ')
+            :license     => [package.license].flatten.join(' '),
+
+            :maintainer => package.maintainer
           )
 
           package.tags.each {|tag|
@@ -98,9 +98,6 @@ class Source < Repository
               :enabled     => f.enabled?
             )
           }
-
-          RBuild::Packages.delete package.to_s(:name)
-          RBuild::Packages.delete package.to_s
         }
       else
         populate(Dir.entries(what).map {|e|

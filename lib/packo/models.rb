@@ -69,6 +69,7 @@ setup :default, Packo::Environment[:DATABASE]
 
 require 'packo/models/installed_package'
 require 'packo/models/repository'
+require 'packo/models/selector'
 
 finalize
 

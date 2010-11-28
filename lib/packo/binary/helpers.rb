@@ -93,6 +93,10 @@ module Helpers
 
     Packo.load "#{path}/#{package.name}.rbuild", options
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
+
+    if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
+      return RBuild::Package.last
+    end
   end
 end
 

@@ -27,14 +27,15 @@ require 'packo'
 require 'packo/binary'
 
 class Application < Optitron::CLI
-  include Packo::Binary::Helpers
-  include Packo::Models
+  include Packo
+  include Binary::Helpers
+  include Models
 
   @@scm = ['git'] # implement others
 
   desc 'Outputs version'
   def version
-    puts "packø repository manager #{Packo::VERSION}"
+    puts "packø repository manager #{VERSION}"
   end
 
   desc 'Adds binary/source repositories'
@@ -69,11 +70,11 @@ class Application < Optitron::CLI
       elsif @@scm.member?(uri.scheme)
         kind = :scm
 
-        FileUtils.rm_rf("#{Packo::Environment[:TMP]}/.__repo", :secure => true)
+        FileUtils.rm_rf("#{Environment[:TMP]}/.__repo", :secure => true)
 
-        _checkout(uri, "#{Packo::Environment[:TMP]}/.__repo")
+        _checkout(uri, "#{Environment[:TMP]}/.__repo")
 
-        dom = Nokogiri::XML.parse(File.read("#{Packo::Environment[:TMP]}/.__repo/repository.xml"))
+        dom = Nokogiri::XML.parse(File.read("#{Environment[:TMP]}/.__repo/repository.xml"))
 
         type = dom.root['type'].to_sym
         name = dom.root['name']
@@ -84,7 +85,7 @@ class Application < Optitron::CLI
         next
       end
 
-      path = "#{Packo::Environment[:REPOSITORIES]}/#{type}/#{name}"
+      path = "#{Environment[:REPOSITORIES]}/#{type}/#{name}"
 
       if Repository.first(:type => type, :name => name)
         fatal "#{type}/#{name} already exists, delete it first"
@@ -110,7 +111,7 @@ class Application < Optitron::CLI
               _checkout(dom.xpath('//address').first.text, path)
 
             when :scm
-              FileUtils.cp_r "#{Packo::Environment[:TMP]}/.__repo/.", path, :preserve => true
+              FileUtils.cp_r "#{Environment[:TMP]}/.__repo/.", path, :preserve => true
 
             else
               _checkout(uri.to_s, path)
@@ -136,9 +137,9 @@ class Application < Optitron::CLI
   desc 'Deletes installed repositories'
   def delete (*name)
     name.each {|name|
-      repository = Packo::Package::Repository.parse(name)
+      repository = Package::Repository.parse(name)
 
-      if repository.type && !Packo::Package::Repository::Types.member?(repository.type)
+      if repository.type && !Package::Repository::Types.member?(repository.type)
         fatal "#{repository.type} is not a valid repository type"
         exit! 20
       end
@@ -176,7 +177,7 @@ class Application < Optitron::CLI
 
       type = repository.type
       name = repository.name
-      uri  = repository.uri
+      uri  = repository.uri.to_s
       path = repository.path
 
       case repository.type
@@ -240,15 +241,15 @@ class Application < Optitron::CLI
     packages = []
 
     if params['repository'] && !params['repository'].empty?
-      repository      = Packo::Package::Repository.parse(params['repository'])
-      repository.type = params['type'] if Packo::Package::Repository::Types.member?(params['type'].to_sym)
+      repository      = Package::Repository.parse(params['repository'])
+      repository.type = params['type'] if Package::Repository::Types.member?(params['type'].to_sym)
       repository      = Repository.first(repository.to_h)
 
       if repository
         packages << repository.search(expression, params['exact'])
       end
     else
-      Packo::Package::Repository::Types.each {|type|
+      Package::Repository::Types.each {|type|
         if params['type'] == 'all' || params['type'] == type.to_s
           Repository.all(:type => type).each {|repository|
             packages << repository.search(expression, params['exact'])
@@ -273,6 +274,7 @@ class Application < Optitron::CLI
         puts "    #{colorize('Description', :GREEN)}: #{package.description}"
         puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
         puts "    #{colorize('License', :GREEN)}:     #{package.license}"
+        puts "    #{colorize('Maintainer', :GREEN)}:  #{package.model.maintainer || 'nobody'}"
 
         case package.repository.type
           when :binary
@@ -301,12 +303,12 @@ class Application < Optitron::CLI
 
             features.each {|feature|
               if feature.enabled
-                print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{Packo::Environment[:NO_COLORS] ? '!' : ''}"
+                print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{Environment[:NO_COLORS] ? '!' : ''}"
               else
                 print colorize(feature.name, :BLACK, :DEFAULT, :BOLD)
               end
 
-              print "#{' ' * (4 + length - feature.name.length + (Packo::Environment[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
+              print "#{' ' * (4 + length - feature.name.length + (Environment[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
 
               print "\n                 "
             }
@@ -319,7 +321,7 @@ class Application < Optitron::CLI
 
   desc 'Shows installed repositories'
   def show (type='all')
-    if Packo::Package::Repository::Types.member?(type.to_sym)
+    if Package::Repository::Types.member?(type.to_sym)
       _info "Installed #{type} repositories:"
 
       repositories = Repository.all(:type => type)
@@ -331,7 +333,7 @@ class Application < Optitron::CLI
 
       puts ''
     elsif type == 'all'
-      Packo::Package::Repository::Types.each {|type|
+      Package::Repository::Types.each {|type|
         show(type)
       }
     end
@@ -339,7 +341,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs the path of a given repository'
   def path (name)
-    repository = Repository.first(Packo::Package::Repository.parse(name).to_h)
+    repository = Repository.first(Package::Repository.parse(name).to_h)
 
     exit! if !repository
 
@@ -348,7 +350,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs the URI of a given package'
   def uri (name)
-    repository = Repository.first(Packo::Package::Repository.parse(name).to_h)
+    repository = Repository.first(Package::Repository.parse(name).to_h)
 
     exit! if !repository
 
@@ -397,15 +399,15 @@ class Application < Optitron::CLI
     packages = []
 
     if name && !name.empty?
-      repository      = Packo::Package::Repository.parse(name)
-      repository.type = type if Packo::Package::Repository::Types.member?(type.to_sym)
+      repository      = Package::Repository.parse(name)
+      repository.type = type if Package::Repository::Types.member?(type.to_sym)
       repository      = Repository.first(repository.to_h)
 
       if repository
         packages << repository.search(expression, params['exact'])
       end
     else
-      Packo::Package::Repository::Types.each {|t|
+      Package::Repository::Types.each {|t|
         if type.nil? || type == 'all' || type == t.to_s
           Repository.all(:type => t).each {|repository|
             packages << repository.search(expression, exact)
@@ -415,12 +417,12 @@ class Application < Optitron::CLI
     end
 
     return packages.flatten.compact.map {|package|
-      Packo::Package.wrap(package)
+      Package.wrap(package)
     }
   end
 
   def _add (type, name, uri, path)
-    Packo::Binary::Repository.wrap(Repository.new(
+    Binary::Repository.wrap(Repository.new(
       :type => type,
       :name => name,
 
@@ -450,7 +452,7 @@ class Application < Optitron::CLI
     end
 
     case scm
-      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !Packo::Environment[:VERBOSE]
+      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !Environment[:VERBOSE]
     end
   end
 

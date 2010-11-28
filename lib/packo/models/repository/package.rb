@@ -43,6 +43,8 @@ class Package
   property :homepage,     Text, :default => '', :required => false
   property :license,      Text, :default => '', :required => false
 
+  property :maintainer, String, :required => false
+
   after :create do |package|
     case package.repo.type
       when :binary;  Binary.create(:package => package)

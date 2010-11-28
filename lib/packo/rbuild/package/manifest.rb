@@ -27,10 +27,16 @@ class Manifest
     dom = Nokogiri::XML.parse(File.read(path))
 
     Manifest.new(OpenStruct.new(
-      :tags    => Packo::Package::Tags.parse(dom.xpath('//package/tags').first.text),
+      :maintainer => dom.root['maintainer'],
+
+      :tags    => dom.xpath('//package/tags').first.text,
       :name    => dom.xpath('//package/name').first.text,
       :version => Versionomy.parse(dom.xpath('//package/version').first.text),
       :slot    => dom.xpath('//package/slot').first.text,
+
+      :description => dom.xpath('//package/description').first.text,
+      :homepage    => dom.xpath('//package/homepage').first.text.split(/\s+/),
+      :license     => dom.xpath('//package/license').first.text.split(/\s+/),
 
       :flavors  => (dom.xpath('//package/flavor').first.text || '').split(/\s+/),
       :features => (dom.xpath('//package/features').first.text || '').split(/\s+/),
@@ -61,10 +67,16 @@ class Manifest
 
   def initialize (what)
     @package = OpenStruct.new(
+      :maintainer => what.maintainer,
+
+      :tags    => Packo::Package::Tags.parse(what.tags),
       :name    => what.name,
-      :tags    => what.tags,
       :version => what.version,
       :slot    => what.slot,
+
+      :description => what.description,
+      :homepage    => [what.homepage].flatten.compact.join(' '),
+      :license     => [what.license].flatten.compact.join(' '),
 
       :flavors  => what.flavors.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
       :features => what.features.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
@@ -80,12 +92,16 @@ class Manifest
 
     @builder = Nokogiri::XML::Builder.new {|xml|
       xml.manifest(:version => '1.0') {
-        xml.package {
+        xml.package(:maintainer => self.package.maintainer) {
           xml.tags     self.package.tags.join(' ')
           xml.name     self.package.name
           xml.version  self.package.version
           xml.slot     self.package.slot
           xml.revision self.package.revision
+
+          xml.description self.package.description
+          xml.homepage    self.package.homepage
+          xml.license     self.package.license
 
           xml.flavor   self.package.flavors.join(' ')
           xml.features self.package.features.join(' ')
