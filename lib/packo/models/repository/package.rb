@@ -65,7 +65,7 @@ class Package
       when :source;  Source.first_or_new(:package => self)
       when :virtual; Virtual.first_or_new(:package => self)
     end
-  end  
+  end
 end
 
 end; end; end

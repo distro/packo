@@ -18,7 +18,7 @@
 #++
 
 module Packo; module Models; class Repository; class Package; class Binary
- 
+
 class Build
   include DataMapper::Resource
 

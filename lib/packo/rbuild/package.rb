@@ -163,7 +163,7 @@ class Package < Packo::Package
   def use (klass)
     @modules << klass.new(self)
   end
-  
+
   def behavior (uses)
     uses.each {|use|
       self.use(use)

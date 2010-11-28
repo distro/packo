@@ -24,16 +24,16 @@ class Callbacks
 
   class Callback
     attr_accessor :binding
-  
+
     attr_reader :name, :priority, :position
-  
+
     def initialize (priority, callback, binding=nil, position=nil)
       @priority = priority
       @callback = callback
       @binding  = binding
       @position = position
     end
-  
+
     def call (*args)
       if binding
         binding.instance_exec(*args, &@callback)

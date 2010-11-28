@@ -74,7 +74,7 @@ module Packo
     end
 
     output = "[#{Time.new}] From: #{caller[0, options[:deep] || 1].join("\n")}\n"
-  
+
     if argument.is_a?(Exception)
       output << "#{argument.class}: #{argument.message}\n"
       output << argument.backtrace.collect {|stack|
@@ -86,7 +86,7 @@ module Packo
     else
       output << "#{argument.inspect}\n"
     end
-  
+
     if options[:separator]
       output << options[:separator]
     end

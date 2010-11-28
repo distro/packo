@@ -20,7 +20,7 @@
 require 'packo/models/repository/package/source/feature'
 
 module Packo; module Models; class Repository; class Package
-  
+
 class Source
   include DataMapper::Resource
 

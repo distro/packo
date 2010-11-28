@@ -1,7 +1,7 @@
 # Copyrights to their respective owners, and license as their license.
 #
 # This file is just for bug fixes I made to make packo work with those libraries.
-# 
+#
 # They will stay here until the gems are updated.
 
 module DataMapper
@@ -43,7 +43,7 @@ class Optitron
           args = response.args
           parser_args = optitron_parser.commands.assoc(response.command).last.args
           while (args.size < parser_args.size && !(parser_args[args.size].type == :greedy && parser_args[args.size].default.nil?))
-            args << parser_args[args.size].default 
+            args << parser_args[args.size].default
           end
 
           optitron_parser.target.send(response.command.to_sym, *response.args)
@@ -62,7 +62,7 @@ class Optitron
     def parse(argv = ARGV)
       tokens = Tokenizer.new(self, argv).tokens
       response = Response.new(self, tokens)
-      options = @options 
+      options = @options
       args = @args
       unless @commands.empty?
         potential_cmd_toks = tokens.select { |t| t.respond_to?(:lit) }

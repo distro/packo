@@ -80,7 +80,7 @@ class Features
     case type
       when :pack
         @values.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
-  
+
       when :normal
         @values.sort {|a, b|
           if a[1].enabled? && b[1].enabled?     then  0

@@ -31,7 +31,7 @@ class Package
     case type
       when :standard
         matches = text.match(/^(.*?)(\[(.*?)\])?(\{(.*?)\})?$/)
-    
+
         data[:features] = Hash[(matches[3] || '').split(/\s*,\s*/).map {|feature|
           if feature[0] == '-'
             [feature[1, feature.length], false]
@@ -39,20 +39,20 @@ class Package
             [(feature[0] == '+' ? feature[1, feature.length] : feature), true]
           end
         }]
-    
+
         data[:flavor] = (matches[5] || '').split(/\s*,\s*/)
-    
+
         matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
-    
+
         data[:tags] = matches[1].split('/')
-    
+
         if matches[1][matches[1].length - 1] != '/'
           data[:name] = data[:tags].pop
         end
-    
+
         if matches[3]
           matches = matches[3].match(/^(.*?)(%(.*)$)?$/)
-    
+
           data[:version] = matches[1]
           data[:slot]    = matches[3]
         end

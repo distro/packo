@@ -38,7 +38,7 @@ class SourceForge < Module
 
           body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files/"))
           body = Net::HTTP.get(URI.parse(body.match(%r{href="(.*?#{name}/files/#{name}/#{version}/.*?/download)"})[1]))
-          
+
           URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
         end
       }.new(package)

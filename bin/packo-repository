@@ -100,7 +100,7 @@ class Application < Optitron::CLI
           file = File.new(path, 'w')
           file.write(open(kind == :file && !uri.to_s.match(/\.xml$/) ? "#{uri}/repository.xml" : uri).read)
           file.close
-          
+
         when :source
           FileUtils.rm_rf path, :secure => true rescue nil
           FileUtils.mkpath path rescue nil
@@ -404,7 +404,7 @@ class Application < Optitron::CLI
       _info "Rehashing #{type}/#{name}"
 
       repository.destroy
-      
+
       case type
         when :binary
           _add(:binary, name, uri, path)

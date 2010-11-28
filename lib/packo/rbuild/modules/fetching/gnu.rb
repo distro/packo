@@ -32,10 +32,10 @@ class GNU < Module
       package.fetch = Class.new(Module::Helper) {
         def url (name=nil)
           matches = Packo.interpolate(name || package.source, self).match(%r{^(.*?)/(.*?)$})
-      
+
           name    = matches[1]
           version = matches[2]
-      
+
           packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/")).scan(
             %r{href="(#{name}-#{version}.*?)"}
           ).flatten.map {|pack|
@@ -53,18 +53,18 @@ class GNU < Module
               !pack.match(%r{(\.sig|/)$})
             }
           end
-      
+
           pack = nil
           ['xz', 'bz2', 'gz'].each {|compression|
             pack = packs.find {|pack|
               pack.match(/#{compression}$/)
             }
-      
+
             break if pack
           }
 
           raise RuntimeError.new "No download URL for #{name}-#{version}" if !pack
-      
+
           "http://ftp.gnu.org/gnu/#{name}/#{pack}"
         end
       }.new(package)

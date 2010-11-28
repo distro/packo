@@ -66,7 +66,7 @@ class Stages
       stages = @stages.select {|stage|
         stage.options[:strict]
       }
-      
+
       stages.each {|stage|
         if (!stage.options[:before] && !stage.options[:after]) || stage.options[:before] == :end || stage.options[:after] == :beginning
           next

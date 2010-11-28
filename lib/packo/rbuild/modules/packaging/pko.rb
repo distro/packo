@@ -39,30 +39,30 @@ class PKO < Module
   def pack
     package.stages.callbacks(:pack).do {
       Dir.chdir package.directory
-  
+
       Package::Manifest.new(package).save('manifest.xml')
-  
+
       FileUtils.mkpath "#{package.directory}/pre"
       package.pre.each {|pre|
         file = File.new("pre/#{pre[:name]}", 'w', 0777)
         file.write(pre[:content])
         file.close
       }
-  
+
       FileUtils.mkpath "#{package.directory}/post"
       package.post.each {|post|
         file = File.new("post/#{post[:name]}", 'w', 0777)
         file.write(post[:content])
         file.close
       }
-  
+
       FileUtils.mkpath "#{package.directory}/selectors"
       [package.selector].flatten.compact.each {|selector|
         FileUtils.cp Packo.interpolate(selector[:path], self), "#{package.directory}/selectors", :preserve => true
       }
-  
+
       name = "#{package.to_s(true)}.pko"
-  
+
       PKO.pack(name, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
     }
   end

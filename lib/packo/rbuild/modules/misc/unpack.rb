@@ -32,13 +32,13 @@ class Unpack < Module
         case File.extname(file)
           when '.xz'
             compression = 'J'
-  
+
           else
             compression = ''
         end
-  
+
         Packo.sh 'tar', "x#{compression}f", file, '-k', '-C', Packo.interpolate('#{package.directory}/work', self)
-  
+
         Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
       }
     }

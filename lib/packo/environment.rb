@@ -94,7 +94,7 @@ class Environment < Hash
 
       Environment[:FLAVOR] = Environment[:FLAVORS]
     end
-    
+
     variables.uniq.each {|name|
       yield name.to_s, Environment[name]
     }
@@ -145,7 +145,7 @@ class Environment < Hash
     @package = package
 
     mod = ::Module.new
-  
+
     Environment.each {|name, value|
       suppress_warnings {
         mod.const_set name.to_sym, value

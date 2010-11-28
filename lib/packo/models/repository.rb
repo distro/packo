@@ -64,7 +64,7 @@ class Repository
       when :source;  Source.first_or_new(:repo => self)
       when :virtual; Virtual.first_or_new(:repo => self)
     end
-  end  
+  end
 
   def search (expression, exact=false)
     if expression.start_with?('[') && expression.end_with?(']')
@@ -75,22 +75,22 @@ class Repository
       if matches = expression.match(/^([<>]?=?)/)
         validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
         expression = expression.sub(/^([<>]?=?)/, '')
-  
+
         validity = nil if validity == '='
       else
         validity = nil
       end
-  
+
       package = Packo::Package.parse(expression)
-  
+
       conditions = {}
-  
+
       op = exact ? :eql : :like
-  
+
       conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name if package.name
       conditions[DataMapper::Query::Operator.new(:version, op)] = package.version if package.version
       conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot if package.slot
-  
+
       result = packages.all(conditions)
 
       if !package.tags.empty?
@@ -167,11 +167,11 @@ class Repository
       # It's an array to use the ? thing of select
       repository.adapter.select(*[%{
           SELECT DISTINCT packo_models_repository_packages.id
-          
+
           FROM packo_models_repository_packages
 
           #{joins}
-          
+
           WHERE #{expression}
       }].concat(names))
     end
