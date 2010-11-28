@@ -46,29 +46,36 @@ class Application < Optitron::CLI
     Environment[:TMP] = params['tmp']
 
     name.map {|package|
-      pkg = nil
-
-      packages = _search(package, params['repository'])
-
-      names = packages.group_by {|package|
-        "#{package.tags}/#{package.name}"
-      }.map {|(name, package)| name}.uniq
-
-      if names.length > 1
-        fatal "More than one package matches: #{package}"
-
-        names.each {|name|
-          puts "    #{name}"
-        }
-        
-        exit! 10
+      if package.end_with?('.rbuild')
+        package
+      else
+        packages = _search(package, params['repository'])
+  
+        names = packages.group_by {|package|
+          "#{package.tags}/#{package.name}"
+        }.map {|(name, package)| name}.uniq
+  
+        if names.length > 1
+          fatal "More than one package matches: #{package}"
+  
+          names.each {|name|
+            puts "    #{name}"
+          }
+          
+          exit! 10
+        end
+  
+        packages.sort {|a, b|
+          a.version <=> b.version
+        }.last
       end
-
-      packages.sort {|a, b|
-        a.version <=> b.version
-      }.last
     }.each {|package|
-      path = "#{package.repository.path}/#{package.model.data.path}"
+      if package.is_a?(String)
+        path    = File.dirname(File.realpath(package))
+        package = Package.parse(package.sub(/\.rbuild$/, ''))
+      else
+        path = "#{package.repository.path}/#{package.model.data.path}"
+      end
 
       manifest = Nokogiri::XML.parse(File.read("#{path}/digest.xml"))
 
@@ -83,15 +90,15 @@ class Application < Optitron::CLI
         warn 'One of the rbuilds could not be found'
       end
 
-      if !RBuild::Packages[package.to_s]
-        warn 'The package does not have a parent'
-      end
-
-      package = RBuild::Packages[package.to_s]
+      package = RBuild::Packages[:last]
 
       if !package
         fatal 'The package could not be instantiated'
         exit 23
+      end
+
+      if !RBuild::Packages[package.to_s(:name)]
+        warn 'The package does not have a parent'
       end
 
       package.path = path
@@ -100,7 +107,7 @@ class Application < Optitron::CLI
 
       output = File.realpath(params['output'])
 
-      package.after :pack do |path|
+      package.after :pack do |result, path|
         FileUtils.cp path, output, :verbose => true, :preserve => true
       end
 
@@ -145,7 +152,7 @@ class Application < Optitron::CLI
       tmp.last
     }.each {|package|
       begin
-        path = "#{params['tmp']}/#{package.to_s(true)}/#{package.version}"
+        path = "#{params['tmp']}/#{package.to_s(:name)}/#{package.version}"
 
         FileUtils.rm_r "#{path}/work"; FileUtils.mkpath "#{path}/work"
         FileUtils.rm_r "#{path}/dist"; FileUtils.mkpath "#{path}/dist"
@@ -177,8 +184,10 @@ class Application < Optitron::CLI
   
       package = RBuild::Packages[:last]
   
-      package.after :fetch do
+      package.after :fetch do |result|
         package.stages.stop!
+
+        throw :halt
       end
     
       package.build
@@ -187,7 +196,7 @@ class Application < Optitron::CLI
   
       builder = Nokogiri::XML::Builder.new {|xml|
         xml.digest(:version => '1.0') {
-          xml.build(:version => package.version.to_s, :slot => package.slot.to_s) {
+          xml.build(:version => package.version, :slot => package.slot) {
             xml.features package.features.to_a.map {|f| f.name}.join(' ')
 
             xml.files {
