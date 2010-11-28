@@ -37,7 +37,9 @@ class PKO < Module
   end
 
   def pack
-    package.stages.callbacks(:pack).do {
+    path = "#{package.to_s(:package)}.pko"
+
+    package.stages.callbacks(:pack).do("#{package.directory}/#{path}") {
       Dir.chdir package.directory
 
       Package::Manifest.new(package).save('manifest.xml')
@@ -61,9 +63,7 @@ class PKO < Module
         FileUtils.cp Packo.interpolate(selector[:path], self), "#{package.directory}/selectors", :preserve => true
       }
 
-      name = "#{package.to_s(true)}.pko"
-
-      PKO.pack(name, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
+      PKO.pack(path, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
     }
   end
 end

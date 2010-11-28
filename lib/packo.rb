@@ -120,5 +120,3 @@ module Kernel
 end
 
 require 'packo/models'
-require 'packo/rbuild'
-require 'packo/fixes'

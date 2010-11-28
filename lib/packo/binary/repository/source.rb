@@ -83,6 +83,10 @@ class Source < Repository
             pkg.tags.first_or_create(:name => tag.to_s)
           }
 
+          pkg.data.update(
+            :path => File.dirname(version.sub("#{self.path}/", ''))
+          )
+
           package.features.each {|f|
             feature = pkg.data.features.first_or_create(
               :source => pkg.data,
@@ -94,8 +98,6 @@ class Source < Repository
               :enabled     => f.enabled?
             )
           }
-
-          pkg.save
 
           RBuild::Packages.delete package.to_s(:name)
           RBuild::Packages.delete package.to_s

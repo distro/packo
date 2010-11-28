@@ -25,47 +25,50 @@ require 'digest/sha1'
 
 require 'packo'
 require 'packo/binary'
-require 'packo/rbuild/modules/packaging'
+require 'packo/rbuild'
 
 class Application < Optitron::CLI
-  include Packo::Binary::Helpers
+  include Packo
+  include Binary::Helpers
+  include Models
 
   desc 'Output version'
   def version
-    puts "packø building tool #{Packo::VERSION}"
+    puts "packø building tool #{VERSION}"
   end
 
   desc 'Creates a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP], :short_name => 't'
-  opt 'output', 'The directory where to save packages', :default => Packo::Environment[:TMP]
+  opt 'tmp', 'The path to the temporary directory', :default => Environment[:TMP], :short_name => 't'
+  opt 'output', 'The directory where to save packages', :default => Environment[:TMP]
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
   opt 'repository', 'Set a specific source repository', :type => :string
   def package (*name)
-    Packo::Environment[:TMP] = params['tmp']
+    Environment[:TMP] = params['tmp']
 
     name.map {|package|
       pkg = nil
 
-      packages = _search(package, true, params['repository'])
+      packages = _search(package, params['repository'])
 
       names = packages.group_by {|package|
-        "#{package.categories.join('/')}/#{package.name}"
+        "#{package.tags}/#{package.name}"
       }.map {|(name, package)| name}.uniq
 
       if names.length > 1
         fatal "More than one package matches: #{package}"
+
         names.each {|name|
           puts "    #{name}"
         }
         
-        exit 10
+        exit! 10
       end
 
       packages.sort {|a, b|
         a.version <=> b.version
       }.last
     }.each {|package|
-      path = "#{package.repository.path}/#{package.categories.join('/')}/#{package.name}"
+      path = "#{package.repository.path}/#{package.model.data.path}"
 
       manifest = Nokogiri::XML.parse(File.read("#{path}/digest.xml"))
 
@@ -80,11 +83,11 @@ class Application < Optitron::CLI
         warn 'One of the rbuilds could not be found'
       end
 
-      if !Packo::Packages[(package.categories + [package.name]).join('/')]
+      if !RBuild::Packages[package.to_s]
         warn 'The package does not have a parent'
       end
 
-      package = Packo::Packages[package.to_s]
+      package = RBuild::Packages[package.to_s]
 
       if !package
         fatal 'The package could not be instantiated'
@@ -97,7 +100,7 @@ class Application < Optitron::CLI
 
       output = File.realpath(params['output'])
 
-      package.on :packed do |path|
+      package.after :pack do |path|
         FileUtils.cp path, output, :verbose => true, :preserve => true
       end
 
@@ -129,10 +132,10 @@ class Application < Optitron::CLI
   end
 
   desc 'Clean a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Packo::Environment[:TMP], :short_name => 't'
+  opt 'tmp', 'The path to the temporary directory', :default => Environment[:TMP], :short_name => 't'
   def clean (*name)
     name.map {|package|
-      tmp = _search(package, true)
+      tmp = _search(package)
 
       if (multiple = tmp.uniq).length > 1
         fatal 'Multiple packages with the same name, be more precise.'
@@ -163,7 +166,7 @@ class Application < Optitron::CLI
       Dir.chdir(File.dirname(name))
 
       name    = File.basename(name)
-      package = Packo::Package.parse(name.sub(/\.rbuild$/, ''))
+      package = Package.parse(name.sub(/\.rbuild$/, ''))
   
       begin
         loadPackage('.', package)
@@ -172,7 +175,7 @@ class Application < Optitron::CLI
         exit 80
       end
   
-      package = Packo::RBuild::Packages[:last]
+      package = RBuild::Packages[:last]
   
       package.after :fetch do
         package.stages.stop!
@@ -214,7 +217,7 @@ class Application < Optitron::CLI
 
   desc 'Output the manifest of the given package'
   def manifest (package)
-    tmp = _search(package, true)
+    tmp = _search(package)
 
     if (multiple = tmp.uniq).length > 1
       fatal 'Multiple packages with the same name, be more precise.'
@@ -223,10 +226,10 @@ class Application < Optitron::CLI
 
     package = tmp.last
 
-    loadPackage("#{package.repository.path}/#{package.tags}/#{package.name}", package)
+    loadPackage("#{package.repository.path}/#{package.model.data.path}", package)
 
-    if Packo::Packages[package.to_s]
-      puts Packo::Package::Manifest.new(Packo::Packages[package.to_s]).to_s(4)
+    if RBuild::Packages[package.to_s]
+      puts RBuild::Package::Manifest.new(RBuild::Packages[package.to_s]).to_s
     else
       fatal 'Package could not be instantiated'
       exit 23
@@ -235,24 +238,23 @@ class Application < Optitron::CLI
 
   private
 
-  def _search (package, exact=false, repository=nil)
-    Packo::Environment.sandbox(:NO_COLORS => 1) {
-      `packo-repository #{"--repository='#{repository}'" if repository} --type=source --exact=#{exact.inspect} --full=true search '#{package}'`.lines.map {|line|
-        matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?) \| (.*?)\)$})
+  def _search (expression, repository=nil)
+    packages = []
 
-        next if !matches
+    if repository && !repository.empty?
+      repository = Repository.first(:type => :source, :name => repository)
 
-        pkg = Packo::Package.parse(matches[1])
+      if repository
+        packages << repository.search(expression, true)
+      end
+    else
+      Repository.all(:type => :source).each {|repository|
+        packages << repository.search(expression, true)
+      }
+    end
 
-        pkg.repository = Packo::Package::Repository.new(
-          :type => matches[2].to_sym,
-          :name => matches[3],
-          :uri  => matches[4],
-          :path => matches[5]
-        )
-
-        pkg
-      }.compact
+    return packages.flatten.compact.map {|package|
+      Package.wrap(package)
     }
   end
 end

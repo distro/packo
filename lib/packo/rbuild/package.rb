@@ -24,6 +24,7 @@ require 'packo/rbuild/blockers'
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
 require 'packo/rbuild/flavor'
+require 'packo/rbuild/package/manifest'
 
 module Packo; module RBuild
 
@@ -218,7 +219,7 @@ class Package < Packo::Package
     return super(type) if super(type)
 
     case type
-      when :package; "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s}" if !@flavor.to_s.empty?}#{"-#{@features.to_s}" if !@features.to_s.empty?}"
+      when :package; "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s.empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
       else           "#{super(:whole)}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavor.to_s}}" if !@flavor.to_s.empty?}"
     end
   end

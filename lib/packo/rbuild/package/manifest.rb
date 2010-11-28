@@ -20,9 +20,7 @@
 require 'ostruct'
 require 'nokogiri'
 
-module Packo
-
-class Package
+module Packo; module RBuild; class Package < Packo::Package
 
 class Manifest
   def self.open (path)
@@ -72,7 +70,7 @@ class Manifest
       :features => what.features.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
 
       :environment => what.environment.reject {|name, value|
-        [:PROFILE, :CONFIG_FILE, :CONFIG_PATH, :CONFIG_MODULES, :REPOSITORIES, :SELECTORS, :NO_COLORS, :DEBUG, :VERBOSE, :TMP].member?(name.to_sym)
+        [:DATABASE, :FLAVORS, :PROFILE, :CONFIG_FILE, :CONFIG_PATH, :CONFIG_MODULES, :REPOSITORIES, :SELECTORS, :NO_COLORS, :DEBUG, :VERBOSE, :TMP].member?(name.to_sym)
       }
     )
 
@@ -83,7 +81,7 @@ class Manifest
     @builder = Nokogiri::XML::Builder.new {|xml|
       xml.manifest(:version => '1.0') {
         xml.package {
-          xml.tags     self.package.tags.to_s
+          xml.tags     self.package.tags.join(' ')
           xml.name     self.package.name
           xml.version  self.package.version
           xml.slot     self.package.slot
@@ -131,6 +129,4 @@ class Manifest
   end
 end
 
-end
-
-end
+end; end; end

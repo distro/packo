@@ -54,18 +54,19 @@ class Dependency < Packo::Package
       "#{@tags}/#{@name}#{"-#{@version}" if @version}"
     else
       features = @features.to_a.sort {|a, b|
-        if a[1] && b[1]
-          0
-        elsif a[1] && !b[1]
-          -1
-        else
-          1
+        if a.enabled? && b.enabled?     ;  0
+        elsif a.enabled? && !b.enabled? ; -1
+        else                            ;  1
         end
-      }.to_a.map {|feature| (feature[1] ? '' : '-') + feature[0].to_s}.join(',')
+      }.map {|feature|
+        (feature.enabled? ? '' : '-') + feature.name.to_s
+      }.join(',')
 
-      flavors = @flavors.to_a.sort
+      flavor = @flavor.to_a.map {|f|
+        f.name.to_s
+      }.sort
 
-      "#{@validity}#{@tags}/#{@name}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavors}}" if !flavors.empty?}"
+      "#{@validity}#{@tags}/#{@name}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
     end
   end
 end

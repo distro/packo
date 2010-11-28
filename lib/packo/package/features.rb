@@ -78,7 +78,7 @@ class Features
 
   def to_s (type=:normal)
     case type
-      when :pack
+      when :package
         @values.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
 
       when :normal

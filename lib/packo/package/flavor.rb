@@ -81,8 +81,8 @@ class Flavor
     }.compact
 
     case type
-      when :normal; elements.join(', ')
-      when :pack;   elements.join('.')
+      when :normal;  elements.join(', ')
+      when :package; elements.join('.')
     end
   end
 end

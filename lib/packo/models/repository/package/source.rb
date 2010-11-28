@@ -26,6 +26,8 @@ class Source
 
   belongs_to :package, :key => true
 
+  property :path, Text, :default => ''
+
   has n, :features
 end
 
