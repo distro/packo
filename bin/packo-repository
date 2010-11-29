@@ -238,26 +238,6 @@ class Application < Optitron::CLI
   opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def info (expression='')
-    packages = []
-
-    if params['repository'] && !params['repository'].empty?
-      repository      = Package::Repository.parse(params['repository'])
-      repository.type = params['type'] if Package::Repository::Types.member?(params['type'].to_sym)
-      repository      = Repository.first(repository.to_h)
-
-      if repository
-        packages << repository.search(expression, params['exact'])
-      end
-    else
-      Package::Repository::Types.each {|type|
-        if params['type'] == 'all' || params['type'] == type.to_s
-          Repository.all(:type => type).each {|repository|
-            packages << repository.search(expression, params['exact'])
-          }
-        end
-      }
-    end
-
     _search(expression, params['exact'], params['repository'], params['type']).group_by {|package|
       package.name
     }.sort.each {|(name, packages)|
@@ -354,11 +334,7 @@ class Application < Optitron::CLI
 
     exit! if !repository
 
-    case repository.type
-      when :binary;  puts repository.data.mirrors.join("\n")
-      when :source;  puts repository.data.address
-      when :virtual; puts repository.data.address
-    end
+    puts repository.URI
   end
 
   desc 'Rehash the repository caches'

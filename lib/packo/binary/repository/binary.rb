@@ -32,7 +32,7 @@ class Binary < Repository
     dom = Nokogiri::XML.parse(File.read(self.path))
 
     dom.xpath('//mirrors/mirror').each {|e|
-      repository.data.mirrors.first_or_create(:uri => e.text)
+      repository.data.mirrors.first_or_create(:binary => repository.data, :uri => e.text)
     }
   end
 

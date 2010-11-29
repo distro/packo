@@ -51,12 +51,7 @@ class Repository
 
   Types = [:binary, :source, :virtual]
 
-  [:type, :name, :uri, :path].each {|m|
-    self.class_eval %{
-      def #{m} (value=nil); value.nil? ? @#{m} : @#{m} = value; end
-      def #{m}= (value); @#{m} = value; end
-    }
-  }
+  attr_accessor :type, :name, :uri, :path
 
   attr_reader :model
 
@@ -75,7 +70,7 @@ class Repository
   end
 
   def uri= (value)
-    @uri = URI.parse(value) if value
+    @uri = value.is_a?(URI) ? value : URI.parse(value) if value
   end
 
   def to_h
@@ -86,6 +81,10 @@ class Repository
     }
 
     return result
+  end
+
+  def to_s
+    "#{type}/#{name}"
   end
 end
 

@@ -69,7 +69,7 @@ class Application < Optitron::CLI
           a.version <=> b.version
         }.last
       end
-    }.each {|package|
+    }.compact.each {|package|
       if package.is_a?(String)
         path    = File.dirname(File.realpath(package))
         package = Package.parse(package.sub(/\.rbuild$/, ''))
@@ -244,7 +244,7 @@ class Application < Optitron::CLI
     packages = []
 
     if repository && !repository.empty?
-      repository = Repository.first(:type => :source, :name => repository)
+      repository = Repository.first(Package::Repository.parse(repository).to_h)
 
       if repository
         packages << repository.search(expression, true)

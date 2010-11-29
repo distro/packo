@@ -22,20 +22,25 @@
 require 'optitron'
 
 require 'packo'
-require 'packo_binary/helpers'
+require 'packo/binary/helpers'
 
 class Application < Optitron::CLI
-  include PackoBinary::Helpers
+  include Packo
+  include Binary::Helpers
 
   desc 'Outputs version'
   def version
-    puts "packø env manager #{Packo::VERSION}"
+    puts "packø env manager #{VERSION}"
   end
 
   desc 'Shows the environment'
   def show
-    Packo::Environment.new.each {|name, value|
-      puts "#{name} = #{value}"
+    env = Environment.new
+
+    length = env.map {|(name, value)| name.length}.max
+    
+    env.each {|(name, value)|
+      puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
     }
   end
 end

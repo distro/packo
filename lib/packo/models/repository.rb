@@ -64,6 +64,14 @@ class Repository
     end
   end
 
+  def URI
+    case type
+      when :binary;  data.mirrors.to_a.map {|m| m.uri}.join("\n")
+      when :source;  data.address
+      when :virtual; data.address
+    end
+  end
+
   def search (expression, exact=false)
     if expression.start_with?('[') && expression.end_with?(']')
       result = _find_by_expression(expression[1, expression.length - 2]).map {|id|
@@ -85,9 +93,9 @@ class Repository
 
       op = exact ? :eql : :like
 
-      conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name if package.name
+      conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name    if package.name
       conditions[DataMapper::Query::Operator.new(:version, op)] = package.version if package.version
-      conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot if package.slot
+      conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot    if package.slot
 
       result = packages.all(conditions)
 

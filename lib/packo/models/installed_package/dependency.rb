@@ -24,7 +24,7 @@ class Dependency
 
   belongs_to :installed_package
 
-  property :tags,     String, :length => 40,  :key => true
+  property :tags,     Text,                   :key => true
   property :name,     String,                 :key => true
   property :version,  String,                 :key => true
   property :slot,     String,  :default => ''

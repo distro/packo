@@ -26,16 +26,16 @@ require 'find'
 
 require 'packo'
 require 'packo/binary'
-require 'packo/models'
 require 'packo/rbuild/modules/packaging'
 
 class Application < Optitron::CLI
-  include Packo::Binary::Helpers
-  include Packo::Models
+  include Packo
+  include Binary::Helpers
+  include Models
 
   desc 'Outputs version'
   def version
-    puts "packø #{Packo::VERSION}"
+    puts "packø #{VERSION}"
   end
 
   desc 'Installs packages'
@@ -48,7 +48,7 @@ class Application < Optitron::CLI
     outside = params['destination'] != '/'
 
     FileUtils.mkpath params['destination'] rescue nil
-    FileUtils.mkpath Packo::Environment[:SELECTOR_MODULES] rescue nil
+    FileUtils.mkpath Environment[:SELECTOR_MODULES] rescue nil
 
     binary = false
 
@@ -62,8 +62,8 @@ class Application < Optitron::CLI
       if File.extname(name).empty?
         packages = nil
   
-        if Packo::Environment.new[:FLAVOR].include?('binary')
-          packages = _search(name, :binary, params['repository'])
+        if Environment.new[:FLAVOR].include?('binary')
+          packages = _search(name, params['repository'], :binary)
   
           if packages.empty?
             warn "#{name} could not be found in the binary repositories, looking in source repositories"
@@ -75,7 +75,7 @@ class Application < Optitron::CLI
   
         begin
           if !packages
-            packages = _search(name, :source, params['repository'])
+            packages = _search(name, params['repository'], :source)
   
             binary = false
           end
@@ -102,7 +102,7 @@ class Application < Optitron::CLI
             exit! 11
           end
   
-          env = Packo::Environment.new(package)
+          env = Environment.new(package)
   
           _filter(package, env)
   
@@ -150,17 +150,23 @@ class Application < Optitron::CLI
   
             if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
               fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
-              exit 99
+              exit! 13
             end
   
             path = "#{env[:TMP]}/.__packo_unpacked/#{name[env[:TMP].length, name.length]}"
   
           when :source
             name = _build(package, env)
+
+            if !name
+              fatal "Something went wrong while trying to build #{package.to_s(:whole)}"
+              exit! 14
+            end
+
             path = "#{env[:TMP]}/.__packo_unpacked/#{package.tags.to_s(true)}/#{name[env[:TMP].length + '.__packo_build/'.length, name.length]}"
         end
       else
-        env  = Packo::Environment.new
+        env  = Environment.new
         path = "#{env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
       end
 
@@ -168,24 +174,24 @@ class Application < Optitron::CLI
 
       case File.extname(name)
         when '.pko'
-          Packo::RBuild::Modules::Packaging::PKO.unpack(File.realpath(name), path)
+          RBuild::Modules::Packaging::PKO.unpack(File.realpath(name), path)
 
-          manifest = Packo::Package::Manifest.open("#{path}/manifest.xml")
+          manifest = RBuild::Package::Manifest.open("#{path}/manifest.xml")
 
         else
           fatal 'Unknown package type'
-          exit! 14
+          exit! 15
       end
 
       if !params['inherit']
-        Packo::Environment[:FLAVOR] = Packo::Environment[:FEATURES] = ''
+        Environment[:FLAVOR] = Environment[:FEATURES] = ''
       end
 
       if !params['nodeps']
         manifest.blockers {|blocker|
           if (blocker.runtime? || !binary) && _installed?(blocker)
             fatal "#{blocker} can't be installed with #{package}"
-            exit! 15
+            exit! 16
           end
         }
 
@@ -218,7 +224,7 @@ class Application < Optitron::CLI
       begin
         Find.find("#{path}/dist") {|file|
           type = nil
-          path = "#{params['destination']}/#{file[length, file.length]}".gsub(%r{/*/}, '/')
+          path = "#{params['destination']}/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
           fake = path[params['destination'].length, path.length]
           meta = nil
 
@@ -245,9 +251,13 @@ class Application < Optitron::CLI
           end
 
           case type
-            when 'dir'; puts colorize("--- #{path}", :DEFAULT, :DEFAULT, :BOLD)
+            when 'dir'; puts "--- #{path}/"
             when 'sym'; puts colorize(">>> #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
-            when 'obj'; puts ">>> #{path}"
+            when 'obj'; puts colorize(">>> #{path}", :DEFAULT, :DEFAULT, :BOLD)
+          end
+
+          if params['force']
+            InstalledPackage::Content.first(:path => fake).destroy rescue nil
           end
   
           pkg.contents.new(
@@ -272,13 +282,13 @@ class Application < Optitron::CLI
   opt 'destination', 'Set the destination where to install the package', :default => '/', :short_name => 'd'
   def uninstall (*name)
     name.each {|name|
-      InstalledPackage.search(name).each {|installed|
+      _search_installed(name).each {|installed|
         installed.contents.each {|content|
-          path = "#{params['destination']}/#{content['path']}".gsub(%r{/*/}, '/')
+          path = "#{params['destination']}/#{content.path}".gsub(%r{/*/}, '/')
 
           case content.type
             when :obj
-              puts "<<< #{path}"
+              puts colorize("<<< #{path}", :DEFAULT, :DEFAULT, :BOLD)
               FileUtils.rm_f(path)
 
             when :sym
@@ -286,7 +296,7 @@ class Application < Optitron::CLI
               FileUtils.rm_f(path)
 
             when :dir
-              puts colorize("--- #{path}", :DEFAULT, :DEFAULT, :BOLD)
+              puts "--- #{path}/"
               Dir.delete(path) rescue nil
           end
         }
@@ -296,15 +306,78 @@ class Application < Optitron::CLI
     }
   end
 
-  def show
-    InstalledPackage.all.each {|package|
-      # TODO: real tagging
+  desc 'Searches through installed packages'
+  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
+  opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
+  def search (expression='')
+    _search_installed(expression, params['repository'], params['type']).each {|package|
       print "#{package.tags}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
       print "-#{colorize(package.version, :RED)}"
       print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
       print " [#{package.features}]" if package.features
       print " {#{package.flavors}}" if package.flavors
+    }
+  end
+
+  desc 'Searches through installed packages and returns detailed informations about them'
+  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
+  opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
+  def info (expression='')
+    _search_installed(expression, params['repository'], params['type']).map {|package|
+      _search(package.to_s(:whole), package.repository.name, package.repository.type).first
+    }.compact.each {|package|
+      print "[#{colorize("source/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
+      print colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)
+      print "-#{colorize(package.version, :RED)}"
+      print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
+      print " [#{colorize(package.tags.join(' '), :MAGENTA)}]"
+      print "\n"
+
+      puts "    #{colorize('Description', :GREEN)}: #{package.description}"
+      puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
+      puts "    #{colorize('License', :GREEN)}:     #{package.license}"
+      puts "    #{colorize('Maintainer', :GREEN)}:  #{package.model.maintainer || 'nobody'}"
+
+      case package.repository.type
+        when :binary
+          puts "    #{colorize('Features', :GREEN)}:    #{package.features.to_a.select {|f| f.enabled?}.map {|f| f.name}.join(' ')}"
+
+          print "    #{colorize('Builds', :GREEN)}:      "
+          package.model.data.builds.each {|build|
+            print 'With '
+
+            if !build.features.empty?
+              print colorize(build.features, :DEFAULT, :DEFAULT, :BOLD)
+            else
+              print 'nothing'
+            end
+
+            print " in #{colorize(build.flavor, :DEFAULT, :DEFAULT, :BOLD)} flavor" if build.flavor
+            print colorize(" (SHA1 #{build.digest})", :BLACK, :DEFAULT, :BOLD) if build.digest
+            print "\n                 "
+          }
+
+        when :source
+          print "    #{colorize('Features', :GREEN)}:    "
+
+          features = package.model.data.features
+          length   = features.map {|feature| feature.name.length}.max
+
+          features.each {|feature|
+            if feature.enabled
+              print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{Environment[:NO_COLORS] ? '!' : ''}"
+            else
+              print colorize(feature.name, :BLACK, :DEFAULT, :BOLD)
+            end
+
+            print "#{' ' * (4 + length - feature.name.length + (Environment[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
+
+            print "\n                 "
+          }
+      end
+
+      print "\n"
     }
   end
 
@@ -367,48 +440,52 @@ class Application < Optitron::CLI
 
   def _installed? (package)
     InstalledPackage.first(
-      :tags     => package.tags.hashed,
-      :name     => package.name,
-      :version  => package.version,
-      :slot     => package.slot
+      :tags_hashed => package.tags.hashed,
+      :name        => package.name,
+      :version     => package.version,
+      :slot        => package.slot
     )
   end
 
-  def _search (package, type, repository=nil)
-    Packo::Environment.sandbox(:NO_COLORS => 1) {
-      `packo-repository #{"--repository='#{repository}'" if repository} --type='#{type}' --full=true search '#{package}'`.lines.map {|line|
-        matches = line.match(%r{^(.*?)\s*\((.*?)/(.*?) \| (.*?) \| (.*?)\)$})
+  def _search_installed (expression, name=nil, type=nil)
+    InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil)
+  end
 
-        next if !matches
+  def _search (expression, name=nil, type=nil)
+    packages = []
 
-        pkg = Packo::Package.parse(matches[1])
+    if name && !name.empty?
+      repository      = Package::Repository.parse(name)
+      repository.type = type if Package::Repository::Types.member?(type.to_sym)
+      repository      = Repository.first(repository.to_h)
 
-        Packo::Package.new(
-          :tags    => pkg.tags,
-          :name    => pkg.name,
-          :version => pkg.version,
-          :slot    => pkg.slot,
+      if repository
+        packages << repository.search(expression)
+      end
+    else
+      Package::Repository::Types.each {|t|
+        if type.nil? || type == 'all' || type == t
+          Repository.all(:type => t).each {|repository|
+            packages << repository.search(expression)
+          }
+        end
+      }
+    end
 
-          :repository =>OpenStruct.new(
-            :type => matches[2].to_sym,
-            :name => matches[3],
-            :uri  => matches[4],
-            :path => matches[5]
-          )
-        )
-      }.compact
+    return packages.flatten.compact.map {|package|
+      Package.wrap(package)
     }
   end
 
   def _uri (repository)
-    `packo-repository uri '#{repository.type}/#{repository.name}'`.strip
+    Repository.first(Package::Repository.parse(name).to_h).URI rescue nil
   end
 
   def _build (package, env)
     FileUtils.rm_rf "#{env[:TMP]}/.__packo_build", :secure => true rescue nil
     FileUtils.mkpath "#{env[:TMP]}/.__packo_build" rescue nil
 
-    if !system("sandbox packo-build --output='#{env[:TMP]}/.__packo_build' --repository='#{package.repository.type}/#{package.repository.name}' package #{package.to_s}")
+    if !system("sandbox packo-build --output='#{env[:TMP]}/.__packo_build' --repository='#{package.repository}' package #{package.to_s(:whole)}")
       raise RuntimeError.new 'Build failed'
     end
 
@@ -416,50 +493,30 @@ class Application < Optitron::CLI
   end
 
   def _has (package, env)
-    Packo::Environment.sandbox(:NO_COLORS => 1) {
-      `packo-repository info --repository='binary/#{package.repository.name}' '#{package.to_s}'`.include?(
-        %{With #{
-            env[:FEATURES].empty? ? 'nothing' : env[:FEATURES].split(/\s+/).join(' ')
-          }#{" in #{
-            env[:FLAVOR].split(/\s+/).join(' ')
-          } flavor" if !env[:FLAVOR].empty?}
-        }.strip
-      )
+    !!_search(package.to_s(:whole), package.repository.name, package.repository.type).find {|package|
+      !!package.model.data.builds.to_a.find {|build|
+        build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
+        build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
+      }
     }
   end
 
   def _filter (package, env)
     env[:FLAVOR] = env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.join(' ')
 
-    matches = Packo::Environment.sandbox(:NO_COLORS => 1) {
-      `packo-repository info --repository='binary/#{package.repository.name}' '#{package.to_s}'`.match(
-        /Features:\s+(.+)$/
-      )
-    }
-
-    if !matches
-      env[:FEATURES] = ''
-    else
-      features       = matches[1].split(/\s+/)
-      env[:FEATURES] = env[:FEATURES].split(/\s+/).delete_if {|f|
-        !features.member?(f)
-      }.join(' ')
-    end
+    features       = _search(package.to_s(:whole), package.repository.name, package.repository.type).first.features
+    env[:FEATURES] = env[:FEATURES].split(/\s+/).delete_if {|f|
+      !features.member?(f)
+    }.join(' ')
   end
 
   def _digest (package, env)
-    matches = Packo::Environment.sandbox(:NO_COLORS => 1) {
-      `packo-repository info --repository='binary/#{package.repository.name}' '#{package.to_s}'`.match(
-        %r{#{Regexp.escape(%{With #{
-            env[:FEATURES].empty? ? 'nothing' : env[:FEATURES].split(/\s+/).join(' ')
-          }#{" in #{
-            env[:FLAVOR].split(/\s+/).join(' ')
-          } flavor" if !env[:FLAVOR].empty?}
-        }.strip)}.*?\(SHA1 (.*?)\)}
-      )
-    }
-
-    return matches[1] if matches
+    _search(package, package.repository.name, :binary).find {|package|
+      package.model.data.builds.to_a.find {|build|
+        build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
+        build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
+      }
+    }.model.data.digest
   end
 
   def _exists? (path)
