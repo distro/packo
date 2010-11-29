@@ -142,22 +142,22 @@ class Repository
       names.each_index {|index|
         joins << %{
           LEFT JOIN (
-              SELECT ____u_t_#{index}.package_id
+              SELECT _used_tag_#{index}.package_id
 
-              FROM packo_models_package_tags AS ____u_t_#{index}
+              FROM packo_models_package_tags AS _used_tag_#{index}
 
-              INNER JOIN packo_models_tags AS ____t_#{index}
-                  ON ____u_t_#{index}.tag_id = ____t_#{index}.id AND ____t_#{index}.name = ?
-          ) AS ____t_i_#{index}
-              ON packo_models_repository_packages.id = ____t_i_#{index}.package_id
+              INNER JOIN packo_models_tags AS _tag_#{index}
+                  ON _used_tag_#{index}.tag_id = _tag_#{index}.id AND _tag_#{index}.name = ?
+          ) AS _tag_check_#{index}
+              ON packo_models_repository_packages.id = _tag_check_#{index}.package_id
         }
 
         if (replace = names[index]).match(/[\s&!|]/)
           replace = %{"#{replace}"}
         end
 
-        expression.gsub!(/([\s()]|\G)!\s*#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (____t_i_#{index}.package_id IS NULL) \\2")
-        expression.gsub!(/([\s()]|\G)#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (____t_i_#{index}.package_id IS NOT NULL) \\2")
+        expression.gsub!(/([\s()]|\G)!\s*#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (_tag_check_#{index}.package_id IS NULL) \\2")
+        expression.gsub!(/([\s()]|\G)#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (_tag_check_#{index}.package_id IS NOT NULL) \\2")
       }
 
       expression.gsub!(/([\G\s()])&&([\s()\A])/, '\1 AND \2')
@@ -170,16 +170,15 @@ class Repository
     def _find_by_expression (expression)
       joins, names, expression = _expression_to_sql(expression)
 
-      # It's an array to use the ? thing of select
-      repository.adapter.select(*[%{
-          SELECT DISTINCT packo_models_repository_packages.id
+      repository.adapter.select(%{
+        SELECT DISTINCT packo_models_repository_packages.id
 
-          FROM packo_models_repository_packages
+        FROM packo_models_repository_packages
 
-          #{joins}
+        #{joins}
 
-          WHERE #{expression}
-      }].concat(names))
+        WHERE packo_models_repository_packages.repo_id = ? #{"AND (#{expression})" if !expression.empty?}
+      }, *(names + [id]))
     end
 end
 

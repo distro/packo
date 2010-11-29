@@ -48,7 +48,7 @@ class InstalledPackage
 
   def self.search (expression, exact=false, repository=nil)
     if expression.start_with?('[') && expression.end_with?(']')
-      result = _find_by_expression(expression[1, expression.length - 2]).map {|id|
+      result = self._find_by_expression(expression[1, expression.length - 2]).map {|id|
         InstalledPackage.get(id)
       }
     else
@@ -147,19 +147,18 @@ class InstalledPackage
       return joins, names, expression
     end
 
-    def self._find_by_expression (expression)
+    def self._find_by_expression (expression, repository)
       joins, names, expression = self._expression_to_sql(expression)
 
-      # It's an array to use the ? thing of select
-      repository.adapter.select(*[%{
-          SELECT DISTINCT packo_models_installed_packages.id
+      repository.adapter.select(%{
+        SELECT DISTINCT packo_models_installed_packages.id
 
-          FROM packo_models_installed_packages
+        FROM packo_models_installed_packages
 
-          #{joins}
+        #{joins}
 
-          WHERE #{expression}
-      }].concat(names))
+        WHERE #{expression}
+      }, *names)
     end
 end
 
