@@ -20,27 +20,32 @@
 module Packo; module RBuild; module Modules; module Misc
 
 class Unpack < Module
+  def self.do (path, to)
+    compression = case File.extname(path)
+      when '.xz'; 'J'
+      else        ''
+    end
+
+    FileUtils.mkpath(to) rescue nil
+
+    Packo.sh 'tar', "x#{compression}f", path, '-k', '-C', to
+  end
+
   def initialize (package)
     super(package)
 
     package.stages.add :unpack, self.method(:unpack), :after => :fetch, :strict => true
+
+    before :initialize do |package|
+      package.define_singleton_method :unpack, &Unpack.method(:do)
+    end
   end
 
   def unpack
-    package.distfiles.each {|file|
-      package.stages.callbacks(:unpack).do {
-        case File.extname(file)
-          when '.xz'
-            compression = 'J'
+    package.stages.callbacks(:unpack).do {
+      Unpack.do file, Packo.interpolate('#{package.directory}/work', self)
 
-          else
-            compression = ''
-        end
-
-        Packo.sh 'tar', "x#{compression}f", file, '-k', '-C', Packo.interpolate('#{package.directory}/work', self)
-
-        Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
-      }
+      Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
     }
   end
 end

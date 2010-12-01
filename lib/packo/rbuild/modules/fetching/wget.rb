@@ -20,6 +20,10 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Wget < Module
+  def self.fetch (path, to)
+    Packo.sh 'wget', '-c', '-O', to, path
+  end
+
   def initialize (package)
     super(package)
 
@@ -50,7 +54,7 @@ class Wget < Module
       sources.each {|source|
         distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
 
-        Packo.sh 'wget', '-c', '-O', distfiles.last, source
+        Wget.fetch source, distfiles.last
       }
     }
 

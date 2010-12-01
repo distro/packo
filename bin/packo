@@ -205,45 +205,51 @@ class Application < Optitron::CLI
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
       }
 
-      pkg = InstalledPackage.new(:repo => params['repository'],
+      pkg = InstalledPackage.first_or_create(
         :tags_hashed => manifest.package.tags.hashed,
         :name        => manifest.package.name,
         :version     => manifest.package.version,
-        :slot        => manifest.package.slot,
-        :revision    => manifest.package.revision,
+        :slot        => manifest.package.slot
+      )
 
-        :flavors     => manifest.package.flavors,
-        :features    => manifest.package.features,
+      pkg.update(
+        :repo => params['repository'],
+
+        :revision => manifest.package.revision,
+
+        :flavors  => manifest.package.flavors.join(' '),
+        :features => manifest.package.features.join(' '),
         
         :manual  => manual,
         :runtime => true
       )
 
       length = "#{path}/dist".length
+      old    = path
 
       begin
         Find.find("#{path}/dist") {|file|
           type = nil
           path = "#{params['destination']}/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
-          fake = path[params['destination'].length, path.length]
+          fake = path[params['destination'].length, path.length] || ''
           meta = nil
 
-          if !outside && pkg = _exists?(fake) && !params['force']
-            fatal "#{path} belongs to #{pkg}, use --force to force overwrite"
+          if !outside && tmp = _exists?(fake) && !params['force']
+            fatal "#{path} belongs to #{tmp}, use --force to force overwrite"
             raise RuntimeError.new 'File collision'
           end
   
           if File.directory? file
-            type = 'dir'
-            FileUtils.mkpath path
+            type = :dir
+            FileUtils.mkpath path rescue nil
           elsif File.symlink? file
-            type = 'sym'
+            type = :sym
             meta = File.readlink file
 
             FileUtils.rm_f path
             File.symlink meta, path
           elsif File.file? file
-            type = 'obj'
+            type = :obj
             meta = Digest::SHA1.hexdigest(File.read(file))
             FileUtils.cp file, path, :preserve => true
           else
@@ -251,29 +257,39 @@ class Application < Optitron::CLI
           end
 
           case type
-            when 'dir'; puts "--- #{path}/"
-            when 'sym'; puts colorize(">>> #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
-            when 'obj'; puts colorize(">>> #{path}", :DEFAULT, :DEFAULT, :BOLD)
+            when :dir; puts "--- #{path}/"
+            when :sym; puts colorize(">>> #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
+            when :obj; puts colorize(">>> #{path}", :DEFAULT, :DEFAULT, :BOLD)
           end
 
           if params['force']
             InstalledPackage::Content.first(:path => fake).destroy rescue nil
           end
-  
-          pkg.contents.new(
-            :type => type.to_sym,
-            :path => fake,
+
+          content = pkg.contents.first_or_create(
+            :type => type,
+            :path => fake
+          )
+
+          content.update(
             :meta => meta
           )
         }
       rescue Exception => e
-        fatal 'Something went deeply wrong when installing package contents'
+        fatal 'Something went deeply wrong while installing package contents'
         Packo.debug e, :force => true
+
+        pkg.destroy rescue nil
+
+        Find.find("#{old}/dist") {|file|
+          RBuild::Do.rm "#{params['destination']}/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
+        }
+
         exit! 17
       end
 
-      if !(outside && !params['force'])
-        pkg.save
+      if outside && !params['force']
+        pkg.destroy
       end
     }
   end
@@ -520,7 +536,7 @@ class Application < Optitron::CLI
   end
 
   def _exists? (path)
-    InstalledPackage::Content.first(:path.eql => path, :type.not => :dir).package rescue false
+    InstalledPackage::Content.first(:path => path, :type.not => :dir).package rescue false
   end
 end
 

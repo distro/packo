@@ -23,10 +23,11 @@ class Patch < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :patch, self.method(:patch), :before => :configure
-  end
-
-  def patch
+    before :initialize do |package|
+      package.define_singleton_method :patch do |patch, options={}|
+        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
+      end
+    end
   end
 end
 

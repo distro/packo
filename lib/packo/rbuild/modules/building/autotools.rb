@@ -49,6 +49,8 @@ class Autotools < Module
   end
 
   class Configuration
+    attr_accessor :path
+
     attr_reader :module
 
     def initialize (mod)
@@ -57,6 +59,8 @@ class Autotools < Module
       @enable = {}
       @with   = {}
       @other  = {}
+
+      @path = './configure'
     end
 
     def with (name, value=nil)
@@ -166,7 +170,7 @@ class Autotools < Module
 
         def configure (conf)
           package.environment.sandbox {
-            Packo.sh "./configure #{conf}"
+            Packo.sh "#{conf.path} #{conf}"
           }
         end
 
@@ -246,8 +250,10 @@ class Autotools < Module
     @configuration.set 'target', target.to_s
 
     package.stages.callbacks(:configure).do(@configuration) {
-      if !File.exists? 'configure'
+      if !File.exists? @configuration.path
+        Do.pushd File.dirname(@configuration.path)
         package.autotools.autogen
+        Do.popd
       end
 
       if !File.exists? 'Makefile'

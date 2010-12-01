@@ -25,8 +25,10 @@ class Content
   belongs_to :installed_package
 
   property :type, Enum[:dir, :obj, :sym]
+
   property :path, Text, :key => true
-  property :meta, Text
+
+  property :meta, Object, :required => false
 end
 
 end; end; end
