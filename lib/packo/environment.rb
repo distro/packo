@@ -21,10 +21,10 @@ module Packo
 
 class Environment < Hash
   @@default = {
-    :ARCH     => 'x86',
-    :KERNEL   => 'linux',
-    :LIBC     => 'glibc',
-    :COMPILER => 'gcc',
+    :ARCH     => nil,
+    :KERNEL   => nil,
+    :LIBC     => nil,
+    :COMPILER => nil,
 
     :CFLAGS    => '-Os -pipe',
     :CXXFLAGS  => '-Os -pipe',
@@ -70,7 +70,7 @@ class Environment < Hash
           self[:CXX] = 'clang++'
 
         else
-          raise ArgumentError.new 'I do not know that compiler :<'
+          raise ArgumentError.new 'I do not know that compiler :<' if value
       end
     }
   }
@@ -80,7 +80,7 @@ class Environment < Hash
   end
 
   def self.[]= (name, value)
-    ENV["PACKO_#{name}"] = value.to_s
+    ENV["PACKO_#{name}"] = value.to_s rescue ''
   end
 
   def self.each
@@ -138,19 +138,12 @@ class Environment < Hash
     end
   end
 
-
   attr_reader :package
 
-  def initialize (package=nil)
+  def initialize (package=nil, noenv=false)
     @package = package
 
     mod = ::Module.new
-
-    Environment.each {|name, value|
-      suppress_warnings {
-        mod.const_set name.to_sym, value
-      }
-    }
 
     ["#{Environment[:PROFILE]}/packo.conf", Environment[:CONFIG_FILE]].each {|file|
       if File.readable? file
@@ -173,6 +166,9 @@ class Environment < Hash
     }
 
     Environment.clone.each {|key, value|
+      next unless value
+
+      # This is an array, not a call to self.[]
       if [:FEATURES].member?(key)
         if self[key].is_a?(String)
           self[key] << " #{value}"
@@ -182,7 +178,9 @@ class Environment < Hash
       else
         self[key] = value
       end
-    }
+    } unless noenv
+
+    yield self if block_given?
   end
 
   alias __get []

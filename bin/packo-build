@@ -38,12 +38,16 @@ class Application < Optitron::CLI
   end
 
   desc 'Creates a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Environment[:TMP], :short_name => 't'
   opt 'output', 'The directory where to save packages', :default => Environment[:TMP]
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
   opt 'repository', 'Set a specific source repository', :type => :string
   def package (*name)
-    Environment[:TMP] = params['tmp']
+    Environment.new {|env|
+      if !env[:ARCH] || !env[:KERNEL] || !env[:LIBC] || !env[:COMPILER]
+        fatal "You have to set ARCH, KERNEL, LIBC and COMPILER to build packages."
+        exit! 1
+      end
+    }
 
     name.map {|package|
       if package.end_with?('.rbuild')
@@ -111,7 +115,7 @@ class Application < Optitron::CLI
       if (File.read("#{package.directory}/.build") rescue nil) != package.to_s || params['wipe']
         info "Cleaning #{package} because flavors/features changed."
 
-        clean(package.to_s)
+        clean("#{package.to_s(:name)}-#{package.version}")
 
         package.create!
 
@@ -139,22 +143,33 @@ class Application < Optitron::CLI
   opt 'tmp', 'The path to the temporary directory', :default => Environment[:TMP], :short_name => 't'
   def clean (*name)
     name.map {|package|
-      tmp = _search(package)
+      if package.end_with?('.rbuild')
+        package
+      else
+        packages = _search(package)
 
-      if (multiple = tmp.uniq).length > 1
-        fatal 'Multiple packages with the same name, be more precise.'
-        exit 2
+        if (multiple = packages.uniq).length > 1
+          fatal 'Multiple packages with the same name, be more precise.'
+          exit 2
+        end
+
+        packages.last
+      end
+    }.compact.each {|package|
+      if package.is_a?(String)
+        path    = File.dirname(File.realpath(package))
+        package = Package.parse(package.sub(/\.rbuild$/, ''))
+      else
+        path = "#{package.repository.path}/#{package.model.data.path}"
       end
 
-      tmp.last
-    }.each {|package|
       begin
-        path = "#{params['tmp']}/#{package.to_s(:name)}/#{package.version}"
+        loadPackage(path, package).clean!
 
-        FileUtils.rm_r "#{path}/work"; FileUtils.mkpath "#{path}/work"
-        FileUtils.rm_r "#{path}/dist"; FileUtils.mkpath "#{path}/dist"
-        FileUtils.rm_r "#{path}/temp"; FileUtils.mkpath "#{path}/temp"
-      rescue Exception
+        info "Cleaned #{package.to_s(:name)}"
+      rescue Exception => e
+        fatal "Failed cleaning of #{package.to_s(:name)}"
+        Packo.debug e, :force => true
       end
     }
   end

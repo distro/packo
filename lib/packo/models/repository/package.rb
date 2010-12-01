@@ -36,7 +36,7 @@ class Package
   property :tags_hashed, String,  :length => 40,   :required => true, :unique_index => :a
   property :name,        String,                   :required => true, :unique_index => :a
   property :version,     Version,                  :required => true, :unique_index => :a
-  property :slot,        Version, :default => '',                     :unique_index => :a
+  property :slot,        String,  :default => '',                     :unique_index => :a
   property :revision,    Integer, :default => 0
 
   property :description,  Text, :default => '', :required => false

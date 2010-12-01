@@ -61,6 +61,7 @@ class Package < Packo::Package
 
     @data         = {}
     @modules      = []
+    @environment  = Environment.new(self)
     @dependencies = Dependencies.new(self)
     @blockers     = Blockers.new(self)
     @stages       = Stages.new(self)
@@ -70,19 +71,17 @@ class Package < Packo::Package
     @pre          = []
     @post         = []
 
-    @environment = Environment.new(self)
-
-    self.directory = "#{package.environment['TMP']}/#{self.to_s(:whole)}/#{@version}"
-    self.workdir   = "#{package.directory}/work"
-    self.distdir   = "#{package.directory}/dist"
-    self.tempdir   = "#{package.directory}/temp"
-
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
     @stages.add :blockers,     @blockers.method(:check),     :at => :beginning
 
     if (@parent = Package.last)
       self.instance_exec(self, &@parent.instance_eval('@block'))
     end
+
+    self.directory = "#{package.environment['TMP']}/#{self.to_s(:whole)}/#{@version}"
+    self.workdir   = "#{package.directory}/work"
+    self.distdir   = "#{package.directory}/dist"
+    self.tempdir   = "#{package.directory}/temp"
 
     stages.callbacks(:initialize).do(self) {
       self.instance_exec(self, &block) if block
@@ -100,16 +99,22 @@ class Package < Packo::Package
     FileUtils.mkpath self.tempdir
   rescue; end
 
+  def clean!
+    FileUtils.rm_rf self.workdir, :secure => true
+    FileUtils.rm_rf self.distdir, :secure => true
+    FileUtils.rm_rf self.tempdir, :secure => true
+  rescue; end
+
   def envify!
     Flavor::Names.each {|flavor|
-      if Environment[:FLAVOR].include?(flavor.to_s)
+      if environment.include?(flavor.to_s)
         self.flavor.send "#{flavor}!"
       else
         self.flavor.send "not_#{flavor}!"
       end
     }
 
-    Environment[:FEATURES].split(/\s+/).each {|feature|
+    environment[:FEATURES].split(/\s+/).each {|feature|
       feature = Feature.parse(feature)
 
       self.features {

@@ -117,10 +117,6 @@ class Package
     @version = ((value.is_a?(Versionomy::Value)) ? value : Versionomy.parse(value.to_s)) if value
   end
 
-  def slot= (value)
-    @slot = ((value.is_a?(Versionomy::Value)) ? value : Versionomy.parse(value.to_s)) if value
-  end
-
   def revision= (value)
     @revision = value.to_i rescue 0
   end

@@ -20,6 +20,34 @@
 module Packo; module RBuild; module Modules; module Building
 
 class Autotools < Module
+  class Host
+    attr_accessor :arch, :kernel, :misc
+
+    def initialize (env)
+      @arch   = env[:ARCH]
+      @kernel = env[:KERNEL]
+      @misc   = nil
+
+      case @arch
+        when 'core2'; @arch = 'x86_64'
+      end
+
+      case @kernel
+        when 'windows'; @kernel = 'cygwin'
+        when 'mac';     @kernel = 'darwin'
+        when 'linux';   @misc   = 'gnu'
+      end
+    end
+
+    def == (value)
+      self.to_s == value.to_s
+    end
+
+    def to_s
+      "#{arch}-#{kernel}#{"-#{misc}" if misc}"
+    end
+  end
+
   class Configuration
     attr_reader :module
 
@@ -77,6 +105,14 @@ class Autotools < Module
 
     def get (name)
       @other[name.to_s]
+    end
+
+    def delete (from, name)
+      case from.to_sym
+        when :with;   @with.delete(name.to_s)
+        when :enable; @enable.delete(name.to_s)
+        when :other;  @other.delete(name.to_s)
+      end
     end
 
     def to_s
@@ -199,6 +235,15 @@ class Autotools < Module
     @configuration.set 'sysconfdir',     '/etc'
     @configuration.set 'sharedstatedir', '/com'
     @configuration.set 'localstatedir',  '/var'
+
+    host   = Host.new(Environment.new(nil, true))
+    target = Host.new(package.environment)
+
+    if !Environment[:CROSS]
+      @configuration.set 'host', host != target ? target.to_s : host.to_s
+    end
+
+    @configuration.set 'target', target.to_s
 
     package.stages.callbacks(:configure).do(@configuration) {
       if !File.exists? 'configure'
