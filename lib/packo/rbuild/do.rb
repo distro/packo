@@ -22,8 +22,6 @@ require 'fileutils'
 module Packo; module RBuild;
 
 module Do
-  @@paths = []
-
   def self.rm (*path)
     path.each {|path|
       next unless File.exists?(path)
@@ -37,24 +35,23 @@ module Do
   end
 
   def self.dir (path)
-    FileUtils.mkpath(path) rescue false
+    FileUtils.mkpath(path) rescue nil
   end
 
   def self.cd (path)
-    Dir.chdir(path) rescue false
+    if block_given?
+      tmp = Dir.pwd
+
+      Dir.chdir(path)
+      yield
+      Dir.chdir(tmp)
+    else
+      Dir.chdir(path) rescue false
+    end
   end
 
   def self.touch (*path)
     FileUtils.touch(path) rescue nil
-  end
-
-  def self.pushd (path)
-    @@paths.push(Dir.pwd)
-    Dir.chdir(path)
-  end
-
-  def self.popd
-    Dir.chdir(@@paths.pop)
   end
 end
 

@@ -23,35 +23,41 @@ require 'uri'
 module Packo; module RBuild; module Modules; module Fetching
 
 class SourceForge < Module
+  def self.fetch (url, to, package={})
+    if !url.include?('downloads.sourceforge.net')
+      url = SourceForge.url(url, package)
+    end
+
+    Packo.sh 'wget', '-c', '-O', to, url
+  end
+
+  def self.url (url, package={})
+    matches = Packo.interpolate(url, package).match(%r{^(.*?)/(.*?)$})
+
+    project = matches[1]
+    path    = matches[2]
+
+    body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{project}/files/#{File.dirname(path)}/"))
+    body = Net::HTTP.get(URI.parse(body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).find {|(url)|
+      url.match(%r{((tar\.(lzma|xz|bz2|gz))|zip|rar)/download$})
+    }.first))
+
+    URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
+  end
+
   def initialize (package)
     super(package)
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
-
-    before :initialize do |package|
-      package.fetch = Class.new(Module::Helper) {
-        def url (name=nil)
-          matches = Packo.interpolate(name || package.source, package).match(%r{^(.*?)/(.*?)$})
-
-          name    = matches[1]
-          version = matches[2]
-
-          body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{name}/files/"))
-          body = Net::HTTP.get(URI.parse(body.match(%r{href="(.*?#{name}/files/#{name}/#{version}/.*?/download)"})[1]))
-
-          URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
-        end
-      }.new(package)
-    end
   end
 
   def fetch
-    source = package.fetch.url
+    source = SourceForge.url(package.source, package)
 
     package.stages.callbacks(:fetch).do {
       package.distfiles ["#{package.fetchdir || '/tmp'}/#{File.basename(source).sub(/\?.*$/, '')}"]
 
-      Packo.sh 'wget', '-c', '-O', package.distfiles.last, source
+      SourceForge.fetch source, package.distfiles.last
     }
   end
 end

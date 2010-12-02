@@ -20,41 +20,33 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Wget < Module
-  def self.fetch (path, to)
+  def self.fetch (path, to, package={})
     Packo.sh 'wget', '-c', '-O', to, path
+  end
+  
+  def self.url (url, package={})
+    Packo.interpolate(url, package)
   end
 
   def initialize (package)
     super(package)
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
-
-    before :initialize do |package|
-      package.fetch = Class.new(Module::Helper) {
-        def url (source=nil)
-          if source.is_a? Integer
-            Packo.interpolate(package.source[source], package)
-          elsif source.is_a? String
-            Packo.interpolate(source, package)
-          else
-            Packo.interpolate(package.source.first, package)
-          end
-        end
-      }.new(package)
-    end
   end
 
   def fetch
     version = package.version
 
     distfiles = []
-    sources   = [package.source].flatten.compact.map {|s| package.fetch.url(s)}
+    sources   = [package.source].flatten.compact.map {|s|
+      Wget.url(s, package)
+    }
 
     package.stages.callbacks(:fetch).do(sources) {
       sources.each {|source|
         distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
 
-        Wget.fetch source, distfiles.last
+        Wget.fetch source, distfiles.last, package
       }
     }
 

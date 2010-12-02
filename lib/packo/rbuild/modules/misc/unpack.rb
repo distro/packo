@@ -20,15 +20,19 @@
 module Packo; module RBuild; module Modules; module Misc
 
 class Unpack < Module
-  def self.do (path, to)
-    compression = case File.extname(path)
-      when '.xz'; 'J'
-      else        ''
+  def self.do (path, to=nil)
+    options = [case File.extname(path)
+      when '.xz';   '--xz'
+      when '.lzma'; '--lzma'
+    end].flatten.compact
+
+    if to
+      options << '-C' << to
     end
 
     FileUtils.mkpath(to) rescue nil
 
-    Packo.sh 'tar', "x#{compression}f", path, '-k', '-C', to
+    Packo.sh 'tar', "xf", path, *options, '-k'
   end
 
   def initialize (package)
@@ -43,7 +47,7 @@ class Unpack < Module
 
   def unpack
     package.stages.callbacks(:unpack).do {
-      Unpack.do file, Packo.interpolate('#{package.directory}/work', self)
+      Unpack.do package.distfiles.first, Packo.interpolate('#{package.directory}/work', self)
 
       Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
     }

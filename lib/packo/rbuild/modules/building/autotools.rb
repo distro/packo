@@ -180,34 +180,51 @@ class Autotools < Module
           self.automake
         end
 
-        def autoreconf (version=nil)
+        def autoreconf (*args)
+          version = args.last.is_a?(Numeric) ? args.pop : nil
+
           package.environment.sandbox {
-            Packo.sh 'aclocal'
-            Packo.sh "autoreconf#{"-#{version}" if version}"
+            Packo.sh "autoreconf#{"-#{version}" if version}", *args
           }
         end
 
-        def autoconf (version=nil)
+        def aclocal (*args)
+          version = args.last.is_a?(Numeric) ? args.pop : nil
+
           package.environment.sandbox {
-            Packo.sh "autoconf#{"-#{version}" if version}"
+            Packo.sh "aclocal#{"-#{version}" if version}", *args
           }
         end
 
-        def autoheader (version=nil)
+        def autoconf (*args)
+          version = args.last.is_a?(Numeric) ? args.pop : nil
+
           package.environment.sandbox {
-            Packo.sh "autoheader#{"-#{version}" if version}"
+            Packo.sh "autoconf#{"-#{version}" if version}", *args
           }
         end
 
-        def automake (version=nil)
+        def autoheader (*args)
+          version = args.last.is_a?(Numeric) ? args.pop : nil
+
           package.environment.sandbox {
-            Packo.sh "automake#{"-#{version}" if version}"
+            Packo.sh "autoheader#{"-#{version}" if version}", *args
           }
         end
 
-        def autoupdate (version=nil)
+        def automake (*args)
+          version = args.last.is_a?(Numeric) ? args.pop : nil
+
           package.environment.sandbox {
-            Packo.sh "autoupdate#{"-#{version}" if version}"
+            Packo.sh "automake#{"-#{version}" if version}", *args
+          }
+        end
+
+        def autoupdate (*args)
+          version = args.last.is_a?(Numeric) ? args.pop : nil
+
+          package.environment.sandbox {
+            Packo.sh "autoupdate#{"-#{version}" if version}", *args
           }
         end
 
@@ -251,9 +268,9 @@ class Autotools < Module
 
     package.stages.callbacks(:configure).do(@configuration) {
       if !File.exists? @configuration.path
-        Do.pushd File.dirname(@configuration.path)
-        package.autotools.autogen
-        Do.popd
+        Do.cd(@configuration.path) {
+          package.autotools.autogen
+        }
       end
 
       if !File.exists? 'Makefile'
