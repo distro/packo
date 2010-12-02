@@ -75,8 +75,8 @@ class Environment < Hash
     }
   }
 
-  def self.[] (name)
-    ENV["PACKO_#{name}"] || ENV[name.to_s] || @@default[name.to_sym]
+  def self.[] (name, nodefault=false)
+    ENV["PACKO_#{name}"] || ENV[name.to_s] || (nodefault ? nil : @@default[name.to_sym])
   end
 
   def self.[]= (name, value)
@@ -84,9 +84,9 @@ class Environment < Hash
   end
 
   def self.each
-    variables = @@default.keys + ENV.map {|(key, value)|
+    variables = (@@default.keys + (ENV.map {|(key, value)|
       key.sub(/^PACKO_/, '').to_sym if key.match(/^PACKO_/)
-    }.compact
+    }.compact)).uniq
 
     if variables.member?(:FLAVORS)
       variables.delete(:FLAVORS)
@@ -95,8 +95,8 @@ class Environment < Hash
       Environment[:FLAVOR] = Environment[:FLAVORS]
     end
 
-    variables.uniq.each {|name|
-      yield name.to_s, Environment[name]
+    variables.each {|name|
+      yield name, Environment[name]
     }
   end
 
@@ -165,8 +165,8 @@ class Environment < Hash
       self[const] = mod.const_get const
     }
 
-    Environment.clone.each {|key, value|
-      next unless value
+    Environment.each {|key, value|
+      next if value.nil?
 
       # This is an array, not a call to self.[]
       if [:FEATURES].member?(key)
@@ -176,7 +176,7 @@ class Environment < Hash
           self[key] = value
         end
       else
-        self[key] = value
+        self[key] = value unless self[key] && value == @@default[key] && !Environment[key, true]
       end
     } unless noenv
 
