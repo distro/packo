@@ -217,8 +217,8 @@ class Application < Optitron::CLI
 
         :revision => manifest.package.revision,
 
-        :flavor   => manifest.package.flavors.join(' '),
-        :features => manifest.package.features.join(' '),
+        :flavor   => manifest.package.flavor,
+        :features => manifest.package.features,
         
         :manual  => manual,
         :runtime => true
