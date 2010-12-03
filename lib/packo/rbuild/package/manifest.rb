@@ -26,10 +26,12 @@ class Manifest
   def self.open (path)
     dom = Nokogiri::XML.parse(File.read(path))
 
+
+
     Manifest.new(OpenStruct.new(
       :maintainer => dom.root['maintainer'],
 
-      :tags    => dom.xpath('//package/tags').first.text,
+      :tags    => Packo::Package::Tags.parse(dom.xpath('//package/tags').first.text),
       :name    => dom.xpath('//package/name').first.text,
       :version => Versionomy.parse(dom.xpath('//package/version').first.text),
       :slot    => dom.xpath('//package/slot').first.text,
@@ -69,7 +71,7 @@ class Manifest
     @package = OpenStruct.new(
       :maintainer => what.maintainer,
 
-      :tags    => Packo::Package::Tags.parse(what.tags),
+      :tags    => what.tags,
       :name    => what.name,
       :version => what.version,
       :slot    => what.slot,
@@ -93,7 +95,7 @@ class Manifest
     @builder = Nokogiri::XML::Builder.new {|xml|
       xml.manifest(:version => '1.0') {
         xml.package(:maintainer => self.package.maintainer) {
-          xml.tags     self.package.tags.join(' ')
+          xml.tags     self.package.tags
           xml.name     self.package.name
           xml.version  self.package.version
           xml.slot     self.package.slot
