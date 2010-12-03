@@ -79,9 +79,9 @@ class Flavor
 
   def to_s (type=:normal)
     elements = @elements.map {|(name, element)|
-      next if name == :binary || !element.enabled?
+      next unless name != :binary && element.enabled?
 
-      name.to_s if element.enabled?
+      name.to_s
     }.compact
 
     case type

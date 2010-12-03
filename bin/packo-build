@@ -108,7 +108,7 @@ class Application < Optitron::CLI
 
       output = File.realpath(params['output'])
 
-      package.after :pack do |result, path|
+      package.after :pack do |path|
         FileUtils.cp path, output, :verbose => true, :preserve => true
       end
 

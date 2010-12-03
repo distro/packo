@@ -28,7 +28,7 @@ class Feature
     @description = description
   end
 
-  def enabled?; @enabled         end
+  def enabled?;  @enabled         end
   def enabled!;  @enabled = true  end
   def disabled!; @enabled = false end
 

@@ -32,15 +32,8 @@ class Package
       when :standard
         matches = text.match(/^(.*?)(\[(.*?)\])?(\{(.*?)\})?$/)
 
-        data[:features] = Hash[(matches[3] || '').split(/\s*,\s*/).map {|feature|
-          if feature[0] == '-'
-            [feature[1, feature.length], false]
-          else
-            [(feature[0] == '+' ? feature[1, feature.length] : feature), true]
-          end
-        }]
-
-        data[:flavor] = (matches[5] || '').split(/\s*,\s*/)
+        data[:features] = matches[3]
+        data[:flavor]   = matches[5]
 
         matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
 
@@ -140,11 +133,11 @@ class Package
   end
 
   def flavor= (value)
-    @flavor = ((value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s)) if value
+    @flavor = ((value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s))
   end
 
   def features= (value)
-    @features = ((value.is_a?(Features)) ? value : Features.parse(value.to_s)) if value
+    @features = ((value.is_a?(Features)) ? value : Features.parse(value.to_s))
   end
 
   def == (package)

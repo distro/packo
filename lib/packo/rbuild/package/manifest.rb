@@ -38,8 +38,8 @@ class Manifest
       :homepage    => dom.xpath('//package/homepage').first.text.split(/\s+/),
       :license     => dom.xpath('//package/license').first.text.split(/\s+/),
 
-      :flavors  => (dom.xpath('//package/flavor').first.text || '').split(/\s+/),
-      :features => (dom.xpath('//package/features').first.text || '').split(/\s+/),
+      :flavor   => Packo::Package::Flavor.parse(dom.xpath('//package/flavor').first.text || ''),
+      :features => Packo::Package::Features.parse(dom.xpath('//package/features').first.text || ''),
 
       :environment => Hash[dom.xpath('//package/environment/variable').map {|env|
         [env['name'], env.text]
@@ -78,8 +78,8 @@ class Manifest
       :homepage    => [what.homepage].flatten.compact.join(' '),
       :license     => [what.license].flatten.compact.join(' '),
 
-      :flavors  => what.flavors.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
-      :features => what.features.to_a.select {|f| f.enabled?}.map {|f| f.name.to_s},
+      :flavor   => what.flavor,
+      :features => what.features,
 
       :environment => what.environment.reject {|name, value|
         [:DATABASE, :FLAVORS, :PROFILE, :CONFIG_FILE, :CONFIG_PATH, :CONFIG_MODULES, :REPOSITORIES, :SELECTORS, :NO_COLORS, :DEBUG, :VERBOSE, :TMP].member?(name.to_sym)
@@ -103,8 +103,8 @@ class Manifest
           xml.homepage    self.package.homepage
           xml.license     self.package.license
 
-          xml.flavor   self.package.flavors.join(' ')
-          xml.features self.package.features.join(' ')
+          xml.flavor   self.package.flavor
+          xml.features self.package.features
 
           xml.environment {
             self.package.environment.each {|name, value|

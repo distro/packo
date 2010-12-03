@@ -86,13 +86,13 @@ class Features
         @values.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
 
       when :normal
-        @values.sort {|a, b|
-          if a[1].enabled? && b[1].enabled?     then  0
-          elsif a[1].enabled? && !b[1].enabled? then -1
-          else                                        1
+        self.to_a.sort {|a, b|
+          if a.enabled? && b.enabled?     ;  0
+          elsif a.enabled? && !b.enabled? ; -1
+          else                            ;  1
           end
-        }.to_a.map {|feature|
-          (feature[1].enabled? ? '' : '-') + feature[0].to_s
+        }.map {|feature|
+          (feature.enabled? ? '' : '-') + feature.name.to_s
         }.join(',')
     end
   end

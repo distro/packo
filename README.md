@@ -63,11 +63,7 @@ Common problems
 
 *   If you get a huge error message about `sandbox` it means it tried to access some place it wasn't supposed
     to, so sandbox killed the process to prevent damages, if you're sure you wanted it to access that place configure
-    `sandbox` to be able to do so.
-\
-    Read `sandbox`'s documentation to know how to do so.
+    `sandbox` to be able to do so. Read `sandbox`'s documentation to know how to do so.
 
 *   If you can't install sandbox you can use packo anyway, just don't use the protected syntax (packo &lt;command&gt;) but use
-    packo-&lt;command&gt; which is the not secure way.
-\
-    I suggest getting sandbox anyway beacause packages could do something harmful by mistake or on purpose, you can never know.
+    packo-&lt;command&gt; which is the not secure way. I suggest getting sandbox anyway beacause packages could do something harmful by mistake or on purpose, you can never know.
