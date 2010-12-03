@@ -15,4 +15,5 @@ Gem::Specification.new {|s|
     s.add_dependency('optitron')
     s.add_dependency('datamapper')
     s.add_dependency('versionomy')
+    s.add_dependency('fffs')
 }

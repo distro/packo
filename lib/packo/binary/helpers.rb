@@ -19,6 +19,7 @@
 
 require 'packo/environment'
 require 'packo/rbuild'
+require 'fffs'
 
 module Packo; module Binary
 
@@ -80,21 +81,34 @@ module Helpers
     if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
       features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
 
-      features.text.split(' ').each {|feature|
-        begin
-          Packo.load "#{Environment[:PROFILE]}/features/#{feature}", options
-        rescue LoadError
-        rescue Exception => e
-          warn "Something went wrong while loading #{feature} feature."
-          Packo.debug e, :force => true
-        end
-      } if features
+      if features
+        features.text.split(' ').each {|feature|
+          begin
+            Packo.load "#{Environment[:PROFILE]}/features/#{feature}", options
+          rescue LoadError
+          rescue Exception => e
+            warn "Something went wrong while loading #{feature} feature."
+            Packo.debug e, :force => true
+          end
+        }
+      end
     end
 
     Packo.load "#{path}/#{package.name}.rbuild", options
+
+    if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
+      pkg.fs = FFFS::FileSystem.parse(tmp.last.lstrip)
+    end
+
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
 
     if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
+      RBuild::Package.last.fs = pkg.fs if pkg
+
+      if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
+        (RBuild::Package.last.fs ||= FFFS::FileSystem.new).merge(FFFS::FileSystem.parse(tmp.last.lstrip))
+      end
+
       return RBuild::Package.last
     end
   end

@@ -99,7 +99,7 @@ module Packo
       raise LoadError.new("no such file to load -- #{path}")
     end
 
-    eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8')}#{options[:after]}", options[:binding] || binding, path, 1)
+    eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
   end
 
   def self.numeric? (what)
@@ -116,6 +116,14 @@ module Kernel
     $VERBOSE = tmp
 
     return result
+  end
+end
+
+class File
+  def self.write (path, content)
+    file = File.new(path, 'w')
+    file.write(content)
+    file.close
   end
 end
 

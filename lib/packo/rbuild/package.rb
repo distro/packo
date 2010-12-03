@@ -53,13 +53,14 @@ class Package < Packo::Package
       :revision => revision
     )
 
+    @data = {}
+
     if !self.version
       @block = block
       
       return @@packages[:last] = self
     end
 
-    @data         = {}
     @modules      = []
     @environment  = Environment.new(self)
     @dependencies = Dependencies.new(self)
