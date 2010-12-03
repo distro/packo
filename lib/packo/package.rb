@@ -62,25 +62,43 @@ class Package
   end
 
   def self.wrap (model)
-    Package.new(
-      :tags     => model.tags.map {|t| t.name},
-      :name     => model.name,
-      :version  => model.version,
-      :slot     => model.slot,
-      :revision => model.revision,
+    case model
+      when Models::Repository::Package; Package.new(
+        :tags     => model.tags.map {|t| t.name},
+        :name     => model.name,
+        :version  => model.version,
+        :slot     => model.slot,
+        :revision => model.revision,
 
-      :features => (case model.repo.type
-        when :binary; model.data.features
-        when :source; model.data.features.map {|f| f.name}.join(' ')
-      end),
+        :features => (case model.repo.type
+          when :binary; model.data.features
+          when :source; model.data.features.map {|f| f.name}.join(' ')
+        end),
 
-      :description => model.description,
-      :homepage    => model.homepage,
-      :license     => model.license,
+        :description => model.description,
+        :homepage    => model.homepage,
+        :license     => model.license,
 
-      :repository => Repository.wrap(model.repo),
-      :model      => model
-    )
+        :repository => Repository.wrap(model.repo),
+        :model      => model
+      )
+
+      when Models::InstalledPackage; Package.new(
+        :tags     => model.tags.map {|t| t.name},
+        :name     => model.name,
+        :version  => model.version,
+        :slot     => model.slot,
+        :revision => model.revision,
+
+        :flavor   => model.flavor,
+        :features => model.features,
+
+        :repository => model.repo ? Repository.parse(model.repo) : nil,
+        :model      => model
+      )
+
+      else; raise "I do not know #{model.class}."
+    end
   end
 
   attr_accessor :tags, :name, :version, :slot, :revision,

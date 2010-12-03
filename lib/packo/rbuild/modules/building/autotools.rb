@@ -30,6 +30,8 @@ class Autotools < Module
 
       case @arch
         when 'core2'; @arch = 'x86_64'
+        when 'amd64'; @arch = 'x86_64'
+        when 'x86';   @arch = 'i686'
       end
 
       case @kernel
@@ -161,6 +163,9 @@ class Autotools < Module
     end
 
     before :initialize do |package|
+      package.host   = Host.new(Environment.new(nil, true))
+      package.target = Host.new(package.environment)
+
       package.autotools = Class.new(Module::Helper) {
         def initialize (package)
           super(package)
@@ -257,14 +262,17 @@ class Autotools < Module
     @configuration.set 'sharedstatedir', '/com'
     @configuration.set 'localstatedir',  '/var'
 
-    host   = Host.new(Environment.new(nil, true))
-    target = Host.new(package.environment)
+    if Environment[:CROSS]
+      @configuration.set 'build', package.host.to_s
+      @configuration.set 'host',  package.host.to_s
 
-    if !Environment[:CROSS]
-      @configuration.set 'host', host != target ? target.to_s : host.to_s
+      @configuration.with 'sysroot', "/usr/#{package.target.to_s}"
+    else
+      @configuration.set 'build', package.target.to_s
+      @configuration.set 'host',  package.target.to_s
     end
 
-    @configuration.set 'target', target.to_s
+    @configuration.set 'target', package.target.to_s
 
     package.stages.callbacks(:configure).do(@configuration) {
       if !File.exists? @configuration.path

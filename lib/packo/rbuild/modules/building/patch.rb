@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'tempfile'
+
 module Packo; module RBuild; module Modules; module Building
 
 class Patch < Module
@@ -25,7 +27,17 @@ class Patch < Module
 
     before :initialize do |package|
       package.define_singleton_method :patch do |patch, options={}|
-        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
+        if options[:stream]
+          file = Tempfile.new('patch')
+          file.write patch
+          file.close
+
+          Packo.sh "patch -f -p#{options[:level] || 0} < '#{file.path}'"
+
+          file.unlink
+        else
+          Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
+        end
       end
     end
   end

@@ -48,6 +48,10 @@ class Features
     }
   end
 
+  def empty?
+    @values.empty?
+  end
+
   def set (name, value)
     @values[name.to_sym] = Feature.new(name, value)
   end

@@ -119,11 +119,11 @@ class Application < Optitron::CLI
           when :binary
             name = "#{package.tags.to_s(true)}/#{package.name}-#{package.version}"
   
-            flavors = ''
+            flavor = ''
             env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.each {|f|
-              flavors << ".#{f}"
+              flavor << ".#{f}"
             }
-            flavors[0, 1] = ''
+            flavor[0, 1] = ''
   
             features = ''
             env[:FEATURES].split(/\s+/).each {|f|
@@ -132,7 +132,7 @@ class Application < Optitron::CLI
             features[0, 1] = ''
   
             name << "%#{package.slot}"
-            name << "+#{flavors}"
+            name << "+#{flavor}"
             name << "-#{features}"
             name << ".pko"
   
@@ -200,6 +200,9 @@ class Application < Optitron::CLI
         }
       end
 
+      ap manifest.package.tags.class
+      exit! 0
+
       manifest.selectors.each {|selector|
         FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
@@ -217,12 +220,16 @@ class Application < Optitron::CLI
 
         :revision => manifest.package.revision,
 
-        :flavors  => manifest.package.flavors.join(' '),
+        :flavor   => manifest.package.flavors.join(' '),
         :features => manifest.package.features.join(' '),
         
         :manual  => manual,
         :runtime => true
       )
+
+      manifest.package.tags.each {|tag|
+        pkg.tags.first_or_create(:name => tag.to_s)
+      }
 
       length = "#{path}/dist".length
       old    = path
@@ -298,8 +305,15 @@ class Application < Optitron::CLI
   opt 'destination', 'Set the destination where to install the package', :default => '/', :short_name => 'd'
   def uninstall (*name)
     name.each {|name|
-      _search_installed(name).each {|installed|
-        installed.contents.each {|content|
+      packages = _search_installed(name)
+      
+      if packages.empty?
+        fatal "No installed packages match #{name}"
+        exit! 20
+      end
+
+      packages.each {|installed|
+        installed.model.contents(:type.desc).each {|content|
           path = "#{params['destination']}/#{content.path}".gsub(%r{/*/}, '/')
 
           case content.type
@@ -317,7 +331,7 @@ class Application < Optitron::CLI
           end
         }
 
-        installed.destroy
+        installed.model.destroy
       }
     }
   end
@@ -331,8 +345,10 @@ class Application < Optitron::CLI
       print "-#{colorize(package.version, :RED)}"
       print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
-      print " [#{package.features}]" if package.features
-      print " {#{package.flavors}}" if package.flavors
+      print " [#{package.features}]" unless package.features.empty?
+      print " {#{package.flavor}}"   unless package.flavor.empty?
+
+      print "\n"
     }
   end
 
@@ -464,7 +480,9 @@ class Application < Optitron::CLI
   end
 
   def _search_installed (expression, name=nil, type=nil)
-    InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil)
+    InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil).map {|pkg|
+      Package.wrap(pkg)
+    }
   end
 
   def _search (expression, name=nil, type=nil)

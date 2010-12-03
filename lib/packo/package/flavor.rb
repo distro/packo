@@ -61,6 +61,10 @@ class Flavor
     }
   end
 
+  def empty?
+    @elements.empty?
+  end
+
   def to_h
     Hash[*@elements.map {|(name, element)|
       [name, element.value]

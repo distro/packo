@@ -113,7 +113,7 @@ class Application < Optitron::CLI
       end
 
       if (File.read("#{package.directory}/.build") rescue nil) != package.to_s || params['wipe']
-        info "Cleaning #{package} because flavors/features changed."
+        info "Cleaning #{package} because flavor/features changed."
 
         clean("#{package.to_s(:name)}-#{package.version}")
 

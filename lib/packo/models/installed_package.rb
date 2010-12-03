@@ -37,7 +37,7 @@ class InstalledPackage
   property :slot,        String,  :default => '',                     :unique_index => :a
   property :revision,    Integer, :default => 0
 
-  property :flavors,  Text, :default => ''
+  property :flavor,  Text, :default => ''
   property :features, Text, :default => ''
 
   property :manual,  Boolean, :default => false

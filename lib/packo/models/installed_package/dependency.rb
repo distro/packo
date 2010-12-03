@@ -30,7 +30,7 @@ class Dependency
   property :slot,     String,  :default => ''
   property :revision, Integer, :default => 0
 
-  property :flavors,  Text, :default => ''
+  property :flavor,   Text, :default => ''
   property :features, Text, :default => ''
 end
 

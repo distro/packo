@@ -22,17 +22,7 @@ require 'uri'
 module Packo; class Package
 
 class Repository
-  def self.wrap (model)
-    Repository.new(
-      :type => model.type,
-      :name => model.name,
-
-      :uri  => model.uri,
-      :path => model.path,
-
-      :model => model
-    )
-  end
+  Types = [:binary, :source, :virtual]
 
   def self.parse (text)
     if text.include?('/')
@@ -49,7 +39,17 @@ class Repository
     )
   end
 
-  Types = [:binary, :source, :virtual]
+  def self.wrap (model)
+    Repository.new(
+      :type => model.type,
+      :name => model.name,
+
+      :uri  => model.uri,
+      :path => model.path,
+
+      :model => model
+    )
+  end
 
   attr_accessor :type, :name, :uri, :path
 
