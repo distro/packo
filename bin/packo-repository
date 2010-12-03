@@ -276,6 +276,8 @@ class Application < Optitron::CLI
             }
 
           when :source
+            next unless package.model.data.features.length > 0
+
             print "    #{colorize('Features', :GREEN)}:    "
 
             features = package.model.data.features

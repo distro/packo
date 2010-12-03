@@ -263,16 +263,16 @@ class Autotools < Module
     @configuration.set 'localstatedir',  '/var'
 
     if Environment[:CROSS]
-      @configuration.set 'build', package.host.to_s
-      @configuration.set 'host',  package.host.to_s
+      @configuration.set 'build', package.host
+      @configuration.set 'host',  package.host
 
-      @configuration.with 'sysroot', "/usr/#{package.target.to_s}"
+      @configuration.with 'sysroot', "/usr/#{package.target}"
     else
-      @configuration.set 'build', package.target.to_s
-      @configuration.set 'host',  package.target.to_s
+      @configuration.set 'build', package.target
+      @configuration.set 'host',  package.target
     end
 
-    @configuration.set 'target', package.target.to_s
+    @configuration.set 'target', package.target
 
     package.stages.callbacks(:configure).do(@configuration) {
       if !File.exists? @configuration.path
