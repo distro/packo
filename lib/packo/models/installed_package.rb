@@ -63,13 +63,19 @@ class InstalledPackage
 
       package = Packo::Package.parse(expression)
 
-      conditions = {}
-
-      op = exact ? :eql : :like
-
-      conditions[DataMapper::Query::Operator.new(:name, op)]    = package.name    if package.name
-      conditions[DataMapper::Query::Operator.new(:version, op)] = package.version if package.version
-      conditions[DataMapper::Query::Operator.new(:slot, op)]    = package.slot    if package.slot
+      if exact
+        conditions = {
+          :name    => package.name,
+          :version => package.version,
+          :slot    => package.slot
+        }
+      else
+         conditions = {
+          :name.like    => "%#{package.name}%",
+          :version.like => "%#{package.version}%",
+          :slot.like    => "%#{package.slot}%"
+        }
+      end
 
       result = InstalledPackage.all(conditions)
 

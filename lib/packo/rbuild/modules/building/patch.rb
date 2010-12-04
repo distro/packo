@@ -27,9 +27,9 @@ class Patch < Module
 
     before :initialize do |package|
       package.define_singleton_method :patch do |patch, options={}|
-        if options[:stream]
+        if patch.is_a?(FFFS::File) || options[:stream]
           temp = Tempfile.new('patch')
-          temp.write patch
+          temp.write patch.to_s
           temp.close
 
           Packo.sh "patch -f -p#{options[:level] || 0} < '#{file.path}'"

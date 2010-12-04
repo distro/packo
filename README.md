@@ -67,3 +67,13 @@ Common problems
 
 *   If you can't install sandbox you can use packo anyway, just don't use the protected syntax (packo &lt;command&gt;) but use
     packo-&lt;command&gt; which is the not secure way. I suggest getting sandbox anyway beacause packages could do something harmful by mistake or on purpose, you can never know.
+
+It's slow as hell :(
+--------------------
+
+Actually it isn't, it's slow at starting because it has to require lot of stuff and the models have to be checked when required,
+so majority of the time is spent there. I'll probably implement a server/client thingy to speed things up.
+
+Installation isn't slow, sqlite is slow at changing data in the db, so choose another adapter and you'll get it fast, remember
+that sqlite is fast at selecting, so searches of packages/files/whatever will be fast and updates/installations will be slow,
+choose the adapter that better suits your needs.
