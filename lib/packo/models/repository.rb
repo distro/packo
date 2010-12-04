@@ -89,18 +89,16 @@ class Repository
 
       package = Packo::Package.parse(expression)
 
+      conditions = {}
+
       if exact
-        conditions = {
-          :name    => package.name,
-          :version => package.version,
-          :slot    => package.slot
-        }
+        conditions[:name]    = package.name    if package.name
+        conditions[:version] = package.version if package.version
+        conditions[:slot]    = package.slot    if package.slot
       else
-         conditions = {
-          :name.like    => "%#{package.name}%",
-          :version.like => "%#{package.version}%",
-          :slot.like    => "%#{package.slot}%"
-        }
+        conditions[:name.like]    = "%#{package.name}%"    if package.name
+        conditions[:version.like] = "%#{package.version}%" if package.version
+        conditions[:slot.like]    = "%#{package.slot}%"    if package.slot
       end
 
       result = packages.all(conditions)
