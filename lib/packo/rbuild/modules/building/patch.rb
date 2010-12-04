@@ -46,7 +46,7 @@ class Patch < Module
 
   def patch
     package.stages.callbacks(:patch).do(package) {
-      next unless package.fs.patches.is_a?(Directory)
+      next unless package.fs.patches.is_a?(FFFS::Directory)
 
       _patch(package.fs.patches)
     }
@@ -55,7 +55,7 @@ class Patch < Module
   private
     
     def _patch (file)
-      if file.is_a?(Directory)
+      if file.is_a?(FFFS::Directory)
         file.sort.each {|(name, file)|
           Do.cd(file.name) {
             _patch(file)
