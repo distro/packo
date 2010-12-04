@@ -200,6 +200,10 @@ class Application < Optitron::CLI
         }
       end
 
+      if _installed?(package)
+        uninstall(package.to_s)
+      end
+
       manifest.selectors.each {|selector|
         FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
@@ -261,7 +265,7 @@ class Application < Optitron::CLI
           end
 
           case type
-            when :dir; puts "--- #{path}/"
+            when :dir; puts "--- #{path if path != '/'}/"
             when :sym; puts colorize(">>> #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
             when :obj; puts colorize(">>> #{path}", :DEFAULT, :DEFAULT, :BOLD)
           end
@@ -310,7 +314,7 @@ class Application < Optitron::CLI
       end
 
       packages.each {|installed|
-        installed.model.contents(:type.desc).each {|content|
+        installed.model.contents.all(:order => :type.desc).each {|content|
           path = "#{params['destination']}/#{content.path}".gsub(%r{/*/}, '/')
 
           case content.type
@@ -323,7 +327,7 @@ class Application < Optitron::CLI
               FileUtils.rm_f(path)
 
             when :dir
-              puts "--- #{path}/"
+              puts "--- #{path if path != '/'}/"
               Dir.delete(path) rescue nil
           end
         }

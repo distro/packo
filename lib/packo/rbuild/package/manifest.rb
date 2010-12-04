@@ -26,8 +26,6 @@ class Manifest
   def self.open (path)
     dom = Nokogiri::XML.parse(File.read(path))
 
-
-
     Manifest.new(OpenStruct.new(
       :maintainer => dom.root['maintainer'],
 
