@@ -269,7 +269,7 @@ class Application < Optitron::CLI
 
           case type
             when :dir; puts "--- #{path if path != '/'}/"
-            when :sym; puts colorize(">>> #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
+            when :sym; puts colorize(">>> #{path} -> #{meta}", :CYAN, :DEFAULT, :BOLD)
             when :obj; puts colorize(">>> #{path}", :DEFAULT, :DEFAULT, :BOLD)
           end
 
@@ -326,7 +326,7 @@ class Application < Optitron::CLI
               FileUtils.rm_f(path)
 
             when :sym
-              puts colorize("<<< #{path} -> #{meta}", :BLUE, :DEFAULT, :BOLD)
+              puts colorize("<<< #{path} -> #{meta}", :CYAN, :DEFAULT, :BOLD)
               FileUtils.rm_f(path)
 
             when :dir

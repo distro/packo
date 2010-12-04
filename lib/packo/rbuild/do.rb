@@ -53,6 +53,22 @@ module Do
   def self.touch (*path)
     FileUtils.touch(path) rescue nil
   end
+
+  def self.into (path)
+    Do.dir(@@into = path)
+  end
+
+  def self.ins (file, options={})
+    if options[:recursive]
+      File.cp_r file, @@into
+    else
+      File.cp file, @@into
+    end
+  end
+
+  def self.sym (link, to)
+    FileUtils.ln_sf link, to.start_with?('/') ? to : "#{@@into}/#{to}"
+  end
 end
 
 end; end

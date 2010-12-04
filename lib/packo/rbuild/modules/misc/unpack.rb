@@ -49,7 +49,7 @@ class Unpack < Module
     package.stages.callbacks(:unpack).do {
       Unpack.do package.distfiles.first, Packo.interpolate('#{package.directory}/work', self)
 
-      Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue nil
+      Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue false
     }
   end
 end

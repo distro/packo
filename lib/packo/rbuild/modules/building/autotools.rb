@@ -65,6 +65,12 @@ class Autotools < Module
       @path = './configure'
     end
 
+    def clear
+      @enable.clear
+      @with.clear
+      @other.clear
+    end
+
     def with (name, value=nil)
       [name].flatten.each {|name|
         if value === true || value === false
@@ -166,6 +172,9 @@ class Autotools < Module
       package.host   = Host.new(Environment.new(nil, true))
       package.target = Host.new(package.environment)
 
+      package.environment[:CHOST]   = package.host.to_s
+      package.environment[:CTARGET] = package.target.to_s
+
       package.autotools = Class.new(Module::Helper) {
         def initialize (package)
           super(package)
@@ -255,8 +264,6 @@ class Autotools < Module
   def configure
     @configuration = Configuration.new(self)
 
-    FileUtils.mkpath "#{package.distdir}/usr"
-
     @configuration.set 'prefix',         '/usr'
     @configuration.set 'sysconfdir',     '/etc'
     @configuration.set 'sharedstatedir', '/com'
@@ -276,7 +283,7 @@ class Autotools < Module
 
     package.stages.callbacks(:configure).do(@configuration) {
       if !File.exists? @configuration.path
-        Do.cd(@configuration.path) {
+        Do.cd(File.dirname(@configuration.path)) {
           package.autotools.autogen
         }
       end
