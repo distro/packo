@@ -46,23 +46,27 @@ class Patch < Module
 
   def patch
     package.stages.callbacks(:patch).do(package) {
-      next unless package.fs.patches.is_a?(FFFS::Directory)
+      next unless (package.fs.patches.is_a?(FFFS::Directory) rescue false)
 
-      _patch(package.fs.patches)
+      package.fs.patches.each {|name, file|
+        _patch(file)
+      }
     }
   end
 
   private
     
-    def _patch (file)
-      if file.is_a?(FFFS::Directory)
-        file.sort.each {|(name, file)|
-          Do.cd(file.name) {
+    def _patch (what)
+      ap what.name
+
+      if what.is_a?(FFFS::Directory)
+        what.sort.each {|(name, file)|
+          Do.cd(what.name) {
             _patch(file)
           }
         }
       else
-        package.patch(file) rescue nil
+        package.patch(what) rescue nil
       end
     end
 end
