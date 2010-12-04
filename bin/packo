@@ -245,8 +245,13 @@ class Application < Optitron::CLI
           fake = path[params['destination'].length, path.length] || ''
           meta = nil
 
-          if !outside && tmp = _exists?(fake) && !params['force']
-            fatal "#{path} belongs to #{tmp}, use --force to force overwrite"
+          if !params['force'] && File.exists?(path)
+            if (tmp = _exists?(fake))
+              fatal "#{path} belongs to #{tmp}, use --force to overwrite"
+            else
+              fatal "#{path} doesn't belong to any package, use --force to overwrite"
+            end
+
             raise RuntimeError.new 'File collision'
           end
   
@@ -307,6 +312,7 @@ class Application < Optitron::CLI
 
   desc 'Uninstalls packages'
   opt 'destination', 'Set the destination where to install the package', :default => '/', :short_name => 'd'
+  opt 'force', 'Force installation when something minor goes wrong', :type => :boolean, :default => false
   def uninstall (*name)
     name.each {|name|
       packages = _search_installed(name)
@@ -322,11 +328,15 @@ class Application < Optitron::CLI
 
           case content.type
             when :obj
-              puts colorize("<<< #{path}", :DEFAULT, :DEFAULT, :BOLD)
-              FileUtils.rm_f(path)
+              if params['force'] || content.meta == Digest::SHA1.hexdigest(File.read(path))
+                puts colorize("<<< #{path}", :DEFAULT, :DEFAULT, :BOLD)
+                FileUtils.rm_f(path)
+              else
+                 puts colorize("=== #{path}", :RED)              
+              end
 
             when :sym
-              puts colorize("<<< #{path} -> #{meta}", :CYAN, :DEFAULT, :BOLD)
+              puts colorize("<<< #{path} -> #{content.meta}", :CYAN, :DEFAULT, :BOLD)
               FileUtils.rm_f(path)
 
             when :dir
@@ -361,7 +371,7 @@ class Application < Optitron::CLI
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def info (expression='')
     _search_installed(expression, params['repository'], params['type']).map {|package|
-      _search(package.to_s(:whole), package.repository.name, package.repository.type).first
+      _search("#{package.to_s(:name)}-#{package.version}", (package.repository.name rescue nil), (package.repository.type rescue nil), true).first
     }.compact.each {|package|
       print "[#{colorize("source/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
       print colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)
@@ -395,6 +405,8 @@ class Application < Optitron::CLI
           }
 
         when :source
+          (print "\n"; next) unless package.model.data.features.length > 0
+
           print "    #{colorize('Features', :GREEN)}:    "
 
           features = package.model.data.features
@@ -489,7 +501,7 @@ class Application < Optitron::CLI
     }
   end
 
-  def _search (expression, name=nil, type=nil)
+  def _search (expression, name=nil, type=nil, exact=false)
     packages = []
 
     if name && !name.empty?
@@ -498,13 +510,13 @@ class Application < Optitron::CLI
       repository      = Repository.first(repository.to_hash)
 
       if repository
-        packages << repository.search(expression)
+        packages << repository.search(expression, exact)
       end
     else
       Package::Repository::Types.each {|t|
         if type.nil? || type == 'all' || type == t
           Repository.all(:type => t).each {|repository|
-            packages << repository.search(expression)
+            packages << repository.search(expression, exact)
           }
         end
       }

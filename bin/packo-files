@@ -22,14 +22,42 @@
 require 'optitron'
 
 require 'packo'
-require 'packo/binary/helpers'
+require 'packo/binary'
 
 class Application < Optitron::CLI
-  include PackoBinary::Helpers
+  include Packo
+  include Models
+  include Binary::Helpers
 
   desc 'Outputs version'
   def version
-    puts "packø files checking #{Packo::VERSION}"
+    puts "packø files checking #{VERSION}"
+  end
+
+  desc 'Get a file list of a given package'
+  def package (name)
+    package = _search_installed(name).first
+
+    if !package
+      fatal "No package matches #{name}"
+      exit! 10
+    end
+
+    package.model.contents.each {|content|
+      case content.type
+        when :dir; puts "--- /#{content.path}#{'/' if !content.path.empty?}"
+        when :sym; puts colorize(">>> /#{content.path} -> #{content.meta}", :CYAN, :DEFAULT, :BOLD)
+        when :obj; puts colorize(">>> /#{content.path}", :DEFAULT, :DEFAULT, :BOLD)
+      end
+    }
+  end
+
+  private
+
+  def _search_installed (expression, name=nil, type=nil)
+    InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil).map {|pkg|
+      Package.wrap(pkg)
+    }
   end
 end
 
