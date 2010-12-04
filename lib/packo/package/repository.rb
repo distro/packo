@@ -73,7 +73,7 @@ class Repository
     @uri = value.is_a?(URI) ? value : URI.parse(value) if value
   end
 
-  def to_h
+  def to_hash
     result = {}
 
     [:type, :name, :uri, :path].each {|name|

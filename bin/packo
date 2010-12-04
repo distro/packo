@@ -183,6 +183,8 @@ class Application < Optitron::CLI
           exit! 15
       end
 
+      package = Packo::Package.new(manifest.package.to_hash)
+
       if !params['inherit']
         Environment[:FLAVOR] = Environment[:FEATURES] = ''
       end
@@ -492,7 +494,7 @@ class Application < Optitron::CLI
     if name && !name.empty?
       repository      = Package::Repository.parse(name)
       repository.type = type if Package::Repository::Types.member?(type.to_sym)
-      repository      = Repository.first(repository.to_h)
+      repository      = Repository.first(repository.to_hash)
 
       if repository
         packages << repository.search(expression)
@@ -513,7 +515,7 @@ class Application < Optitron::CLI
   end
 
   def _uri (repository)
-    Repository.first(Package::Repository.parse(name).to_h).URI rescue nil
+    Repository.first(Package::Repository.parse(name).to_hash).URI rescue nil
   end
 
   def _build (package, env)

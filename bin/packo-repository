@@ -323,7 +323,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs the path of a given repository'
   def path (name)
-    repository = Repository.first(Package::Repository.parse(name).to_h)
+    repository = Repository.first(Package::Repository.parse(name).to_hash)
 
     exit! if !repository
 
@@ -332,7 +332,7 @@ class Application < Optitron::CLI
 
   desc 'Outputs the URI of a given package'
   def uri (name)
-    repository = Repository.first(Package::Repository.parse(name).to_h)
+    repository = Repository.first(Package::Repository.parse(name).to_hash)
 
     exit! if !repository
 
@@ -379,7 +379,7 @@ class Application < Optitron::CLI
     if name && !name.empty?
       repository      = Package::Repository.parse(name)
       repository.type = type if Package::Repository::Types.member?(type.to_sym)
-      repository      = Repository.first(repository.to_h)
+      repository      = Repository.first(repository.to_hash)
 
       if repository
         packages << repository.search(expression, params['exact'])

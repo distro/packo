@@ -17,7 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'ostruct'
 require 'nokogiri'
 
 module Packo; module RBuild; class Package < Packo::Package

@@ -259,7 +259,7 @@ class Application < Optitron::CLI
     packages = []
 
     if repository && !repository.empty?
-      repository = Repository.first(Package::Repository.parse(repository).to_h)
+      repository = Repository.first(Package::Repository.parse(repository).to_hash)
 
       if repository
         packages << repository.search(expression, true)

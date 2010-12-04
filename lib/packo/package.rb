@@ -159,7 +159,7 @@ class Package
     "#{self.tags.hashed}/#{self.name}-#{self.version}%#{self.slot}".hash
   end
 
-  def to_h
+  def to_hash
     result = {}
 
     [:tags, :name, :version, :slot, :revision, :repository, :flavor, :features].each {|name|

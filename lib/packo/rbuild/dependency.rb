@@ -37,7 +37,7 @@ class Dependency < Packo::Package
 
     parsed = Packo::Package.parse(text)
 
-    self.new(parsed.to_h, validity, runtime)
+    self.new(parsed.to_hash, validity, runtime)
   end
 
   def initialize (data, validity=nil, runtime=true)

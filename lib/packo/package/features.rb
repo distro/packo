@@ -68,7 +68,7 @@ class Features
     @values.key? name
   end
 
-  def to_h
+  def to_hash
     Hash[*@values.map {|(name, element)|
       [name, element.value]
     }]

@@ -19,6 +19,7 @@
 
 require 'fileutils'
 require 'versionomy'
+require 'ostruct'
 
 require 'packo/environment'
 
@@ -125,6 +126,10 @@ class File
     file.write(content)
     file.close
   end
+end
+
+class OpenStruct
+  alias to_hash marshal_dump
 end
 
 require 'packo/models'
