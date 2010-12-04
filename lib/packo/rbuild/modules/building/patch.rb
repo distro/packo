@@ -32,7 +32,7 @@ class Patch < Module
           temp.write patch.to_s
           temp.close
 
-          Packo.sh "patch -f -p#{options[:level] || 0} < '#{file.path}'"
+          Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'"
 
           temp.unlink
         else
