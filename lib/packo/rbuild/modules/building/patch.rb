@@ -25,6 +25,8 @@ class Patch < Module
   def initialize (package)
     super(package)
 
+    package.stages.add :patch, self.method(:patch), :after => :unpack, :strict => true
+
     before :initialize do |package|
       package.define_singleton_method :patch do |patch, options={}|
         if patch.is_a?(FFFS::File) || options[:stream]
@@ -32,15 +34,37 @@ class Patch < Module
           temp.write patch.to_s
           temp.close
 
-          Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'" rescue nil
+          Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'"
 
           temp.unlink
         else
-          Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'" rescue nil
+          Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
         end
       end
     end
   end
+
+  def patch
+    package.stages.callbacks(:patch).do(package) {
+      next unless packages.fs.patches.is_a?(Directory)
+
+      _patch(package.fs.patches)
+    }
+  end
+
+  private
+    
+    def _patch (file)
+      if file.is_a?(Directory)
+        file.sort.each {|(name, file)|
+          Do.cd(file.name) {
+            _patch(file)
+          }
+        }
+      else
+        package.patch(file) rescue nil
+      end
+    end
 end
 
 end; end; end; end
