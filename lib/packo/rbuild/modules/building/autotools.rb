@@ -203,7 +203,7 @@ class Autotools < Module
         end
 
         def aclocal (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : nil
+          version = args.last.is_a?(Numeric) ? args.pop : @versions[:aclocal]
 
           package.environment.sandbox {
             Packo.sh "aclocal#{"-#{version}" if version}", *args
@@ -211,7 +211,7 @@ class Autotools < Module
         end
 
         def autoconf (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : nil
+          version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoconf]
 
           package.environment.sandbox {
             Packo.sh "autoconf#{"-#{version}" if version}", *args
@@ -219,7 +219,7 @@ class Autotools < Module
         end
 
         def autoheader (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : nil
+          version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoheader]
 
           package.environment.sandbox {
             Packo.sh "autoheader#{"-#{version}" if version}", *args
@@ -227,7 +227,7 @@ class Autotools < Module
         end
 
         def automake (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : nil
+          version = args.last.is_a?(Numeric) ? args.pop : @versions[:automake]
 
           package.environment.sandbox {
             Packo.sh "automake#{"-#{version}" if version}", *args
@@ -235,7 +235,7 @@ class Autotools < Module
         end
 
         def autoupdate (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : nil
+          version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoupdate]
 
           package.environment.sandbox {
             Packo.sh "autoupdate#{"-#{version}" if version}", *args
