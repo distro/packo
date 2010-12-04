@@ -42,26 +42,37 @@ class PKO < Module
 
       Dir.chdir package.directory
 
-      Package::Manifest.new(package).save('manifest.xml')
-
       FileUtils.mkpath "#{package.directory}/pre"
-      package.pre.each {|pre|
-        file = File.new("pre/#{pre[:name]}", 'w', 0777)
-        file.write(pre[:content])
-        file.close
-      }
-
       FileUtils.mkpath "#{package.directory}/post"
-      package.post.each {|post|
-        file = File.new("post/#{post[:name]}", 'w', 0777)
-        file.write(post[:content])
-        file.close
-      }
-
       FileUtils.mkpath "#{package.directory}/selectors"
-      [package.selector].flatten.compact.each {|selector|
-        FileUtils.cp Packo.interpolate(selector[:path], self), "#{package.directory}/selectors", :preserve => true
-      }
+
+      if package.fs
+        if package.fs.pre
+          package.fs.pre.each {|name, file|
+            File.write("pre/#{name}", file.content, 0777)
+          }
+        end
+
+        if package.fs.post
+          package.fs.post.each {|name, file|
+            File.write("post/#{name}", file.content, 0777)
+          }
+        end
+
+        if package.fs.selectors
+          package.selectors = []
+
+          package.fs.selectors.each {|name, file|
+            matches = file.content.match(/^#\s*(.*?):\s*(.*)$/)
+
+            package.selectors << Hash[:name => matches[1], :description => matches[2], :path => name]
+
+            File.write("selectors/#{name}", file.content, 0777)
+          }
+        end
+      end
+
+      Package::Manifest.new(package).save('manifest.xml')
 
       PKO.pack(path, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
 

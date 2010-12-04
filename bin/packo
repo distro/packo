@@ -203,6 +203,7 @@ class Application < Optitron::CLI
       end
 
       if _installed?(package)
+        ap package.to_s
         uninstall(package.to_s)
       end
 

@@ -28,13 +28,13 @@ class Patch < Module
     before :initialize do |package|
       package.define_singleton_method :patch do |patch, options={}|
         if options[:stream]
-          file = Tempfile.new('patch')
-          file.write patch
-          file.close
+          temp = Tempfile.new('patch')
+          temp.write patch
+          temp.close
 
           Packo.sh "patch -f -p#{options[:level] || 0} < '#{file.path}'"
 
-          file.unlink
+          temp.unlink
         else
           Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
         end

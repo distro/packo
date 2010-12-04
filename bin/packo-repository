@@ -97,10 +97,7 @@ class Application < Optitron::CLI
           path << '.xml'
 
           FileUtils.mkpath(File.dirname(path))
-
-          file = File.new(path, 'w')
-          file.write(open(kind == :file && !uri.to_s.match(/\.xml$/) ? "#{uri}/repository.xml" : uri).read)
-          file.close
+          File.write(path, open(kind == :file && !uri.to_s.match(/\.xml$/) ? "#{uri}/repository.xml" : uri).read)
 
         when :source
           FileUtils.rm_rf path, :secure => true rescue nil
@@ -184,9 +181,7 @@ class Application < Optitron::CLI
         when :binary
           if (content = open(uri).read) != File.read(path)
             repository.destroy
-            file = File.new(path, 'w')
-            file.write(content)
-            file.close
+            File.write(path, content)
             _add(:binary, name, uri, path)
 
             updated = true

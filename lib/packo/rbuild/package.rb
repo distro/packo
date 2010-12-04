@@ -68,9 +68,6 @@ class Package < Packo::Package
     @stages       = Stages.new(self)
     @features     = Features.new(self)
     @flavor       = Flavor.new(self)
-    @data         = {}
-    @pre          = []
-    @post         = []
 
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
     @stages.add :blockers,     @blockers.method(:check),     :at => :beginning
@@ -178,22 +175,6 @@ class Package < Packo::Package
       @flavor
     else
       @flavor.instance_eval &block
-    end
-  end
-
-  def pre (name=nil, content=nil)
-    if !name || !content
-      @pre
-    else
-      @pre << { :name => name, :content => content.lines.map {|line| line.strip}.join("\n") }
-    end
-  end
-
-  def post (name=nil, content=nil)
-    if !name || !content
-      @post
-    else
-      @post << { :name => name, :content => content.lines.map {|line| line.strip}.join("\n") }
     end
   end
 

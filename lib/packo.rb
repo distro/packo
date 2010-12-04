@@ -121,8 +121,8 @@ module Kernel
 end
 
 class File
-  def self.write (path, content)
-    file = File.new(path, 'w')
+  def self.write (path, content, *args)
+    file = File.new(path, 'w', *args)
     file.write(content)
     file.close
   end

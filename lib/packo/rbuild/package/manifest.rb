@@ -126,7 +126,7 @@ class Manifest
 
         xml.selectors {
           self.selectors.each {|selector|
-            xml.selector({ :name => selector.name, :description => selector.description }, File.basename(selector.path))
+            xml.selector({ :name => selector.name, :description => selector.description }, selector.path)
           }
         }
       }
@@ -134,9 +134,7 @@ class Manifest
   end
 
   def save (to, options={})
-    file = File.new(to, 'w')
-    file.write(self.to_s(options))
-    file.close
+    File.write(to, self.to_s(options))
   end
 
   def to_s (options={})

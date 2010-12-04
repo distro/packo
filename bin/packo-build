@@ -120,9 +120,7 @@ class Application < Optitron::CLI
         package.create!
 
         begin
-          file = File.new("#{package.directory}/.build", 'w')
-          file.write package.to_s
-          file.close
+          File.write("#{package.directory}/.build", package.to_s)
         rescue; end
       end
 
@@ -226,9 +224,7 @@ class Application < Optitron::CLI
         }
       }
 
-      file = File.new('digest.xml', 'w')
-      file.write(builder.to_xml(:indent => 4))
-      file.close
+      File.write('digest.xml', builder.to_xml(:indent => 4))
     }
   rescue Errno::EACCES
     fatal "Try to use `packo-build` instead of `packo build` (which is sandbox'd)"
