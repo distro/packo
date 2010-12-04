@@ -19,7 +19,6 @@
 
 require 'packo/environment'
 require 'packo/rbuild'
-require 'fffs'
 
 module Packo; module Binary
 
@@ -97,16 +96,16 @@ module Helpers
     Packo.load "#{path}/#{package.name}.rbuild", options
 
     if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
-      pkg.fs = FFFS::FileSystem.parse(tmp.last.lstrip)
+      pkg.filesystem.parse(tmp.last.lstrip)
     end
 
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
 
     if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
-      RBuild::Package.last.fs = pkg.fs if pkg
+      RBuild::Package.last.filesystem.merge(pkg.filesystem)
 
       if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
-        (RBuild::Package.last.fs ||= FFFS::FileSystem.new).merge(FFFS::FileSystem.parse(tmp.last.lstrip))
+        RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
       end
 
       return RBuild::Package.last

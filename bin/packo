@@ -323,7 +323,7 @@ class Application < Optitron::CLI
       end
 
       packages.each {|installed|
-        installed.model.contents.all(:order => :type.desc).each {|content|
+        installed.model.contents.each {|content|
           path = "#{params['destination']}/#{content.path}".gsub(%r{/*/}, '/')
 
           case content.type
@@ -332,7 +332,7 @@ class Application < Optitron::CLI
                 puts colorize("<<< #{path}", :DEFAULT, :DEFAULT, :BOLD)
                 FileUtils.rm_f(path)
               else
-                 puts colorize("=== #{path}", :RED)              
+                 puts colorize("=== #{path}", :RED)
               end
 
             when :sym
@@ -341,8 +341,11 @@ class Application < Optitron::CLI
 
             when :dir
               puts "--- #{path if path != '/'}/"
-              Dir.delete(path) rescue nil
           end
+        }
+
+        installed.model.contents.all(:type => :dir).each {|content|
+          Dir.delete(content.path) rescue nil
         }
 
         installed.model.destroy

@@ -20,36 +20,6 @@
 module Packo; module RBuild; module Modules; module Building
 
 class Autotools < Module
-  class Host
-    attr_accessor :arch, :kernel, :misc
-
-    def initialize (env)
-      @arch   = env[:ARCH]
-      @kernel = env[:KERNEL]
-      @misc   = nil
-
-      case @arch
-        when 'core2'; @arch = 'x86_64'
-        when 'amd64'; @arch = 'x86_64'
-        when 'x86';   @arch = 'i686'
-      end
-
-      case @kernel
-        when 'windows'; @kernel = 'cygwin'
-        when 'mac';     @kernel = 'darwin'
-        when 'linux';   @misc   = 'gnu'
-      end
-    end
-
-    def == (value)
-      self.to_s == value.to_s
-    end
-
-    def to_s
-      "#{arch}-#{kernel}#{"-#{misc}" if misc}"
-    end
-  end
-
   class Configuration
     attr_accessor :path
 
@@ -162,10 +132,10 @@ class Autotools < Module
     package.stages.add :install,   self.method(:install),   :after => :compile
 
     if package.type == 'library'
-      package.post 'ld-config-update.sh', %{
+      package.filesystem.post << FFFS::File.new('ld-config-update.sh', %{
         #! /bin/sh
         ldconfig
-      }
+      })
     end
 
     before :initialize do |package|

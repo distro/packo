@@ -46,9 +46,7 @@ class Patch < Module
 
   def patch
     package.stages.callbacks(:patch).do(package) {
-      next unless (package.fs.patches.is_a?(FFFS::Directory) rescue false)
-
-      package.fs.patches.each {|name, file|
+      package.filesystem.patches.each {|name, file|
         _patch(file)
       }
     }

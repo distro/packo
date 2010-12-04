@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'fffs'
+
 require 'packo/package'
 
 require 'packo/rbuild/dependencies'
@@ -43,7 +45,7 @@ class Package < Packo::Package
     Package.new(name, version, slot, revision, &block)
   end
 
-  attr_reader :parent, :environment, :modules, :dependencies, :blockers, :stages
+  attr_reader :parent, :environment, :modules, :dependencies, :blockers, :stages, :filesystem
 
   def initialize (name, version=nil, slot=nil, revision=nil, &block)
     super(
@@ -52,6 +54,12 @@ class Package < Packo::Package
       :slot     => slot,
       :revision => revision
     )
+
+    @filesystem = FFFS::FileSystem.new
+
+    ['pre', 'post', 'selectors', 'patches', 'files'].each {|dir|
+      @filesystem << FFFS::Directory.new(dir)
+    }
 
     @data = {}
 

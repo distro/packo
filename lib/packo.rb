@@ -22,6 +22,7 @@ require 'versionomy'
 require 'ostruct'
 
 require 'packo/environment'
+require 'packo/host'
 
 module Packo
   VERSION = Versionomy.parse('0.0.1')
@@ -102,9 +103,11 @@ module Packo
 
     eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
   end
+end
 
-  def self.numeric? (what)
-    true if Float(what) rescue false
+class Object
+  def numeric?
+    true if Float(self) rescue false
   end
 end
 

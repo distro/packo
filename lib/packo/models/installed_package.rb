@@ -43,6 +43,8 @@ class InstalledPackage
   property :manual,  Boolean, :default => false
   property :runtime, Boolean, :default => true  # Installed as build or runtime dependency
 
+  property :created_at, DateTime
+
   has n, :dependencies, :constraint => :destroy
   has n, :contents,     :constraint => :destroy
 

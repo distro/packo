@@ -43,34 +43,25 @@ class PKO < Module
       Dir.chdir package.directory
 
       FileUtils.mkpath "#{package.directory}/pre"
+
+      package.filesystem.pre.each {|name, file|
+        File.write("pre/#{name}", file.content, 0777)
+      }
+
       FileUtils.mkpath "#{package.directory}/post"
+      package.filesystem.post.each {|name, file|
+        File.write("post/#{name}", file.content, 0777)
+      }
+
       FileUtils.mkpath "#{package.directory}/selectors"
+      package.selectors = []
+      package.filesystem.selectors.each {|name, file|
+        matches = file.content.match(/^#\s*(.*?):\s*(.*)$/)
 
-      if package.fs
-        if package.fs.pre
-          package.fs.pre.each {|name, file|
-            File.write("pre/#{name}", file.content, 0777)
-          }
-        end
+        package.selectors << Hash[:name => matches[1], :description => matches[2], :path => name]
 
-        if package.fs.post
-          package.fs.post.each {|name, file|
-            File.write("post/#{name}", file.content, 0777)
-          }
-        end
-
-        if package.fs.selectors
-          package.selectors = []
-
-          package.fs.selectors.each {|name, file|
-            matches = file.content.match(/^#\s*(.*?):\s*(.*)$/)
-
-            package.selectors << Hash[:name => matches[1], :description => matches[2], :path => name]
-
-            File.write("selectors/#{name}", file.content, 0777)
-          }
-        end
-      end
+        File.write("selectors/#{name}", file.content, 0777)
+      }
 
       Package::Manifest.new(package).save('manifest.xml')
 
