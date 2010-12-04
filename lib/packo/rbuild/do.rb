@@ -60,9 +60,9 @@ module Do
 
   def self.ins (file, options={})
     if options[:recursive]
-      File.cp_r file, @@into
+      FileUtils.cp_r file, @@into
     else
-      File.cp file, @@into
+      FileUtils.cp file, @@into
     end
   end
 
