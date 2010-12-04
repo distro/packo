@@ -46,7 +46,7 @@ class Patch < Module
 
   def patch
     package.stages.callbacks(:patch).do(package) {
-      next unless packages.fs.patches.is_a?(Directory)
+      next unless package.fs.patches.is_a?(Directory)
 
       _patch(package.fs.patches)
     }

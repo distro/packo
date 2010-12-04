@@ -198,7 +198,7 @@ class Application < Optitron::CLI
         }
 
         manifest.dependencies.each {|dependency|
-          install(dependency.to_s) if dependency.runtime? || !binary
+          install(dependency.to_s) if (dependency.runtime? && binary) || !binary
         }
       end
 
