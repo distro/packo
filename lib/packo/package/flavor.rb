@@ -62,7 +62,9 @@ class Flavor
   end
 
   def empty?
-    @elements.empty?
+    @elements.none? {|(name, element)|
+      element.enabled?
+    }
   end
 
   def to_hash

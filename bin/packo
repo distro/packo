@@ -360,7 +360,7 @@ class Application < Optitron::CLI
     _search_installed(expression, params['repository'], params['type']).each {|package|
       print "#{package.tags}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
       print "-#{colorize(package.version, :RED)}"
-      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
+      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" unless package.slot.empty?
 
       print " [#{package.features}]" unless package.features.empty?
       print " {#{package.flavor}}"   unless package.flavor.empty?
