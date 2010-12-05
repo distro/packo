@@ -245,7 +245,7 @@ class Application < Optitron::CLI
           fake = path[params['destination'].length, path.length] || ''
           meta = nil
 
-          if !params['force'] && File.exists?(path)
+          if !params['force'] && File.exists?(path) && !File.directory?(path)
             if (tmp = _exists?(fake))
               fatal "#{path} belongs to #{tmp}, use --force to overwrite"
             else
