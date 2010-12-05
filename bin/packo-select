@@ -69,7 +69,7 @@ class Application < Optitron::CLI
   def command_missing (command, *args)
     cmd = Selector.first(:name => command).path rescue nil
 
-    if !cmd
+    if !cmd || !File.exists?(cmd)
       fatal "#{command} not found"
       exit 1
     end

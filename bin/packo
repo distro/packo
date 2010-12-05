@@ -207,6 +207,7 @@ class Application < Optitron::CLI
       end
 
       manifest.selectors.each {|selector|
+        FileUtils.mkpath env[:SELECTORS]
         FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTORS], :preserve => true, :remove_destination => true
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTORS]}/#{selector.path}", :silent => true
       }

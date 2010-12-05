@@ -91,7 +91,7 @@ class Manifest
 
     if (what.filesystem rescue nil)
       what.filesystem.selectors.each {|name, file|
-        matches     = file.content.match(/^#\s*(.*?):\s*(.*)$/)
+        matches     = file.content.match(/^#\s*(.*?):\s*(.*)\n\z/)
         @selectors << OpenStruct.new(:name => matches[1], :description => matches[2], :path => name)
       }
     end

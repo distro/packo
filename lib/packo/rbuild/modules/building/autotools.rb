@@ -240,6 +240,8 @@ class Autotools < Module
     @configuration.set 'localstatedir',  '/var'
 
     if Environment[:CROSS]
+      @configuration.set 'prefix', "/usr/#{package.host}"
+
       @configuration.set 'build', package.host
       @configuration.set 'host',  package.host
 
