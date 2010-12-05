@@ -232,14 +232,18 @@ class Application < Optitron::CLI
 
   desc 'Output the manifest of the given package'
   def manifest (package)
-    tmp = _search(package)
+    if package.end_with?('.rbuild')
+      package = loadPackage(File.dirname(package), Packo::Package.parse(package.sub('.rbuild', '')))
+    else
+      tmp = _search(package)
 
-    if (multiple = tmp.uniq).length > 1
-      fatal 'Multiple packages with the same name, be more precise.'
-      exit 2
+      if (multiple = tmp.uniq).length > 1
+        fatal 'Multiple packages with the same name, be more precise.'
+        exit 2
+      end
+
+      package = loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
     end
-
-    package = loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
 
     if package
       puts RBuild::Package::Manifest.new(package).to_s

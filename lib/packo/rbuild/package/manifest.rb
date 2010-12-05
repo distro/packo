@@ -89,6 +89,13 @@ class Manifest
     @blockers     = what.blockers
     @selectors    = [what.selector].flatten.compact.map {|selector| OpenStruct.new(selector)}
 
+    if (what.filesystem rescue nil)
+      what.filesystem.selectors.each {|name, file|
+        matches     = file.content.match(/^#\s*(.*?):\s*(.*)$/)
+        @selectors << OpenStruct.new(:name => matches[1], :description => matches[2], :path => name)
+      }
+    end
+
     @builder = Nokogiri::XML::Builder.new {|xml|
       xml.manifest(:version => '1.0') {
         xml.package(:maintainer => self.package.maintainer) {

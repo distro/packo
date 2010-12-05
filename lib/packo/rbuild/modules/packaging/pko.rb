@@ -54,12 +54,7 @@ class PKO < Module
       }
 
       FileUtils.mkpath "#{package.directory}/selectors"
-      package.selectors = []
       package.filesystem.selectors.each {|name, file|
-        matches = file.content.match(/^#\s*(.*?):\s*(.*)$/)
-
-        package.selectors << Hash[:name => matches[1], :description => matches[2], :path => name]
-
         File.write("selectors/#{name}", file.content, 0777)
       }
 
