@@ -243,7 +243,7 @@ class Autotools < Module
       @configuration.set 'build', package.host
       @configuration.set 'host',  package.host
 
-      @configuration.with 'sysroot', "/usr/#{package.target}"
+      @configuration.with 'sysroot', "/usr/#{package.host}/#{package.target}"
     else
       @configuration.set 'build', package.target
       @configuration.set 'host',  package.target
