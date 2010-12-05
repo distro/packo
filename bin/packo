@@ -340,8 +340,12 @@ class Application < Optitron::CLI
               end
 
             when :sym
-              puts colorize("<<< #{path} -> #{content.meta}", :CYAN, :DEFAULT, :BOLD)
-              FileUtils.rm_f(path)
+              if params['force'] || content.meta == File.readlink(path)
+                puts colorize("<<< #{path} -> #{content.meta}", :CYAN, :DEFAULT, :BOLD)
+                FileUtils.rm_f(path)
+              else
+                puts colorize("=== #{path} -> #{File.readlink(path)}", RED)
+              end
 
             when :dir
               puts "--- #{path if path != '/'}/"
@@ -349,7 +353,9 @@ class Application < Optitron::CLI
         }
 
         installed.model.contents.all(:type => :dir, :order => [:path.desc]).each {|content|
-          Dir.delete(content.path) rescue nil
+          path = "#{params['destination']}/#{content.path}".gsub(%r{/*/}, '/')
+
+          Dir.delete(path) rescue nil
         }
 
         installed.model.destroy
