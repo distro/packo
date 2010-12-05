@@ -349,7 +349,7 @@ class Application < Optitron::CLI
           end
         }
 
-        installed.model.contents.all(:type => :dir).each {|content|
+        installed.model.contents.all(:type => :dir, :order => [:path.desc]).each {|content|
           Dir.delete(content.path) rescue nil
         }
 
