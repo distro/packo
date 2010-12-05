@@ -257,14 +257,13 @@ class Application < Optitron::CLI
             raise RuntimeError.new 'File collision'
           end
   
-          if File.directory? file
-            contents[type = :dir] << path
-          elsif File.symlink? file
+          if File.symlink?(file)
             contents[type = :sym] << [path, meta = File.readlink(file)]
-          elsif File.file? file
+          elsif File.directory?(file)
+            contents[type = :dir] << path
+          elsif File.file?(file)
             contents[type = :obj] << [path, file]
-
-            meta = Digest::SHA1.hexdigest(File.read(file))
+            meta                   = Digest::SHA1.hexdigest(File.read(file))
           else
             next
           end
