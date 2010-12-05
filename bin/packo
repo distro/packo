@@ -238,6 +238,8 @@ class Application < Optitron::CLI
       length = "#{path}/dist".length
       old    = path
 
+      contents = Hash[:dir => [], :obj => [], :sym => []]
+
       begin
         Find.find("#{path}/dist") {|file|
           type = nil
@@ -256,18 +258,13 @@ class Application < Optitron::CLI
           end
   
           if File.directory? file
-            type = :dir
-            FileUtils.mkpath path rescue nil
+            contents[type = :dir] << path
           elsif File.symlink? file
-            type = :sym
-            meta = File.readlink file
-
-            FileUtils.rm_f path
-            File.symlink meta, path
+            contents[type = :sym] << [path, meta = File.readlink(file)]
           elsif File.file? file
-            type = :obj
+            contents[type = :obj] << [path, file]
+
             meta = Digest::SHA1.hexdigest(File.read(file))
-            FileUtils.cp file, path, :preserve => true
           else
             next
           end
@@ -291,15 +288,25 @@ class Application < Optitron::CLI
             :meta => meta
           )
         }
+
+        contents[:dir].each {|dir|
+          FileUtils.mkpath(dir)
+        }
+
+        contents[:obj].each {|(to, from)|
+          FileUtils.cp(from, to)
+        }
+
+        contents[:sym].each {|(file, link)|
+          FileUtils.ln_sf(link, file)
+        }
       rescue Exception => e
         fatal 'Something went deeply wrong while installing package contents'
         Packo.debug e, :force => true
 
         pkg.destroy rescue nil
 
-        Find.find("#{old}/dist") {|file|
-          RBuild::Do.rm "#{params['destination']}/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
-        }
+        uninstall(package.to_s)
 
         exit! 17
       end

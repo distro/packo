@@ -66,8 +66,8 @@ module Do
     end
   end
 
-  def self.sym (link, to)
-    FileUtils.ln_sf to.start_with?('/') ? to : "#{@@into}/#{to}", link
+  def self.sym (to, link)
+    FileUtils.ln_sf to, link.start_with?('/') ? link : "#{@@into}/#{link}"
   end
 end
 
