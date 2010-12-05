@@ -203,7 +203,7 @@ class Application < Optitron::CLI
       end
 
       if _installed?(package)
-        uninstall(package.to_s)
+        uninstall(package.to_s(:whole)) rescue nil
       end
 
       manifest.selectors.each {|selector|
@@ -324,7 +324,7 @@ class Application < Optitron::CLI
       
       if packages.empty?
         fatal "No installed packages match #{name}"
-        exit! 20
+        exit 20
       end
 
       packages.each {|installed|
@@ -365,7 +365,7 @@ class Application < Optitron::CLI
     _search_installed(expression, params['repository'], params['type']).each {|package|
       print "#{package.tags}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
       print "-#{colorize(package.version, :RED)}"
-      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" unless package.slot.empty?
+      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
 
       print " [#{package.features}]" unless package.features.empty?
       print " {#{package.flavor}}"   unless package.flavor.empty?

@@ -132,6 +132,10 @@ class Package
     @revision = value.to_i rescue 0
   end
 
+  def slot= (value)
+    @slot = value.to_s.empty? ? nil : value.to_s
+  end
+
   def flavor= (value)
     @flavor = ((value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s))
   end
