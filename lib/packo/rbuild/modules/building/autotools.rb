@@ -138,6 +138,10 @@ class Autotools < Module
       })
     end
 
+    before :pack do
+      package.slot = "#{package.slot}#{"-#{package.target.to_s}" if package.host != package.target}"
+    end
+
     before :initialize do |package|
       package.host   = Host.new(Environment.new(nil, true))
       package.target = Host.new(package.environment)
