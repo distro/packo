@@ -139,7 +139,11 @@ class Autotools < Module
     end
 
     before :pack do
-      package.slot = "#{package.slot}#{"-#{package.target.to_s}" if package.host != package.target}"
+      package.slot = package.slot.to_s
+
+      if package.host != package.target
+        package.slot << '-' unless package.slot.empty?
+        package.slot << package.target.to_s
     end
 
     before :initialize do |package|
