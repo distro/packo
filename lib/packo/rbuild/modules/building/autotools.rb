@@ -144,6 +144,7 @@ class Autotools < Module
       if package.host != package.target
         package.slot << '-' unless package.slot.empty?
         package.slot << package.target.to_s
+      end
     end
 
     before :initialize do |package|
