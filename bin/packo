@@ -275,31 +275,29 @@ class Application < Optitron::CLI
             when :obj; puts colorize(">>> #{path}", :DEFAULT, :DEFAULT, :BOLD)
           end
 
-          if params['force']
-            InstalledPackage::Content.first(:path => fake).destroy rescue nil
-          end
-
           content = pkg.contents.first_or_create(
             :type => type,
             :path => fake
           )
 
-          content.update(
+          content.attributes = {
             :meta => meta
-          )
+          }
         }
 
         contents[:dir].each {|dir|
-          FileUtils.mkpath(dir)
+          FileUtils.mkpath(dir) rescue nil
         }
 
         contents[:obj].each {|(to, from)|
-          FileUtils.cp(from, to)
+          FileUtils.cp(from, to) rescue nil
         }
 
         contents[:sym].each {|(file, link)|
-          FileUtils.ln_sf(link, file)
+          FileUtils.ln_sf(link, file) rescue nil
         }
+
+        pkg.save
       rescue Exception => e
         fatal 'Something went deeply wrong while installing package contents'
         Packo.debug e, :force => true
