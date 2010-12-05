@@ -55,8 +55,6 @@ class Patch < Module
   private
     
     def _patch (what)
-      ap what.name
-
       if what.is_a?(FFFS::Directory)
         what.sort.each {|(name, file)|
           Do.cd(what.name) {

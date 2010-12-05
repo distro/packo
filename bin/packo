@@ -203,13 +203,12 @@ class Application < Optitron::CLI
       end
 
       if _installed?(package)
-        ap package.to_s
         uninstall(package.to_s)
       end
 
       manifest.selectors.each {|selector|
-        FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTOR_MODULES], :preserve => true, :remove_destination => true
-        Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTOR_MODULES]}/#{selector.path}", :silent => true
+        FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTORS], :preserve => true, :remove_destination => true
+        Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTORS]}/#{selector.path}", :silent => true
       }
 
       pkg = InstalledPackage.first_or_create(
