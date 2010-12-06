@@ -109,18 +109,18 @@ class Application < Optitron::CLI
       output = File.realpath(params['output'])
 
       package.after :pack do |path|
-        FileUtils.cp path, output, :verbose => true, :preserve => true
+        FileUtils.cp path, output, :preserve => true
       end
 
-      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s || params['wipe']
-        info "Cleaning #{package} because flavor/features changed."
+      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || params['wipe']
+        info "Cleaning #{package} because something changed."
 
         clean("#{package.to_s(:name)}-#{package.version}")
 
         package.create!
 
         begin
-          File.write("#{package.directory}/.build", package.to_s)
+          File.write("#{package.directory}/.build", package.to_s(:everything))
         rescue; end
       end
 

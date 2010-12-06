@@ -84,7 +84,7 @@ class Package < Packo::Package
       self.instance_exec(self, &@parent.instance_eval('@block'))
     end
 
-    self.directory = "#{package.environment['TMP']}/#{self.to_s(:whole)}/#{@version}"
+    self.directory = "#{package.environment[:TMP]}/#{self.tags.to_s(true)}/#{@name}/#{@slot}/#{@version}"
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
@@ -202,8 +202,9 @@ class Package < Packo::Package
     return super(type) if super(type)
 
     case type
-      when :package; "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s.empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
-      else           "#{super(:whole)}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavor.to_s}}" if !@flavor.to_s.empty?}"
+      when :package;    "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s.empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
+      when :everything; "#{super(:whole)} #{self.environment.to_s}"
+      else              "#{super(:whole)}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavor.to_s}}" if !@flavor.to_s.empty?}"
     end
   end
 end

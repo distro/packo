@@ -65,7 +65,7 @@ class InstalledPackage
 
       package = Packo::Package.parse(expression)
 
-      conditions = {}
+      conditions = { :order => [:name.asc] }
 
       if exact
         conditions[:name]    = package.name    if package.name

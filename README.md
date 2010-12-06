@@ -45,10 +45,11 @@ Installation is nearly finished, just few things are missing.
 How to install
 --------------
 
-To install packo just build the gem and install it.
+To install packo just clone the repo, build the gem and install it.
 
-    $ gem build *spec
-    $ gem instlal *gem
+    $ git clone git://github.com/distro/packo.git
+    $ gem build packo/*spec
+    $ gem install packo/*gem
 
 And then install the adapter you want to use, to get a list of adapters do
 

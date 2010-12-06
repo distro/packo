@@ -289,7 +289,7 @@ class Application < Optitron::CLI
         }
 
         contents[:obj].each {|(to, from)|
-          FileUtils.cp(from, to) rescue nil
+          FileUtils.cp(from, to, :preserve => true) rescue nil
         }
 
         contents[:sym].each {|(file, link)|
@@ -303,7 +303,7 @@ class Application < Optitron::CLI
 
         pkg.destroy rescue nil
 
-        uninstall(package.to_s)
+        uninstall(package.to_s(:whole))
 
         exit! 17
       end
@@ -332,17 +332,17 @@ class Application < Optitron::CLI
 
           case content.type
             when :obj
-              if params['force'] || content.meta == Digest::SHA1.hexdigest(File.read(path))
+              if File.exists?(path) && (params['force'] || content.meta == Digest::SHA1.hexdigest(File.read(path)))
                 puts colorize("<<< #{path}", :DEFAULT, :DEFAULT, :BOLD)
-                FileUtils.rm_f(path)
+                FileUtils.rm_f(path) rescue nil
               else
                  puts colorize("=== #{path}", :RED)
               end
 
             when :sym
-              if params['force'] || content.meta == File.readlink(path)
+              if File.exists?(path) && (params['force'] || !File.exists?(path) || content.meta == File.readlink(path))
                 puts colorize("<<< #{path} -> #{content.meta}", :CYAN, :DEFAULT, :BOLD)
-                FileUtils.rm_f(path)
+                FileUtils.rm_f(path) rescue nil
               else
                 puts colorize("=== #{path} -> #{File.readlink(path)}", RED)
               end

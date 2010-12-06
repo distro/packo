@@ -434,7 +434,7 @@ class Application < Optitron::CLI
 
     old = Dir.pwd; Dir.chdir(path)
 
-    if !result && (`git pull`.strip != 'Already up-to-date.' rescue nil)
+    if !result && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
       result = true
     end
 
