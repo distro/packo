@@ -87,7 +87,7 @@ module Helpers
           rescue LoadError
           rescue Exception => e
             warn "Something went wrong while loading #{feature} feature."
-            Packo.debug e, :force => true
+            Packo.debug e
           end
         }
       end
@@ -102,7 +102,7 @@ module Helpers
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
 
     if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
-      RBuild::Package.last.filesystem.merge(pkg.filesystem)
+      RBuild::Package.last.filesystem.merge!(pkg.filesystem)
 
       if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
         RBuild::Package.last.filesystem.parse(tmp.last.lstrip)

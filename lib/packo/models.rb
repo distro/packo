@@ -28,7 +28,7 @@ require 'versionomy'
 
 module DataMapper
 
-if Packo::Environment[:DEBUG].to_i > 0
+if Packo::Environment[:DEBUG].to_i > 2
   Logger.new($stdout, :debug)
 end
 

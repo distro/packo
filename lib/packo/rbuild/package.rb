@@ -84,7 +84,7 @@ class Package < Packo::Package
       self.instance_exec(self, &@parent.instance_eval('@block'))
     end
 
-    self.directory = "#{package.environment[:TMP]}/#{self.tags.to_s(true)}/#{@name}/#{@slot}/#{@version}"
+    self.directory = "#{package.environment[:TMP]}/#{self.tags.to_s(true)}/#{@name}/#{@slot}/#{@version}".gsub(%r{/*/}, '/')
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"

@@ -299,7 +299,7 @@ class Application < Optitron::CLI
         pkg.save
       rescue Exception => e
         fatal 'Something went deeply wrong while installing package contents'
-        Packo.debug e, :force => true
+        Packo.debug e
 
         pkg.destroy rescue nil
 

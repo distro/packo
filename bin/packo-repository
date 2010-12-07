@@ -120,7 +120,7 @@ class Application < Optitron::CLI
         _info "Added #{type}/#{name}"
       rescue Exception => e
         fatal 'Failed to add the cache'
-        Packo.debug e, :force => true
+        Packo.debug e
 
         if (repository = Repository.first(:type => type, :name => name))
           repository.destroy
@@ -162,7 +162,7 @@ class Application < Optitron::CLI
       rescue Exception => e
         fatal "Something went wrong while deleting #{name}"
 
-        Packo.debug e, :force => true
+        Packo.debug e
       end
     }
   end

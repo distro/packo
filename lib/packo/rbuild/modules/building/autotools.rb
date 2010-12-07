@@ -256,7 +256,8 @@ class Autotools < Module
       @configuration.set 'build', package.host
       @configuration.set 'host',  package.host
 
-      @configuration.with 'sysroot', "/usr/#{package.host}/#{package.target}"
+      @configuration.with 'sysroot',       "/usr/#{package.host}/#{package.target}"
+      @configuration.with 'build-sysroot', "/usr/#{package.host}/#{package.target}"
     else
       @configuration.set 'build', package.target
       @configuration.set 'host',  package.target
@@ -271,9 +272,7 @@ class Autotools < Module
         }
       end
 
-      if !File.exists? 'Makefile'
-        package.autotools.configure(@configuration)
-      end
+      package.autotools.configure(@configuration)
     }
   end
 

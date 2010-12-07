@@ -198,7 +198,9 @@ class Environment < Hash
   end
 
   def sandbox (changes={}, &block)
-    Environment.sandbox(self.merge(changes), &block)
+    Environment.sandbox(self.merge({
+      :ARCH => Host.new(self).arch
+    }.merge(changes)), &block)
   end
 end
 

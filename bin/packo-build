@@ -45,7 +45,7 @@ class Application < Optitron::CLI
     Environment.new {|env|
       if !env[:ARCH] || !env[:KERNEL] || !env[:LIBC] || !env[:COMPILER]
         fatal "You have to set ARCH, KERNEL, LIBC and COMPILER to build packages."
-        exit! 1
+        exit 1
       end
     }
 
@@ -59,21 +59,25 @@ class Application < Optitron::CLI
           "#{package.tags}/#{package.name}"
         }.map {|(name, package)| name}.uniq
   
-        if names.length > 1
+        if names.length == 0
+          fatal "No package matches #{package}"
+
+          exit 10
+        elsif names.length > 1
           fatal "More than one package matches: #{package}"
   
           names.each {|name|
             puts "    #{name}"
           }
           
-          exit! 10
+          exit 11
         end
   
         packages.sort {|a, b|
           a.version <=> b.version
         }.last
       end
-    }.compact.each {|package|
+    }.each {|package|
       if package.is_a?(String)
         path    = File.dirname(File.realpath(package))
         package = Package.parse(package.sub(/\.rbuild$/, ''))
@@ -88,14 +92,11 @@ class Application < Optitron::CLI
         files[e['name']] = e.text
       }
 
-      begin
-        package = loadPackage(path, package)
-      rescue LoadError
-      end
+      begin; package = loadPackage(path, package); rescue LoadError; end
 
       if !package
         fatal 'The package could not be instantiated'
-        exit 23
+        exit 12
       end
 
       if package.parent.nil?
@@ -132,7 +133,7 @@ class Application < Optitron::CLI
         info "Succesfully built #{package}"
       rescue Exception => e
         fatal "Failed to build #{package}"
-        Packo.debug e, :force => true
+        Packo.debug e
       end
     }
   end
@@ -167,7 +168,7 @@ class Application < Optitron::CLI
         info "Cleaned #{package.to_s(:name)}"
       rescue Exception => e
         fatal "Failed cleaning of #{package.to_s(:name)}"
-        Packo.debug e, :force => true
+        Packo.debug e
       end
     }
   end
