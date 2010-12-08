@@ -33,33 +33,83 @@ class Host
     )
   end
 
+  def self.arch (value=Environment.new(nil, true)[:ARCH])
+    case value
+      when 'core2'; 'x86_64'
+      when 'x86';   'i686'
+
+      when 'i386', 'i486', 'i586', 'i686',
+           'amd64', 'x86_64'
+      ; value
+
+      else; raise ArgumentError.new('Architecture not supported')
+    end
+  end
+
+  def self.vendor (value=Environment.new(nil, true)[:VENDOR])
+    case value
+      when 'pc'
+      ; value
+
+      else; 'unknown'
+    end
+  end
+
+  def self.kernel (value=Environment.new(nil, true)[:KERNEL])
+    case value
+      when 'windows'; 'cygwin'
+      when 'mac';     'darwin'
+      when 'linux';   'linux'
+
+      else; raise ArgumentError.new('Kernel not supported')
+    end
+  end
+
+  def self.misc (value=Environment.new(nil, true)[:MISC])
+    case value
+      when 'gnu'; value
+    end
+  end
+
+  def self.== (value)
+    value.is_a?(Host) && self.to_s == value.to_s
+  end
+
   def self.to_s
     Host.new(Environment.new(nil, true)).to_s rescue ''
   end
 
-  attr_accessor :arch, :vendor, :kernel, :misc
+  attr_reader :arch, :vendor, :kernel, :misc
 
   def initialize (data)
-    @arch   = data[:ARCH]
-    @vendor = data[:VENDOR]
-    @kernel = data[:KERNEL]
-    @misc   = data[:MISC]
-
-    case @arch
-      when 'core2'; @arch = 'x86_64'
-      when 'amd64'; @arch = 'x86_64'
-      when 'x86';   @arch = 'i686'
+    if data[:LIBC] == 'glibc'
+      self.misc = 'gnu'
     end
 
-    case @kernel
-      when 'windows'; @kernel = 'cygwin'
-      when 'mac';     @kernel = 'darwin'
-      when 'linux';   @misc   = 'gnu' if !@misc
-    end
+    self.arch   = data[:ARCH]
+    self.vendor = data[:VENDOR]
+    self.kernel = data[:KERNEL]
+    self.misc   = data[:MISC]
+  end
+
+  def arch= (value)
+    @arch = Host.arch(value)
+  end
+
+  def vendor= (value)
+    @vendor = Host.vendor(value)
+  end
+
+  def kernel= (value)
+    @kernel = Host.kernel(value)
+  end
+
+  def misc= (value)
+    @misc = Host.misc(value)
   end
 
   def == (value)
-    self.to_s == value.to_s
+    value.is_a?(Host) && self.to_s == value.to_s
   end
 
   def to_s

@@ -203,7 +203,7 @@ class Package < Packo::Package
 
     case type
       when :package;    "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s.empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
-      when :everything; "#{super(:whole)} #{self.environment.to_s}"
+      when :everything; "#{super(:whole)} #{self.environment.reject {|n| n == :DEBUG}.to_s }}"
       else              "#{super(:whole)}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavor.to_s}}" if !@flavor.to_s.empty?}"
     end
   end

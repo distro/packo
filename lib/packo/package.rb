@@ -35,7 +35,7 @@ class Package
         data[:features] = matches[3]
         data[:flavor]   = matches[5]
 
-        matches = matches[1].match(/^(.*?)(-(\d.*))?$/)
+        matches = matches[1].match(/^(.*?)(-(\d.*))?(%(.*))?$/)
 
         data[:tags] = matches[1].split('/')
 
@@ -43,12 +43,8 @@ class Package
           data[:name] = data[:tags].pop
         end
 
-        if matches[3]
-          matches = matches[3].match(/^(.*?)(%(.*)$)?$/)
-
-          data[:version] = matches[1]
-          data[:slot]    = matches[3]
-        end
+        data[:version] = matches[3]
+        data[:slot]    = matches[5]
     end
 
     Package.new(data)

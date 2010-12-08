@@ -22,8 +22,8 @@ require 'nokogiri'
 module Packo; module RBuild; class Package < Packo::Package
 
 class Manifest
-  def self.open (path)
-    dom = Nokogiri::XML.parse(File.read(path))
+  def self.parse (text)
+    dom = Nokogiri::XML.parse(text)
 
     Manifest.new(OpenStruct.new(
       :maintainer => dom.root['maintainer'],
@@ -62,6 +62,10 @@ class Manifest
     ))
   end
 
+  def self.open (path)
+    Manifest.parse(File.read(path))
+  end
+
   attr_reader :package, :dependencies, :blockers, :selectors
 
   def initialize (what)
@@ -89,9 +93,10 @@ class Manifest
     @blockers     = what.blockers
     @selectors    = [what.selector].flatten.compact.map {|selector| OpenStruct.new(selector)}
 
-    if (what.filesystem rescue nil)
+    if (what.filesystem.selectors rescue false)
       what.filesystem.selectors.each {|name, file|
-        matches     = file.content.match(/^#\s*(.*?):\s*(.*)\n\z/)
+        matches = file.content.match(/^#\s*(.*?):\s*(.*)([\n\s]*)?\z/) or next
+
         @selectors << OpenStruct.new(:name => matches[1], :description => matches[2], :path => name)
       }
     end

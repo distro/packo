@@ -150,7 +150,12 @@ class Autotools < Module
     end
 
     before :initialize do |package|
-      package.host   = Host.new(Environment.new(nil, true))
+      if Environment[:CROSS]
+        package.host = Host.new(Environment.new(nil, true))
+      else
+        package.host = Host.new(package.environment)
+      end
+
       package.target = Host.new(package.environment)
 
       package.environment[:CHOST]   = package.host.to_s
@@ -250,17 +255,20 @@ class Autotools < Module
     @configuration.set 'sharedstatedir', '/com'
     @configuration.set 'localstatedir',  '/var'
 
-    if Environment[:CROSS]
+    if package.host != package.target
       @configuration.set 'prefix', "/usr/#{package.host}"
 
       @configuration.set 'build', package.host
       @configuration.set 'host',  package.host
-
-      @configuration.with 'sysroot',       "/usr/#{package.host}/#{package.target}"
-      @configuration.with 'build-sysroot', "/usr/#{package.host}/#{package.target}"
     else
       @configuration.set 'build', package.target
       @configuration.set 'host',  package.target
+    end
+
+    if Packo::Host != package.target
+      @configuration.with 'sysroot', "/usr/#{package.real}/#{package.target}"
+
+      package.environment[:CPP] = "cpp --sysroot /usr/#{package.host}/#{package.target}"
     end
 
     @configuration.set 'target', package.target

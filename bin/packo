@@ -43,6 +43,7 @@ class Application < Optitron::CLI
   opt 'inherit', 'Apply the passed flags to the eventual dependencies', :type => :boolean, :default => false
   opt 'force', 'Force installation when something minor goes wrong', :type => :boolean, :default => false
   opt 'nodeps', 'Ignore blockers and dependencies', :type => :boolean, :default => false
+  opt 'depsonly', 'Install only dependencies', :type => :boolean, :default => false
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def install (*name)
     outside = params['destination'] != '/'
@@ -156,6 +157,27 @@ class Application < Optitron::CLI
             path = "#{env[:TMP]}/.__packo_unpacked/#{name[env[:TMP].length, name.length]}"
   
           when :source
+            manifest = RBuild::Package::Manifest.parse(_manifest(package, env))
+
+            unless params['nodeps']
+              manifest.blockers {|blocker|
+                if !blocker.runtime? && !_installed?(blocker)
+                  fatal "#{blocker} can't be installed with #{package}"
+                  exit! 16
+                end
+              }
+      
+              manifest.dependencies.each {|dependency|
+                if !dependency.runtime? && !_installed?(dependency)
+                  install(dependency.to_s)
+                end
+              }
+            end
+
+            if params['depsonly']
+              exit 0
+            end
+
             name = _build(package, env)
 
             if !name
@@ -189,17 +211,23 @@ class Application < Optitron::CLI
         Environment[:FLAVOR] = Environment[:FEATURES] = ''
       end
 
-      if !params['nodeps']
+      unless params['nodeps']
         manifest.blockers {|blocker|
-          if (blocker.runtime? || !binary) && _installed?(blocker)
+          if blocker.runtime? && _installed?(blocker)
             fatal "#{blocker} can't be installed with #{package}"
             exit! 16
           end
         }
 
         manifest.dependencies.each {|dependency|
-          install(dependency.to_s) if (dependency.runtime? && binary) || !binary
+          if !_installed?(dependency) && dependency.runtime?
+            install(dependency.to_s)
+          end
         }
+      end
+
+      if params['depsonly']
+        exit 0
       end
 
       if _installed?(package)
@@ -344,7 +372,7 @@ class Application < Optitron::CLI
                 puts colorize("<<< #{path} -> #{content.meta}", :CYAN, :DEFAULT, :BOLD)
                 FileUtils.rm_f(path) rescue nil
               else
-                puts colorize("=== #{path} -> #{File.readlink(path)}", RED)
+                puts colorize("=== #{path} -> #{File.readlink(path)}", :RED)
               end
 
             when :dir
@@ -553,6 +581,10 @@ class Application < Optitron::CLI
     end
 
     return Dir.glob("#{env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+  end
+
+  def _manifest (package, env)
+    `sandbox packo-build --repository='#{package.repository}' manifest #{package.to_s(:whole)}`
   end
 
   def _has (package, env)
