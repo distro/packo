@@ -256,19 +256,15 @@ class Autotools < Module
     @configuration.set 'localstatedir',  '/var'
 
     if package.host != package.target
-      @configuration.set 'prefix', "/usr/#{package.host}"
-
       @configuration.set 'build', package.host
       @configuration.set 'host',  package.host
     else
       @configuration.set 'build', package.target
       @configuration.set 'host',  package.target
-    end
 
-    if Packo::Host != package.target
-      @configuration.with 'sysroot', "/usr/#{package.real}/#{package.target}"
-
-      package.environment[:CPP] = "cpp --sysroot /usr/#{package.host}/#{package.target}"
+      if Packo::Host != package.target
+        @configuration.with 'sysroot', "/usr/#{Packo::Host}/#{package.target}"
+      end
     end
 
     @configuration.set 'target', package.target

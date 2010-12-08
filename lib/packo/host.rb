@@ -48,8 +48,7 @@ class Host
 
   def self.vendor (value=Environment.new(nil, true)[:VENDOR])
     case value
-      when 'pc'
-      ; value
+      when 'pc'; value
 
       else; 'unknown'
     end
@@ -82,14 +81,18 @@ class Host
   attr_reader :arch, :vendor, :kernel, :misc
 
   def initialize (data)
-    if data[:LIBC] == 'glibc'
-      self.misc = 'gnu'
-    end
-
     self.arch   = data[:ARCH]
     self.vendor = data[:VENDOR]
     self.kernel = data[:KERNEL]
     self.misc   = data[:MISC]
+
+    if !self.misc && data[:LIBC] == 'glibc'
+      self.misc = 'gnu'
+    end
+
+    if self.vendor == 'unknown' && ['x86_64', 'i386', 'i486', 'i586', 'i686'].member?(self.arch)
+      self.vendor = 'pc'
+    end
   end
 
   def arch= (value)
