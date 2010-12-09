@@ -37,7 +37,7 @@ class Binary < Repository
   end
 
   def populate
-    info 'Parsing the XML file' if Environment[:VERBOSE]
+    info 'Parsing the XML file' if System.env[:VERBOSE]
 
     dom = Nokogiri::XML.parse(File.read(self.path))
 

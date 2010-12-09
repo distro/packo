@@ -24,7 +24,7 @@ module Packo; module Binary
 
 module Helpers
   def colorize (text, fg, bg=nil, attr=nil)
-    return text if Environment[:NO_COLORS]
+    return text if System.env[:NO_COLORS]
 
     colors = {
       :DEFAULT => 9,
@@ -83,7 +83,7 @@ module Helpers
       if features
         features.text.split(' ').each {|feature|
           begin
-            Packo.load "#{Environment[:PROFILE]}/features/#{feature}", options
+            Packo.load "#{System.env[:PROFILE]}/features/#{feature}", options
           rescue LoadError
           rescue Exception => e
             warn "Something went wrong while loading #{feature} feature."

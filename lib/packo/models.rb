@@ -28,7 +28,7 @@ require 'versionomy'
 
 module DataMapper
 
-if Packo::Environment[:DEBUG].to_i > 2
+if Packo::System.env[:DEBUG].to_i > 2
   Logger.new($stdout, :debug)
 end
 
@@ -65,7 +65,7 @@ class Property
   end
 end
 
-setup :default, Packo::Environment[:DATABASE]
+setup :default, Packo::System.env[:DATABASE]
 
 require 'packo/models/installed_package'
 require 'packo/models/repository'

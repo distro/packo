@@ -21,8 +21,8 @@ require 'fileutils'
 require 'versionomy'
 require 'ostruct'
 
-require 'packo/environment'
-require 'packo/host'
+require 'packo/extensions'
+require 'packo/system'
 
 module Packo
   VERSION = Versionomy.parse('0.0.1')
@@ -67,11 +67,11 @@ module Packo
   end
 
   def self.debug (argument, options={})
-    if !Environment['DEBUG'] && !options[:force]
+    if !System.env[:DEBUG] && !options[:force]
       return
     end
 
-    if Environment['DEBUG'].to_i < (options[:level] || 1) && !options[:force]
+    if System.env[:DEBUG].to_i < (options[:level] || 1) && !options[:force]
       return
     end
 
@@ -103,36 +103,6 @@ module Packo
 
     eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
   end
-end
-
-class Object
-  def numeric?
-    true if Float(self) rescue false
-  end
-end
-
-module Kernel
-  def suppress_warnings
-    tmp, $VERBOSE = $VERBOSE, nil
-
-    result = yield
-
-    $VERBOSE = tmp
-
-    return result
-  end
-end
-
-class File
-  def self.write (path, content, *args)
-    file = File.new(path, 'w', *args)
-    file.write(content)
-    file.close
-  end
-end
-
-class OpenStruct
-  alias to_hash marshal_dump
 end
 
 require 'packo/models'

@@ -17,29 +17,32 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; class Package
-
-class Feature
-  def self.parse (text)
-    Feature.new(text.match(/^[\+\-]?(.*)$/)[1], !text.start_with?('-'))
-  end
-
-  attr_reader :name
-
-  def initialize (name, enabled=false, description=nil)
-    @name        = name.to_sym
-    @enabled     = !!enabled
-    @description = description
-  end
-
-  def enabled?;  @enabled         end
-  def disabled?; !@enabled        end
-  def enabled!;  @enabled = true  end
-  def disabled!; @enabled = false end
-
-  def description (value=nil)
-    value ? @description = value : @description
+class Object
+  def numeric?
+    true if Float(self) rescue false
   end
 end
 
-end; end
+module Kernel
+  def suppress_warnings
+    tmp, $VERBOSE = $VERBOSE, nil
+
+    result = yield
+
+    $VERBOSE = tmp
+
+    return result
+  end
+end
+
+class File
+  def self.write (path, content, *args)
+    file = File.new(path, 'w', *args)
+    file.write(content)
+    file.close
+  end
+end
+
+class OpenStruct
+  alias to_hash marshal_dump
+end

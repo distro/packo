@@ -17,29 +17,24 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; class Package
+require 'packo/environment'
+require 'packo/host'
 
-class Feature
-  def self.parse (text)
-    Feature.new(text.match(/^[\+\-]?(.*)$/)[1], !text.start_with?('-'))
+module Packo
+
+System = Class.new {
+  attr_reader :environment, :host
+
+  def environment!; @environmentClean end
+
+  alias env environment
+  alias env! environment!
+
+  def initialize
+    @environment      = Environment.new
+    @environmentClean = Environment.new(nil, true)
+    @host             = Host.new(@environmentClean)
   end
+}.new
 
-  attr_reader :name
-
-  def initialize (name, enabled=false, description=nil)
-    @name        = name.to_sym
-    @enabled     = !!enabled
-    @description = description
-  end
-
-  def enabled?;  @enabled         end
-  def disabled?; !@enabled        end
-  def enabled!;  @enabled = true  end
-  def disabled!; @enabled = false end
-
-  def description (value=nil)
-    value ? @description = value : @description
-  end
 end
-
-end; end

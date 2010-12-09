@@ -40,6 +40,8 @@ class Application < Optitron::CLI
 
   desc 'Adds binary/source repositories'
   def add (*uri)
+    env = env.new
+
     uri.each {|uri|
       uri  = URI.parse(uri)
       kind = nil
@@ -70,11 +72,11 @@ class Application < Optitron::CLI
       elsif @@scm.member?(uri.scheme)
         kind = :scm
 
-        FileUtils.rm_rf("#{Environment[:TMP]}/.__repo", :secure => true)
+        FileUtils.rm_rf("#{System.env[:TMP]}/.__repo", :secure => true)
 
-        _checkout(uri, "#{Environment[:TMP]}/.__repo")
+        _checkout(uri, "#{System.env[:TMP]}/.__repo")
 
-        dom = Nokogiri::XML.parse(File.read("#{Environment[:TMP]}/.__repo/repository.xml"))
+        dom = Nokogiri::XML.parse(File.read("#{System.env[:TMP]}/.__repo/repository.xml"))
 
         type = dom.root['type'].to_sym
         name = dom.root['name']
@@ -85,7 +87,7 @@ class Application < Optitron::CLI
         next
       end
 
-      path = "#{Environment[:REPOSITORIES]}/#{type}/#{name}"
+      path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
 
       if Repository.first(:type => type, :name => name)
         fatal "#{type}/#{name} already exists, delete it first"
@@ -108,7 +110,7 @@ class Application < Optitron::CLI
               _checkout(dom.xpath('//address').first.text, path)
 
             when :scm
-              FileUtils.cp_r "#{Environment[:TMP]}/.__repo/.", path, :preserve => true
+              FileUtils.cp_r "#{System.env[:TMP]}/.__repo/.", path, :preserve => true
 
             else
               _checkout(uri.to_s, path)
@@ -215,16 +217,31 @@ class Application < Optitron::CLI
     _search(expression, params['exact'], params['repository'], params['type']).uniq.group_by {|package|
       "#{package.tags}/#{package.name}"
     }.sort.each {|(name, packages)|
-      packages.sort {|a, b|
-        a.version <=> b.version
-      }.each {|package|
-        print "#{package.tags}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
-        print "-#{colorize(package.version, :RED)}"
-        print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
+      if params['full']
+        packages.group_by {|package|
+          "#{package.repository.type}/#{package.repository.name}"
+        }.each {|name, packages|
+          print "#{packages.first.tags}/#{colorize(packages.first.name, :DEFAULT, :DEFAULT, :BOLD)}"
 
-        print " (#{package.repository.type}/#{package.repository.name} | #{package.repository.uri} | #{package.repository.path})" if params['full']
-        print "\n"
-      }
+          print ' ('
+          print packages.map {|package|
+            "#{colorize(package.version, :RED)}" + (package.slot ? "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" : '')
+          }.join(', ')
+          print ') '
+
+          print " {#{package.repository.type}/#{package.repository.name} | #{package.repository.uri} | #{package.repository.path}}"
+        }
+      else
+        print "#{packages.first.tags}/#{colorize(packages.first.name, :DEFAULT, :DEFAULT, :BOLD)} ("
+
+        print packages.map {|package|
+          "#{colorize(package.version, :RED)}" + (package.slot ? "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" : '')
+        }.join(', ')
+
+        print ")"
+      end
+      
+      print "\n"
     }
   end
 
@@ -280,12 +297,12 @@ class Application < Optitron::CLI
 
             features.each {|feature|
               if feature.enabled
-                print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{Environment[:NO_COLORS] ? '!' : ''}"
+                print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{System.env[:NO_COLORS] ? '!' : ''}"
               else
                 print colorize(feature.name, :BLACK, :DEFAULT, :BOLD)
               end
 
-              print "#{' ' * (4 + length - feature.name.length + (Environment[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
+              print "#{' ' * (4 + length - feature.name.length + (System.env[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
 
               print "\n                 "
             }
@@ -425,7 +442,7 @@ class Application < Optitron::CLI
     end
 
     case scm
-      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !Environment[:VERBOSE]
+      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !System.env[:VERBOSE]
     end
   end
 

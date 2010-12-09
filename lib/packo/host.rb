@@ -33,7 +33,7 @@ class Host
     )
   end
 
-  def self.arch (value=Environment.new(nil, true)[:ARCH])
+  def self.arch (value=System.env![:ARCH])
     case value
       when 'core2'; 'x86_64'
       when 'x86';   'i686'
@@ -46,7 +46,7 @@ class Host
     end
   end
 
-  def self.vendor (value=Environment.new(nil, true)[:VENDOR])
+  def self.vendor (value=System.env![:VENDOR])
     case value
       when 'pc'; value
 
@@ -54,7 +54,7 @@ class Host
     end
   end
 
-  def self.kernel (value=Environment.new(nil, true)[:KERNEL])
+  def self.kernel (value=System.env![:KERNEL])
     case value
       when 'windows'; 'cygwin'
       when 'mac';     'darwin'
@@ -64,18 +64,10 @@ class Host
     end
   end
 
-  def self.misc (value=Environment.new(nil, true)[:MISC])
+  def self.misc (value=System.env![:MISC])
     case value
       when 'gnu'; value
     end
-  end
-
-  def self.== (value)
-    value.is_a?(Host) && self.to_s == value.to_s
-  end
-
-  def self.to_s
-    Host.new(Environment.new(nil, true)).to_s rescue ''
   end
 
   attr_reader :arch, :vendor, :kernel, :misc

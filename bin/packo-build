@@ -38,7 +38,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Creates a package'
-  opt 'output', 'The directory where to save packages', :default => Environment[:TMP]
+  opt 'output', 'The directory where to save packages', :default => System.env[:TMP]
   opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
   opt 'repository', 'Set a specific source repository', :type => :string
   def package (*name)
@@ -139,7 +139,7 @@ class Application < Optitron::CLI
   end
 
   desc 'Clean a package'
-  opt 'tmp', 'The path to the temporary directory', :default => Environment[:TMP], :short_name => 't'
+  opt 'tmp', 'The path to the temporary directory', :default => System.env[:TMP], :short_name => 't'
   def clean (*name)
     name.map {|package|
       if package.end_with?('.rbuild')

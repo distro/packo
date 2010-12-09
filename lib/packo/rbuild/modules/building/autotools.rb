@@ -150,8 +150,8 @@ class Autotools < Module
     end
 
     before :initialize do |package|
-      if Environment[:CROSS]
-        package.host = Host.new(Environment.new(nil, true))
+      if System.env[:CROSS]
+        package.host = Host.new(System.env!)
       else
         package.host = Host.new(package.environment)
       end
@@ -262,8 +262,8 @@ class Autotools < Module
       @configuration.set 'build', package.target
       @configuration.set 'host',  package.target
 
-      if Packo::Host != package.target
-        @configuration.with 'sysroot', "/usr/#{Packo::Host}/#{package.target}"
+      if System.host != package.target
+        @configuration.with 'sysroot', "/usr/#{System.host}/#{package.target}"
       end
     end
 

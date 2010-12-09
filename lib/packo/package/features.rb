@@ -23,23 +23,27 @@ module Packo; class Package
 
 class Features
   def self.parse (text)
-    data = {}
+    data = []
 
     text.split(/\s+/).each {|part|
-      if (matches = part.match(/([\+\-])?(.+)/))
-        data[matches[2].to_sym] = (matches[1] != '-')
-      end
+      feature = Feature.parse(part)
     }
 
-    self.new(data)
+    Features.new(data)
   end
 
   def initialize (values={})
     @values = {}
 
-    values.each {|name, value|
-      @values[name.to_sym] = Feature.new(name, value || false)
-    }
+    if values.is_a?(Array)
+      values.each {|feature|
+        @values[feature.name] = feature
+      }
+    elsif values.is_a?(Hash)
+      values.each {|name, value|
+        @values[name.to_sym] = Feature.new(name, value || false)
+      }
+    end
   end
 
   def each

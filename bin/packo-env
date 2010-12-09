@@ -35,11 +35,9 @@ class Application < Optitron::CLI
 
   desc 'Shows the environment'
   def show
-    env = Environment.new
-
-    length = env.map {|(name, value)| name.length}.max
+    length = System.env.map {|(name, value)| name.length}.max
     
-    env.each {|(name, value)|
+    System.env.each {|(name, value)|
       puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
     }
   end

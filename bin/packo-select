@@ -80,6 +80,12 @@ class Application < Optitron::CLI
 
     system(cmd)
   end
+
+  private
+
+  def initialize
+    @env = Environment.new
+  end
 end
 
 Application.dispatch

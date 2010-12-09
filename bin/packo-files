@@ -39,7 +39,7 @@ class Application < Optitron::CLI
   desc 'Get a file list of a given package'
   def package (name)
     if name.end_with?('.pko')
-      path = "#{Environment[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
+      path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
       RBuild::Modules::Packaging::PKO.unpack(File.realpath(name), path)
 
       length = "#{path}/dist".length

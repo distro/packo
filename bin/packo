@@ -49,7 +49,7 @@ class Application < Optitron::CLI
     outside = params['destination'] != '/'
 
     FileUtils.mkpath params['destination'] rescue nil
-    FileUtils.mkpath Environment[:SELECTOR_MODULES] rescue nil
+    FileUtils.mkpath System.env[:SELECTORS] rescue nil
 
     binary = false
 
@@ -63,7 +63,7 @@ class Application < Optitron::CLI
       if File.extname(name).empty?
         packages = nil
   
-        if Environment.new[:FLAVOR].include?('binary')
+        if System.env[:FLAVOR].include?('binary')
           packages = _search(name, params['repository'], :binary)
   
           if packages.empty?
@@ -188,8 +188,7 @@ class Application < Optitron::CLI
             path = "#{env[:TMP]}/.__packo_unpacked/#{package.tags.to_s(true)}/#{name[env[:TMP].length + '.__packo_build/'.length, name.length]}"
         end
       else
-        env  = Environment.new
-        path = "#{env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
+        path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
       end
 
       FileUtils.rm_rf path, :secure => true
@@ -455,12 +454,12 @@ class Application < Optitron::CLI
 
           features.each {|feature|
             if feature.enabled
-              print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{Environment[:NO_COLORS] ? '!' : ''}"
+              print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{System.env[:NO_COLORS] ? '!' : ''}"
             else
               print colorize(feature.name, :BLACK, :DEFAULT, :BOLD)
             end
 
-            print "#{' ' * (4 + length - feature.name.length + (Environment[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
+            print "#{' ' * (4 + length - feature.name.length + (System.env[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
 
             print "\n                 "
           }
