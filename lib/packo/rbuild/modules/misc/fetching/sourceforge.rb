@@ -28,11 +28,22 @@ Fetcher.register :sourceforge, do |url, package|
   path    = matches[2]
 
   body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{project}/files/#{File.dirname(path)}/"))
-  body = Net::HTTP.get(URI.parse(body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).find {|(url)|
-    url.match(%r{((tar\.(lzma|xz|bz2|gz))|zip|rar)/download$})
-  }.first))
 
-  URI.decode(body.match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
+
+  urls = body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).select {|(url)|
+    url.match(%r{((tar\.(lzma|xz|bz2|gz))|zip|rar)/download$})
+  }.map {|(url)| url}
+
+  url = nil
+  ['xz', 'lzma', 'bz2', 'gz', 'zip' 'rar'].each {|compression|
+    url = urls.find {|url|
+      url.match(%r{\.#{compression}/download$})
+    }
+
+    break if url
+  }
+
+  URI.decode(Net::HTTP.get(URI.parse(url)).match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
 end
 
 end; end; end; end

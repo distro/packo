@@ -27,11 +27,12 @@ class Callbacks
 
     attr_reader :name, :priority, :position
 
-    def initialize (priority, callback, binding=nil, position=nil)
-      @priority = priority
+    def initialize (callback, data)
       @callback = callback
-      @binding  = binding
-      @position = position
+      @priority = data[:priority] || 0
+      @binding  = data[:binding]  || binding
+      @position = data[:position] || 0
+      @name     = data[:name]
     end
 
     def call (*args)
@@ -51,8 +52,14 @@ class Callbacks
     @position  = 0
   end
 
-  def register (chain, priority, callback, binding=nil)
-    @callbacks[Chains.member?(chain) ? chain : :before] << Callback.new(priority, callback, binding, @position += 1)
+  def register (chain, callback, data)
+    @callbacks[Chains.member?(chain) ? chain : :before] << Callback.new(callback, { :position => @position += 1 }.merge(data))
+  end
+
+  def unregister (chain, name=nil)
+    @callbacks[Chains.member?(chain) ? chain : :before].delete_if {|callback|
+      callback.name == name || name.nil?
+    }
   end
 
   def sort!

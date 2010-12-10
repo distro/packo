@@ -19,7 +19,7 @@
 
 module Packo; module RBuild; module Modules; module Misc
 
-Unpacker.register /\.tar\.[^.]$/ do |path, to|
+Unpacker.register /\.tar\.(bz2|gz|xz|lzma)$/ do |path, to|
   options = [case File.extname(path)
     when '.xz';   '--xz'
     when '.lzma'; '--lzma'

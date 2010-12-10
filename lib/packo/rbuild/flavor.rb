@@ -39,6 +39,10 @@ class Flavor < Packo::Package::Flavor
       self.instance_exec(self, &block) if block; self
     end
 
+    def method_missing (id, *args, &block)
+      @package.send id, *args, &block
+    end
+
     def owner= (value)
       @package = value
     end
@@ -50,16 +54,17 @@ class Flavor < Packo::Package::Flavor
     @package  = package
     @elements = {}
 
-    Names.each {|name|
-      @elements[name] = Element.new(package, name, values[name] || false)
+    values.each {|name, value|
+      @elements[name.to_sym] = Element.new(package, name, value || false)
     }
   end
 
-  def method_missing (name, *args, &block)
-    if Names.member?(name)
-      @elements[name].is_a?(Element) ?
-        @elements[name].execute(&block) :
-        @elements[name] = Element.new(@package, name, &block)
+  def method_missing (id, *args, &block)
+    case id.to_s
+      when /^(.+?)\?$/    then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).enabled?
+      when /^not_(.+?)!$/ then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).disable!
+      when /^(.+?)!$/     then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).enable!
+      when /^(.+?)$/      then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).execute(&block)
     end
   end
 

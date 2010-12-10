@@ -22,6 +22,8 @@ require 'fileutils'
 module Packo; module RBuild;
 
 module Do
+  @@into = nil
+
   def self.rm (*path)
     path.each {|path|
       next unless File.exists?(path)
@@ -66,8 +68,51 @@ module Do
     end
   end
 
+  def self.bin (*binaries)
+    binaries.map {|binary| Dir.glob(binary)}.flatten.each {|binary|
+      begin
+        FileUtils.cp    binary, "#{@@into}/#{File.basename(binary)}", :preserve => true
+        FileUtils.chmod 0755,   "#{@@into}/#{File.basename(binary)}"
+      rescue Exception => e
+        Packo.debug e
+      end
+    }
+  end
+
+  def self.man (*mans)
+    mans.map {|man| Dir.glob(man)}.flatten.each {|man|
+      begin
+        FileUtils.cp    man,  "#{@@into}/#{File.basename(man)}", :preserve => true
+        FileUtils.chmod 0644, "#{@@into}/#{File.basename(man)}"
+      rescue Exception => e
+        Packo.debug e
+      end
+    }
+  end
+
+  def self.doc (*docs)
+    docs.map {|doc| Dir.glob(doc)}.flatten.each {|doc|
+      begin
+        FileUtils.cp    doc,  "#{@@into}/#{File.basename(doc)}", :preserve => true
+        FileUtils.chmod 0644, "#{@@into}/#{File.basename(doc)}"
+      rescue Exception => e
+        Packo.debug e
+      end
+    }
+  end
+
   def self.sym (to, link)
     FileUtils.ln_sf to, link.start_with?('/') ? link : "#{@@into}/#{link}"
+  end
+
+  def self.sed (file, *seds)
+    content = File.read(file)
+
+    seds.each {|(regexp, sub)|
+      content.gsub!(regexp, sub || '')
+    }
+
+    File.write(file, content)
   end
 end
 

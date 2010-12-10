@@ -74,7 +74,7 @@ class Fetcher < Module
 
     package.stages.callbacks(:fetch).do(sources) {
       sources.each {|source|
-        distfiles << "#{package.fetchdir || '/tmp'}/#{File.basename(source)}"
+        distfiles << "#{package.fetchdir || System.env[:TMP]}/#{File.basename(source).sub(/\?.*$/, '')}"
 
         package.fetch source, distfiles.last
       }

@@ -47,6 +47,14 @@ class String
   def interpolate (on)
     on.instance_eval("%{#{self}}") rescue self
   end
+
+  alias __old_equal ===
+
+  def === (value)
+    value.is_a?(Packo::Host) ?
+      value == self :
+      __old_equal(value)
+  end
 end
 
 class OpenStruct

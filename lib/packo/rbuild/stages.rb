@@ -26,12 +26,16 @@ class Stages
   Cycles = 23
 
   module Callable
-    def before (name, priority=0, __binding=nil, &block)
-      self.package.stages.register(:before, name, priority, block, __binding || self) rescue nil
+    def before (name, data=nil, &block)
+      self.package.stages.register(:before, name, block, { :binding => self }.merge(data || {}))
     end
 
-    def after (name, priority=0, __binding=nil, &block)
-      self.package.stages.register(:after, name, priority, block, __binding || self) rescue nil
+    def after (name, data=nil, &block)
+      self.package.stages.register(:after, name, block, { :binding => self }.merge(data || {}))
+    end
+
+    def avoid (chain, name, known=nil)
+      self.package.stages.unregister(chain, name, known)
     end
   end
 
@@ -165,8 +169,12 @@ class Stages
     }
   end
 
-  def register (chain, name, priority, callback, binding=nil)
-    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).register(chain, priority, callback, binding)
+  def register (chain, name, callback, data={})
+    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).register(chain, callback, data)
+  end
+
+  def unregister (chain, name, known=nil)
+    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).delete(chain, known)
   end
 
   def callbacks (name)

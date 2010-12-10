@@ -104,8 +104,14 @@ class Host
   end
 
   def == (value)
-    value.is_a?(Host) && self.to_s == value.to_s
+    if value.is_a?(Host)
+      self.to_s == value.to_s
+    else
+      !!self.to_s.match(Regexp.new('^' + Regexp.escape(value.to_s).gsub(/\\\*/, '.*?').gsub(/\\\?/, '.') + '$', 'i'))
+    end
   end
+
+  alias === ==
 
   def to_s
     "#{arch}#{"-#{vendor}" if vendor}-#{kernel}#{"-#{misc}" if misc}"

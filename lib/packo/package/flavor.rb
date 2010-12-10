@@ -20,8 +20,6 @@
 module Packo; class Package
 
 class Flavor
-  Names = [:binary, :vanilla, :headers, :documentation, :minimal, :debug]
-
   class Element
     attr_reader :name, :value
 
@@ -30,9 +28,10 @@ class Flavor
       @enabled = !!enabled
     end
 
-    def enabled?; @enabled         end
-    def enable!;  @enabled = true  end
-    def disable!; @enabled = false end
+    def enabled?;   @enabled         end
+    def disabled?; !@enabled         end
+    def enable!;    @enabled = true  end
+    def disable!;   @enabled = false end
   end
 
   def self.parse (text)
@@ -40,7 +39,7 @@ class Flavor
 
     text.split(/\s+/).each {|part|
       if (matches = part.match(/([\+\-])?(.+)/))
-        data[matches[2].to_sym] = (matches[1] != '-')
+        data[matches[2]] = (matches[1] != '-')
       end
     }
 
@@ -50,9 +49,18 @@ class Flavor
   def initialize (values={})
     @elements = {}
 
-    Names.each {|name|
-      @elements[name] = Element.new(name, values[name] || false)
+    values.each {|name, value|
+      @elements[name.to_sym] = Element.new(name, value || false)
     }
+  end
+
+  def method_missing (id, *args, &block)
+    case id.to_s
+      when /^(.+?)\?$/    then (@elements[$1.to_sym] ||= Element.new($1, false)).enabled?
+      when /^not_(.+?)!$/ then (@elements[$1.to_sym] ||= Element.new($1, false)).disable!
+      when /^(.+?)!$/     then (@elements[$1.to_sym] ||= Element.new($1, false)).enable!
+      when /^(.+?)$/      then (@elements[$1.to_sym] ||= Element.new($1, false))
+    end
   end
 
   def each
@@ -92,12 +100,5 @@ class Flavor
     end
   end
 end
-
-Flavor::Names.each {|name|
-  Flavor.class_eval("def #{name};      @elements[:#{name}]          end")
-  Flavor.class_eval("def #{name}?;     @elements[:#{name}].enabled? end")
-  Flavor.class_eval("def #{name}!;     @elements[:#{name}].enable!  end")
-  Flavor.class_eval("def not_#{name}!; @elements[:#{name}].disable! end")
-}
 
 end; end

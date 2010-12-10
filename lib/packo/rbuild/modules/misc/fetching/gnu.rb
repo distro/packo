@@ -46,9 +46,9 @@ Fetcher.register :gnu, do |url, package|
   end
 
   pack = nil
-  ['xz', 'bz2', 'gz'].each {|compression|
+  ['xz', 'lzma', 'bz2', 'gz'].each {|compression|
     pack = packs.find {|pack|
-      pack.match(/#{compression}$/)
+      pack.match(/\.#{compression}$/)
     }
 
     break if pack

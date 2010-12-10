@@ -133,6 +133,7 @@ class Application < Optitron::CLI
         info "Succesfully built #{package}"
       rescue Exception => e
         fatal "Failed to build #{package}"
+        fatal e.message
         Packo.debug e
       end
     }

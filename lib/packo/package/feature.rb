@@ -32,10 +32,12 @@ class Feature
     @description = description
   end
 
-  def enabled?;  @enabled         end
-  def disabled?; !@enabled        end
-  def enabled!;  @enabled = true  end
-  def disabled!; @enabled = false end
+  def enabled?;   @enabled         end
+  def disabled?; !@enabled         end
+  def enabled!;   @enabled = true  end
+  def disabled!;  @enabled = false end
+  def enable!;    @enabled = true  end
+  def disable!;   @enabled = false end
 
   def description (value=nil)
     value ? @description = value : @description

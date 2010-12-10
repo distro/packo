@@ -18,6 +18,7 @@
 #++
 
 require 'fffs'
+require 'find'
 
 require 'packo/package'
 
@@ -84,6 +85,30 @@ class Package < Packo::Package
       self.instance_exec(self, &@parent.instance_eval('@block'))
     end
 
+    before :pack, :name => :headers do
+      next if flavor.vanilla?
+
+      if !flavor.headers?
+        Find.find(distdir) {|file|
+          if ['include', 'headers'].member?(File.basename(file)) && File.directory?(file)
+            FileUtils.rm_rf(file, :secure => true) rescue nil
+          end
+        }
+      end
+    end
+
+    before :pack, :name => :documentation do
+      next if flavor.vanilla?
+
+      if !flavor.documentation?
+        Find.find(distdir) {|file|
+          if ['man', 'info', 'doc'].member?(File.basename(file)) && File.directory?(file)
+            FileUtils.rm_rf(file, :secure => true) rescue nil
+          end
+        }
+      end
+    end
+
     self.directory = "#{package.environment[:TMP]}/#{self.tags.to_s(true)}/#{@name}/#{@slot}/#{@version}".gsub(%r{/*/}, '/')
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
@@ -112,12 +137,12 @@ class Package < Packo::Package
   rescue; end
 
   def envify!
-    Flavor::Names.each {|flavor|
-      if environment[:FLAVOR].include?(flavor.to_s)
-        self.flavor.send "#{flavor}!"
-      else
-        self.flavor.send "not_#{flavor}!"
-      end
+    environment[:FLAVOR].split(/\s+/).each {|element|
+      matches = element.match(/^([+-])?(.+)$/)
+
+      (matches[1] == '-') ?
+        self.flavor.send("not_#{matches[2]}!") :
+        self.flavor.send("#{matches[2]}!")
     }
 
     environment[:FEATURES].split(/\s+/).each {|feature|
