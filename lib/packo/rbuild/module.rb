@@ -35,10 +35,6 @@ class Module
   def initialize (package)
     @package = package
   end
-
-  def owner= (value)
-    @package = value
-  end
 end
 
 end; end

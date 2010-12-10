@@ -180,14 +180,6 @@ class Stages
   def callbacks (name)
     @callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)
   end
-
-  def owner= (value)
-    @package = value
-
-    @callbacks.each_value {|callbacks|
-      callbacks.owner = value
-    }
-  end
 end
 
 end; end

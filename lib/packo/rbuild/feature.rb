@@ -46,10 +46,6 @@ class Feature < Packo::Package::Feature
   def method_missing (id, *args, &block)
     @package.send id, *args, &block
   end
-
-  def owner= (value)
-    @package = value
-  end
 end
 
 end; end

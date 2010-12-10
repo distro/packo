@@ -42,10 +42,6 @@ class Flavor < Packo::Package::Flavor
     def method_missing (id, *args, &block)
       @package.send id, *args, &block
     end
-
-    def owner= (value)
-      @package = value
-    end
   end
 
   attr_reader :package
@@ -66,14 +62,6 @@ class Flavor < Packo::Package::Flavor
       when /^(.+?)!$/     then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).enable!
       when /^(.+?)$/      then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).execute(&block)
     end
-  end
-
-  def owner= (value)
-    @package = value
-
-    @elements.each_value {|element|
-      element.owner = value
-    }
   end
 end
 

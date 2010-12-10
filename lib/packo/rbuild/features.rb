@@ -58,15 +58,6 @@ class Features < Packo::Package::Features
   def delete (name)
     @values.delete(name.to_sym)
   end
-
-  def owner= (value)
-    @package = value
-
-    @values.each_value {|feature|
-      feature.owner = value
-    }
-  end
-
 end
 
 end; end

@@ -41,10 +41,6 @@ class Blockers < Array
   def check
     package.stages.callbacks(:blockers).do(self)
   end
-
-  def owner= (value)
-    @package = value
-  end
 end
 
 end; end

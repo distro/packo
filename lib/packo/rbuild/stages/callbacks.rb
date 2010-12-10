@@ -91,16 +91,6 @@ class Callbacks
 			result
 		end
   end
-
-  def owner= (value)
-    Chains.each {|chain|
-      @callbacks[chain].each {|callback|
-        if callback.binding.is_a? Package
-          callback.binding = value
-        end
-      }
-    }
-  end
 end
 
 end; end; end
