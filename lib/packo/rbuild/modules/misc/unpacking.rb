@@ -17,38 +17,5 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-class Object
-  def numeric?
-    true if Float(self) rescue false
-  end
-end
-
-module Kernel
-  def suppress_warnings
-    tmp, $VERBOSE = $VERBOSE, nil
-
-    result = yield
-
-    $VERBOSE = tmp
-
-    return result
-  end
-end
-
-class File
-  def self.write (path, content, *args)
-    file = File.new(path, 'w', *args)
-    file.write(content)
-    file.close
-  end
-end
-
-class String
-  def interpolate (on)
-    on.instance_eval("%{#{self}}") rescue self
-  end
-end
-
-class OpenStruct
-  alias to_hash marshal_dump
-end
+require 'packo/rbuild/modules/misc/unpacking/tar'
+require 'packo/rbuild/modules/misc/unpacking/zip'

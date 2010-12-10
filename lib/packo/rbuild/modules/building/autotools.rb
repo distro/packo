@@ -256,14 +256,19 @@ class Autotools < Module
     @configuration.set 'localstatedir',  '/var'
 
     if package.host != package.target
-      @configuration.set 'build', package.host
       @configuration.set 'host',  package.host
+      @configuration.set 'build', package.host
+      @configuration.set 'target',  package.host
     else
-      @configuration.set 'build', package.target
-      @configuration.set 'host',  package.target
+      @configuration.set 'host',  package.host
+      @configuration.set 'build', package.host
 
       if System.host != package.target
+        @configuration.set 'target', package.target
+
         @configuration.with 'sysroot', "/usr/#{System.host}/#{package.target}"
+      else
+        @configuration.with 'sysroot', '/'
       end
     end
 

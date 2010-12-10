@@ -17,12 +17,5 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; module Behaviors
-
-GNU = [
-  Modules::Fetching::Wget, Modules::Misc::Unpack,
-  Modules::Building::Patch, Modules::Building::Autotools,
-  Modules::Packaging::PKO
-]
-
-end; end; end
+require 'packo/rbuild/modules/misc/fetching/gnu'
+require 'packo/rbuild/modules/misc/fetching/sourceforge'

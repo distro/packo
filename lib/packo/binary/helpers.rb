@@ -24,49 +24,23 @@ module Packo; module Binary
 
 module Helpers
   def colorize (text, fg, bg=nil, attr=nil)
-    return text if System.env[:NO_COLORS]
-
-    colors = {
-      :DEFAULT => 9,
-      nil      => 9,
-
-      :BLACK   => 0,
-      :RED     => 1,
-      :GREEN   => 2,
-      :YELLOW  => 3,
-      :BLUE    => 4,
-      :MAGENTA => 5,
-      :CYAN    => 6,
-      :WHITE   => 7
-    }
-
-    attributes = {
-      :DEFAULT => 0,
-      nil      => 0,
-
-      :BOLD      => 1,
-      :UNDERLINE => 4,
-      :BLINK     => 5,
-      :REVERSE   => 7
-    }
-
-    "\e[#{attributes[attr]};3#{colors[fg]};4#{colors[bg]}m#{text}\e[0m"
+    Packo.colorize(text, fg, bg, attr)
   end
 
   def info (text)
-    puts "#{colorize('*', :GREEN, :DEFAULT, :BOLD)} #{text}"
+    Packo.info(text)
   end
 
   alias _info info
 
   def warn (text)
-    puts "#{colorize('*', :YELLOW, :DEFAULT, :BOLD)} #{text}"
+    Packo.warn(text)
   end
 
   alias _warn warn
 
   def fatal (text)
-    puts "#{colorize('*', :RED)} #{text}"
+    Packo.fatal(text)
   end
 
   alias _fatal fatal
@@ -82,6 +56,8 @@ module Helpers
 
       if features
         features.text.split(' ').each {|feature|
+          next if RBuild::Features::Default[feature.to_sym]
+
           begin
             Packo.load "#{System.env[:PROFILE]}/features/#{feature}", options
           rescue LoadError

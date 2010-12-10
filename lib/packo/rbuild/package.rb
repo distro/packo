@@ -113,7 +113,7 @@ class Package < Packo::Package
 
   def envify!
     Flavor::Names.each {|flavor|
-      if environment.include?(flavor.to_s)
+      if environment[:FLAVOR].include?(flavor.to_s)
         self.flavor.send "#{flavor}!"
       else
         self.flavor.send "not_#{flavor}!"
@@ -124,7 +124,7 @@ class Package < Packo::Package
       feature = Feature.parse(feature)
 
       self.features {
-        next if !self.has(feature.name)
+        next if !self.has?(feature.name)
 
         (feature.enabled?) ?
           self.get(feature.name).enabled! :

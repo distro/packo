@@ -30,7 +30,7 @@ class Host
       :VENDOR => matches[3],
       :KERNEL => matches[4],
       :MISC   => matches[6]
-    )
+    ) rescue nil
   end
 
   def self.arch (value=System.env![:ARCH])

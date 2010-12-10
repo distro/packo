@@ -43,7 +43,7 @@ class Source < Repository
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
-          info "Parsing #{version.sub("#{self.path}/", '')}" if @env[:VERBOSE]
+          info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
 
           pkg = Packo::Package.new(
             :name    => File.basename(what),
@@ -53,11 +53,11 @@ class Source < Repository
           begin
             package = loadPackage(what, pkg)
           rescue LoadError => e
-            warn e.to_s if @env[:VERBOSE]
+            warn e.to_s if System.env[:VERBOSE]
           end
 
           if package.name != pkg.name || package.version != pkg.version
-            warn "Package not found: #{pkg.name}" if @env[:VERBOSE]
+            warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
             next
           end
 

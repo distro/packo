@@ -17,6 +17,19 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/fetching/gnu'
-require 'packo/rbuild/modules/fetching/sourceforge'
-require 'packo/rbuild/modules/fetching/wget'
+module Packo; module RBuild; module Modules; module Misc
+
+Unpacker.register /\.tar\.[^.]$/ do |path, to|
+  options = [case File.extname(path)
+    when '.xz';   '--xz'
+    when '.lzma'; '--lzma'
+  end].flatten.compact
+
+  if to
+    options << '-C' << to
+  end
+
+  Packo.sh 'tar', 'xf', path, *options, '-k'
+end
+
+end; end; end; end

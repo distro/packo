@@ -17,4 +17,5 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/misc/unpack'
+require 'packo/rbuild/modules/misc/fetcher'
+require 'packo/rbuild/modules/misc/unpacker'

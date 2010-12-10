@@ -27,10 +27,6 @@ require 'packo/system'
 module Packo
   VERSION = Versionomy.parse('0.0.1')
 
-  def self.interpolate (string, on)
-    on.instance_eval('"' + string + '"') rescue nil
-  end
-
   def self.sh (*cmd, &block)
     options = (Hash === cmd.last) ? cmd.pop : {}
 
@@ -102,6 +98,48 @@ module Packo
     end
 
     eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
+  end
+
+  def self.colorize (text, fg, bg=nil, attr=nil)
+    return text if System.env[:NO_COLORS]
+
+    colors = {
+      :DEFAULT => 9,
+      nil      => 9,
+
+      :BLACK   => 0,
+      :RED     => 1,
+      :GREEN   => 2,
+      :YELLOW  => 3,
+      :BLUE    => 4,
+      :MAGENTA => 5,
+      :CYAN    => 6,
+      :WHITE   => 7
+    }
+
+    attributes = {
+      :DEFAULT => 0,
+      nil      => 0,
+
+      :BOLD      => 1,
+      :UNDERLINE => 4,
+      :BLINK     => 5,
+      :REVERSE   => 7
+    }
+
+    "\e[#{attributes[attr]};3#{colors[fg]};4#{colors[bg]}m#{text}\e[0m"
+  end
+
+  def self.info (text)
+    puts "#{colorize('*', :GREEN, :DEFAULT, :BOLD)} #{text}"
+  end
+
+  def self.warn (text)
+    puts "#{colorize('*', :YELLOW, :DEFAULT, :BOLD)} #{text}"
+  end
+
+  def self.fatal (text)
+    puts "#{colorize('*', :RED)} #{text}"
   end
 end
 

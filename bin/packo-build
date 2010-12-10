@@ -140,12 +140,13 @@ class Application < Optitron::CLI
 
   desc 'Clean a package'
   opt 'tmp', 'The path to the temporary directory', :default => System.env[:TMP], :short_name => 't'
+  opt 'repository', 'Set a specific source repository', :type => :string
   def clean (*name)
     name.map {|package|
       if package.end_with?('.rbuild')
         package
       else
-        packages = _search(package)
+        packages = _search(package, params['repository'])
 
         if (multiple = packages.uniq).length > 1
           fatal 'Multiple packages with the same name, be more precise.'
@@ -232,11 +233,12 @@ class Application < Optitron::CLI
   end
 
   desc 'Output the manifest of the given package'
+  opt 'repository', 'Set a specific source repository', :type => :string
   def manifest (package)
     if package.end_with?('.rbuild')
       package = loadPackage(File.dirname(package), Packo::Package.parse(package.sub('.rbuild', '')))
     else
-      tmp = _search(package)
+      tmp = _search(package, params['repository'])
 
       if (multiple = tmp.uniq).length > 1
         fatal 'Multiple packages with the same name, be more precise.'

@@ -161,14 +161,14 @@ class Application < Optitron::CLI
 
             unless params['nodeps']
               manifest.blockers {|blocker|
-                if !blocker.runtime? && !_installed?(blocker)
+                if !blocker.runtime? && !System.has?(blocker)
                   fatal "#{blocker} can't be installed with #{package}"
                   exit! 16
                 end
               }
       
               manifest.dependencies.each {|dependency|
-                if !dependency.runtime? && !_installed?(dependency)
+                if !dependency.runtime? && !System.has?(dependency)
                   install(dependency.to_s)
                 end
               }
@@ -212,14 +212,14 @@ class Application < Optitron::CLI
 
       unless params['nodeps']
         manifest.blockers {|blocker|
-          if blocker.runtime? && _installed?(blocker)
+          if blocker.runtime? && System.has?(blocker)
             fatal "#{blocker} can't be installed with #{package}"
             exit! 16
           end
         }
 
         manifest.dependencies.each {|dependency|
-          if !_installed?(dependency) && dependency.runtime?
+          if !System.has?(dependency) && dependency.runtime?
             install(dependency.to_s)
           end
         }
@@ -229,14 +229,14 @@ class Application < Optitron::CLI
         exit 0
       end
 
-      if _installed?(package)
+      if System.has?(package)
         uninstall(package.to_s(:whole)) rescue nil
       end
 
       manifest.selectors.each {|selector|
-        FileUtils.mkpath env[:SELECTORS]
-        FileUtils.cp_r "#{path}/selectors/#{selector.path}", env[:SELECTORS], :preserve => true, :remove_destination => true
-        Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{env[:SELECTORS]}/#{selector.path}", :silent => true
+        FileUtils.mkpath System.env[:SELECTORS]
+        FileUtils.cp_r "#{path}/selectors/#{selector.path}", System.env[:SELECTORS], :preserve => true, :remove_destination => true
+        Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{System.env[:SELECTORS]}/#{selector.path}", :silent => true
       }
 
       pkg = InstalledPackage.first_or_create(
@@ -393,15 +393,42 @@ class Application < Optitron::CLI
   desc 'Searches through installed packages'
   opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
+  opt 'full', 'Include the repository that owns the package, features and flavor', :type => :boolean, :default => false
   def search (expression='')
-    _search_installed(expression, params['repository'], params['type']).each {|package|
-      print "#{package.tags}/#{colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)}"
-      print "-#{colorize(package.version, :RED)}"
-      print "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" if package.slot
+    _search_installed(expression, params['repository'], params['type']).group_by {|package|
+      "#{package.tags}/#{package.name}"
+    }.sort.each {|(name, packages)|
+      if params['full']
+        packages.group_by {|package|
+          "#{package.repository.type}/#{package.repository.name}" rescue nil
+        }.each {|name, packages|
+          packages.group_by {|package|
+            "#{package.features} #{package.flavor}"
+          }.each {|name, packages|
+            print "#{packages.first.tags}/#{colorize(packages.first.name, :DEFAULT, :DEFAULT, :BOLD)}"
 
-      print " [#{package.features}]" unless package.features.empty?
-      print " {#{package.flavor}}"   unless package.flavor.empty?
+            print ' ('
+            print packages.map {|package|
+              "#{colorize(package.version, :RED)}" + (package.slot ? "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" : '')
+            }.join(', ')
+            print ')'
 
+            print " [#{packages.first.features}]" unless packages.first.features.empty?
+            print " {#{packages.first.flavor}}"   unless packages.first.flavor.empty?
+
+            print " <#{colorize("#{packages.first.repository.type}/#{packages.first.repository.name}", :BLACK, :DEFAULT, :BOLD)}>" if packages.first.repository
+          }
+        }
+      else
+        print "#{packages.first.tags}/#{colorize(packages.first.name, :DEFAULT, :DEFAULT, :BOLD)} ("
+
+        print packages.map {|package|
+          "#{colorize(package.version, :RED)}" + (package.slot ? "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" : '')
+        }.join(', ')
+
+        print ")"
+      end
+      
       print "\n"
     }
   end
@@ -417,7 +444,7 @@ class Application < Optitron::CLI
       print colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)
       print "-#{colorize(package.version, :RED)}"
       print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
-      print " [#{colorize(package.tags.join(' '), :MAGENTA)}]"
+      print " <#{colorize(package.tags.join(' '), :MAGENTA)}>"
       print "\n"
 
       puts "    #{colorize('Description', :GREEN)}: #{package.description}"
@@ -526,15 +553,6 @@ class Application < Optitron::CLI
 
   private
 
-  def _installed? (package)
-    InstalledPackage.first(
-      :tags_hashed => package.tags.hashed,
-      :name        => package.name,
-      :version     => package.version,
-      :slot        => package.slot
-    )
-  end
-
   def _search_installed (expression, name=nil, type=nil)
     InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil).map {|pkg|
       Package.wrap(pkg)
@@ -583,7 +601,7 @@ class Application < Optitron::CLI
   end
 
   def _manifest (package, env)
-    `sandbox packo-build --repository='#{package.repository}' manifest #{package.to_s(:whole)}`
+    `sandbox packo-build --repository='#{package.repository}' manifest #{package.to_s(:whole)}`.strip
   end
 
   def _has (package, env)
@@ -600,7 +618,7 @@ class Application < Optitron::CLI
 
     features       = _search(package.to_s(:whole), package.repository.name, package.repository.type).first.features
     env[:FEATURES] = env[:FEATURES].split(/\s+/).delete_if {|f|
-      !features.member?(f)
+      !features.has?(f)
     }.join(' ')
   end
 

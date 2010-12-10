@@ -82,6 +82,61 @@ class Application < Optitron::CLI
     end
   end
 
+  desc 'Check contents for the given packages'
+  def check (*name)
+    packages = []
+
+    if name.empty?
+      packages << InstalledPackage.all.map {|pkg|
+        Package.wrap(pkg)
+      }
+    else
+      name.each {|name|
+        packages << _search_installed(name)
+      }
+    end
+
+    packages.flatten.compact.each {|package|
+      print "[#{colorize(package.repository, :BLACK, :DEFAULT, :BOLD)}] " if package.repository
+      print "#{package.tags}/"
+      print colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)
+      print "-#{colorize(package.version, :RED)}"
+      print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
+      print " [#{package.features}]" unless package.features.empty?
+      print " {#{package.flavor}}"   unless package.flavor.empty?
+      print "\n"
+
+      package.model.contents.each {|content|
+        path = "/#{content.path}"
+
+        case content.type
+          when :dir
+            if !(File.directory?(path) rescue false)
+              puts colorize("#{'FAIL ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}", :RED)
+            else
+              puts colorize("#{'OK   ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}", :GREEN)
+            end
+
+          when :sym
+            if content.meta != (File.readlink(path) rescue nil)
+              puts colorize("#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}", :RED)
+            else
+              puts colorize("#{'OK   ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}", :GREEN)
+            end
+            
+          when :obj
+            if content.meta != (Digest::SHA1.hexdigest(File.read(path)) rescue nil)
+              puts colorize("#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path}", :RED)
+            else
+              puts colorize("#{'OK   ' if System.env[:NO_COLORS]}>>> #{path}", :GREEN)
+            end
+        end
+      }
+
+      puts ''
+    }
+  end
+
   private
 
   def _search_installed (expression, name=nil, type=nil)

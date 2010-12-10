@@ -214,7 +214,7 @@ class Application < Optitron::CLI
   opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
   opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
   def search (expression='')
-    _search(expression, params['exact'], params['repository'], params['type']).uniq.group_by {|package|
+    _search(expression, params['exact'], params['repository'], params['type']).group_by {|package|
       "#{package.tags}/#{package.name}"
     }.sort.each {|(name, packages)|
       if params['full']
@@ -227,9 +227,9 @@ class Application < Optitron::CLI
           print packages.map {|package|
             "#{colorize(package.version, :RED)}" + (package.slot ? "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" : '')
           }.join(', ')
-          print ') '
+          print ')'
 
-          print " {#{package.repository.type}/#{package.repository.name} | #{package.repository.uri} | #{package.repository.path}}"
+          print " <#{colorize("#{package.repository.type}/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)} | #{package.repository.uri} | #{package.repository.path}>"
         }
       else
         print "#{packages.first.tags}/#{colorize(packages.first.name, :DEFAULT, :DEFAULT, :BOLD)} ("

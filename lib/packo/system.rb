@@ -35,6 +35,18 @@ System = Class.new {
     @environmentClean = Environment.new(nil, true)
     @host             = Host.new(@environmentClean)
   end
+
+  def has? (package, exact=true)
+    if package.is_a?(Package::Tags) || package.is_a?(Array)
+      expression = "[#{package.join(' && ')}]"
+    elsif package.is_a?(String)
+      expression = package
+    else
+      expression = Package.parse(package.to_s(:whole)).to_s(:whole)
+    end
+
+    !Models::InstalledPackage.search(expression, exact).empty?
+  end
 }.new
 
 end

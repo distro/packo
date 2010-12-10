@@ -26,7 +26,7 @@ class Features
     data = []
 
     text.split(/\s+/).each {|part|
-      feature = Feature.parse(part)
+      data << Feature.parse(part)
     }
 
     Features.new(data)
@@ -68,7 +68,7 @@ class Features
     @values.delete(name.to_sym)
   end
 
-  def has (name)
+  def has? (name)
     @values.key? name
   end
 
@@ -97,7 +97,7 @@ class Features
           end
         }.map {|feature|
           (feature.enabled? ? '' : '-') + feature.name.to_s
-        }.join(',')
+        }.join(' ')
     end
   end
 end
