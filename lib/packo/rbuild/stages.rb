@@ -58,6 +58,14 @@ class Stages
     @sorted = false
   end
 
+  def delete (name, method=nil)
+    @stages.delete_if {|stage|
+      stage == name && method ? stage == method : true
+    }
+
+    @sorted = false
+  end
+
   # Ugly incomprensibile shit ahead. It's dangerous to go alone! Take this! <BS>
   #
   # In short it tries to sort stuff as it wanted to be placed depending on stage's options

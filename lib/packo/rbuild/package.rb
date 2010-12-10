@@ -22,6 +22,7 @@ require 'find'
 
 require 'packo/package'
 
+require 'packo/rbuild/do'
 require 'packo/rbuild/dependencies'
 require 'packo/rbuild/blockers'
 require 'packo/rbuild/stages'
@@ -46,7 +47,7 @@ class Package < Packo::Package
     Package.new(name, version, slot, revision, &block)
   end
 
-  attr_reader :parent, :environment, :modules, :dependencies, :blockers, :stages, :filesystem
+  attr_reader :parent, :environment, :do, :modules, :dependencies, :blockers, :stages, :filesystem
 
   def initialize (name, version=nil, slot=nil, revision=nil, &block)
     super(
@@ -72,6 +73,7 @@ class Package < Packo::Package
 
     @modules      = []
     @environment  = Environment.new(self)
+    @do           = Do.new(self)
     @dependencies = Dependencies.new(self)
     @blockers     = Blockers.new(self)
     @stages       = Stages.new(self)
@@ -80,6 +82,8 @@ class Package < Packo::Package
 
     @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
     @stages.add :blockers,     @blockers.method(:check),     :at => :beginning
+
+    behavior Behaviors::Default
 
     if (@parent = Package.last)
       self.instance_exec(self, &@parent.instance_eval('@block'))
@@ -183,6 +187,12 @@ class Package < Packo::Package
 
   def use (klass)
     @modules << klass.new(self)
+  end
+
+  def avoid (klass)
+    [klass].flatten.each {|klass|
+      @modules.delete(klass).finalize rescue nil
+    }
   end
 
   def behavior (uses)

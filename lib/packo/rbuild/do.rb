@@ -21,8 +21,26 @@ require 'fileutils'
 
 module Packo; module RBuild;
 
-module Do
-  @@into = nil
+class Do
+  def self.cd (path)
+    if block_given?
+      tmp = Dir.pwd
+
+      Dir.chdir(path)
+      yield
+      Dir.chdir(tmp)
+    else
+      Dir.chdir(path) rescue false
+    end
+  end
+
+  def self.dir (path)
+    FileUtils.mkpath path rescue nil
+  end
+
+  def self.touch (*path)
+    FileUtils.touch(path) rescue nil
+  end
 
   def self.rm (*path)
     path.each {|path|
@@ -36,75 +54,6 @@ module Do
     }
   end
 
-  def self.dir (path)
-    FileUtils.mkpath(path) rescue nil
-  end
-
-  def self.cd (path)
-    if block_given?
-      tmp = Dir.pwd
-
-      Dir.chdir(path)
-      yield
-      Dir.chdir(tmp)
-    else
-      Dir.chdir(path) rescue false
-    end
-  end
-
-  def self.touch (*path)
-    FileUtils.touch(path) rescue nil
-  end
-
-  def self.into (path)
-    Do.dir(@@into = path)
-  end
-
-  def self.ins (file, options={})
-    if options[:recursive]
-      FileUtils.cp_r file, @@into
-    else
-      FileUtils.cp file, @@into
-    end
-  end
-
-  def self.bin (*binaries)
-    binaries.map {|binary| Dir.glob(binary)}.flatten.each {|binary|
-      begin
-        FileUtils.cp    binary, "#{@@into}/#{File.basename(binary)}", :preserve => true
-        FileUtils.chmod 0755,   "#{@@into}/#{File.basename(binary)}"
-      rescue Exception => e
-        Packo.debug e
-      end
-    }
-  end
-
-  def self.man (*mans)
-    mans.map {|man| Dir.glob(man)}.flatten.each {|man|
-      begin
-        FileUtils.cp    man,  "#{@@into}/#{File.basename(man)}", :preserve => true
-        FileUtils.chmod 0644, "#{@@into}/#{File.basename(man)}"
-      rescue Exception => e
-        Packo.debug e
-      end
-    }
-  end
-
-  def self.doc (*docs)
-    docs.map {|doc| Dir.glob(doc)}.flatten.each {|doc|
-      begin
-        FileUtils.cp    doc,  "#{@@into}/#{File.basename(doc)}", :preserve => true
-        FileUtils.chmod 0644, "#{@@into}/#{File.basename(doc)}"
-      rescue Exception => e
-        Packo.debug e
-      end
-    }
-  end
-
-  def self.sym (to, link)
-    FileUtils.ln_sf to, link.start_with?('/') ? link : "#{@@into}/#{link}"
-  end
-
   def self.sed (file, *seds)
     content = File.read(file)
 
@@ -114,6 +63,136 @@ module Do
 
     File.write(file, content)
   end
+
+  attr_reader :package
+
+  def initialize (package)
+    @package = package
+
+    @relative = '/usr'
+    @opts     = nil
+  end
+
+  def root
+    "#{@root ? @root : package.distdir}/#{@relative}".gsub(%r{/*/}, '/')
+  end
+
+  def root= (path)
+    FileUtils.mkpath(path)
+  end
+
+  def into (path)
+    tmp, @relative = @relative, path
+
+    Do.dir root if root != "/"
+    yield
+
+    @relative = tmp
+  end
+
+  def opts (value)
+    tmp, @opts = @opts, value
+    yield
+    @opts = tmp
+  end
+
+  def ins (*files)
+    files.map {|file| Dir.glob(file)}.flatten.each {|file|
+      FileUtils.cp    file, "#{root}/#{File.basename(file)}"
+      FileUtils.chmod @opts, "#{root}/#{File.basename(file)}"
+    }
+  end
+
+  def dir (path)
+    FileUtils.mkpath("#{root}/#{path}")
+    FileUtils.chmod @opts || 0755, "#{root}/#{path}"
+  end
+
+  def bin (*bins)
+    FileUtils.mkpath "#{root}/bin"
+
+    bins.map {|bin| Dir.glob(bin)}.flatten.each {|bin|
+      FileUtils.cp    bin, "#{root}/bin/#{File.basename(bin)}"
+      FileUtils.chmod @opts || 0755, "#{root}/bin/#{File.basename(bin)}"
+    }
+  end
+
+  def sbin (*sbins)
+    FileUtils.mkpath "#{root}/sbin"
+
+    sbins.map {|sbin| Dir.glob(sbin)}.flatten.each {|sbin|
+      FileUtils.cp    sbin, "#{root}/sbin/#{File.basename(sbin)}"
+      FileUtils.chmod @opts || 0755, "#{root}/sbin/#{File.basename(sbin)}"
+    }
+  end
+
+  def lib (*libs)
+     FileUtils.mkpath "#{root}/lib"
+
+    libs.map {|lib| Dir.glob(lib)}.flatten.each {|lib|
+      FileUtils.cp    lib, "#{root}/lib/#{File.basename(lib)}"
+      FileUtils.chmod @opts || (lib.match(/\.a(\.|$)/) ? 0644 : 0755), "#{root}/lib/#{File.basename(lib)}" rescue nil
+    }
+  end
+  
+  def doc (*docs)
+    into("/usr/share/doc/#{package.name}-#{package.version}") {
+      docs.map {|doc| Dir.glob(doc)}.flatten.each {|doc|
+        FileUtils.cp    doc, "#{root}/#{File.basename(doc)}"
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(doc)}"
+      }
+    }
+  end
+
+  def html (*htmls)
+    into("/usr/share/doc/#{package.name}-#{package.version}/html") {
+      htmls.map {|html| Dir.glob(html)}.flatten.each {|html|
+        FileUtils.cp    html, "#{root}/#{File.basename(html)}"
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(html)}"
+      }
+    }
+  end
+
+  def man (*mans)
+    mans.map {|man| Dir.glob(man)}.flatten.each {|man|
+      into("/usr/share/man/man#{man[-1]}") {
+        FileUtils.cp    man, "#{root}/#{File.basename(man)}"
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(man)}"
+      }
+    }
+  end
+
+  def info (*infos)
+    infos.map {|info| Dir.glob(info)}.flatten.each {|info|
+      into("/usr/share/info/#{info[-1]}") {
+        FileUtils.cp    info, "#{root}/#{File.basename(info)}"
+        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => true
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}"
+      }
+    }
+  end
+
+  def sym (link, to)
+    FileUtils.mkpath "#{root}/#{File.dirname(to)}"
+    FileUtils.ln_sf link, "#{root}/#{to}"
+  end
+
+  def hard (link, to)
+    FileUtils.mkpath "#{root}/#{File.dirname(to)}"
+    FileUtils.ln_f link, "#{root}/#{to}"
+  end
+
+  def own (user, group, *files)
+    infos.map {|info| Dir.glob(info)}.flatten.each {|info|
+      into("/usr/share/info/#{info[-1]}") {
+        FileUtils.cp    info, "#{root}/#{File.basename(info)}"
+        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => true
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}"
+      }
+    }
+  end
+
+  # TODO: wrappers
 end
 
 end; end

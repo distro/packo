@@ -19,7 +19,7 @@
 
 module Packo; module RBuild; module Behaviors
 
-Standard = [
+Default = [
   Modules::Misc::Fetcher, Modules::Misc::Unpacker,
   Modules::Building::Patch, Modules::Building::Autotools,
   Modules::Packaging::PKO

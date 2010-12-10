@@ -36,6 +36,10 @@ class Stage
     @method.call(*args)
   end
 
+  def == (value)
+    @name == value || @method == value
+  end
+
   def inspect
     "#<Stage: #{name} (#{@options.inspect})>"
   end

@@ -166,7 +166,13 @@ class Autotools < Module
           super(package)
 
           @versions = {}
+          @enabled  = true
         end
+
+        def enabled?;   @enabled         end
+        def disabled?; !@enabled         end
+        def enable!;    @enabled = true  end
+        def disable!;   @enabled = false end
 
         def configure (conf)
           package.environment.sandbox {
@@ -247,6 +253,12 @@ class Autotools < Module
     end
   end
 
+  def finalize
+    package.stages.delete :configure, self.method(:configure)
+    package.stages.delete :compile,   self.method(:compile)
+    package.stages.delete :install,   self.method(:install)
+  end
+
   def configure
     @configuration = Configuration.new(self)
 
@@ -275,6 +287,8 @@ class Autotools < Module
     @configuration.set 'target', package.target
 
     package.stages.callbacks(:configure).do(@configuration) {
+      next if package.autotools.disabled?
+      
       if !File.exists? @configuration.path
         Do.cd(File.dirname(@configuration.path)) {
           package.autotools.autogen
@@ -287,12 +301,16 @@ class Autotools < Module
 
   def compile
     package.stages.callbacks(:compile).do(@configuration) {
+      next if package.autotools.disabled?
+
       package.autotools.make "-j#{package.environment['MAKE_JOBS']}"
     }
   end
 
   def install
     package.stages.callbacks(:install).do(@configuration) {
+      next if package.autotools.disabled?
+
       package.autotools.install
     }
   end
