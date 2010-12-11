@@ -182,7 +182,7 @@ class Stages
   end
 
   def unregister (chain, name, known=nil)
-    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).delete(chain, known)
+    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).unregister(chain, known)
   end
 
   def callbacks (name)

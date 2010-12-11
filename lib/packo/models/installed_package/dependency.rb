@@ -24,9 +24,11 @@ class Dependency
 
   belongs_to :installed_package
 
-  property :tags,     Text,                   :key => true
-  property :name,     String,                 :key => true
-  property :version,  String,                 :key => true
+  property :id, Serial
+
+  property :tags,     Text,                   :unique_index => :a
+  property :name,     String,                 :unique_index => :a
+  property :version,  String,                 :unique_index => :a
   property :slot,     String,  :default => ''
   property :revision, Integer, :default => 0
 

@@ -21,11 +21,14 @@ module Packo; module RBuild
 
 class Blocker < Packo::Package
   def self.parse (text)
-    runtime = true
-
-    if text.end_with? '!'
+    if text.end_with? '!!'
+      text[-2, 2] = ''
+      type = :runtime
+    elsif text.end_with? '!'
       text[-1] = ''
-      runtime = false
+      type = :build
+    else
+      type = :both
     end
 
     if matches = text.match(/^([<>]?=?)/)
@@ -37,17 +40,21 @@ class Blocker < Packo::Package
 
     parsed = Packo::Package.parse(text)
 
-    self.new(parsed.to_hash, validity, runtime)
+    self.new(parsed.to_hash, validity, type)
   end
 
-  def initialize (data, validity=nil, runtime=true)
+  attr_reader :typ
+
+  def initialize (data, validity=nil, type=nil)
     super(data)
 
     @validity = validity
-    @runtime  = runtime
+    @type     = type
   end
 
-  def runtime?; @runtime end
+  def runtime?; [:runtime, :both].member?(@type) end
+  def build?;   [:build, :both].member(@type)    end
+  def both?;    @type == :both                   end
 
   def to_s (name=false)
     if name

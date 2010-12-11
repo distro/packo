@@ -161,14 +161,14 @@ class Application < Optitron::CLI
 
             unless params['nodeps']
               manifest.blockers {|blocker|
-                if !blocker.runtime? && !System.has?(blocker)
+                if blocker.build? && System.has?(blocker)
                   fatal "#{blocker} can't be installed with #{package}"
                   exit! 16
                 end
               }
       
               manifest.dependencies.each {|dependency|
-                if !dependency.runtime? && !System.has?(dependency)
+                if dependency.build? && !System.has?(dependency)
                   install(dependency.to_s)
                 end
               }
@@ -583,6 +583,8 @@ class Application < Optitron::CLI
     return packages.flatten.compact.map {|package|
       Package.wrap(package)
     }
+  rescue RuntimeError => e
+    fatal e.message; exit 99
   end
 
   def _uri (repository)

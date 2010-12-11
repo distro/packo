@@ -58,9 +58,9 @@ class Repository
 
   def data
      case type
-      when :binary;  Binary.first_or_new(:repo => self)
-      when :source;  Source.first_or_new(:repo => self)
-      when :virtual; Virtual.first_or_new(:repo => self)
+      when :binary;  Binary.first_or_create(:repo => self)
+      when :source;  Source.first_or_create(:repo => self)
+      when :virtual; Virtual.first_or_create(:repo => self)
     end
   end
 
@@ -172,6 +172,10 @@ class Repository
     end
 
     def _find_by_expression (expression)
+      unless repository.adapter.respond_to? :select
+        raise RuntimeError.new('The adapter does not support tag searching')
+      end
+
       joins, names, expression = _expression_to_sql(expression)
 
       repository.adapter.select(%{

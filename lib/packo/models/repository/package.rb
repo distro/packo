@@ -63,9 +63,9 @@ class Package
 
   def data
     case repo.type
-      when :binary;  Binary.first_or_new(:package => self)
-      when :source;  Source.first_or_new(:package => self)
-      when :virtual; Virtual.first_or_new(:package => self)
+      when :binary;  Binary.first_or_create(:package => self)
+      when :source;  Source.first_or_create(:package => self)
+      when :virtual; Virtual.first_or_create(:package => self)
     end
   end
 end

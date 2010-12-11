@@ -73,6 +73,11 @@ require 'packo/models/selector'
 
 finalize
 
-auto_upgrade!
+begin
+  auto_upgrade!
+rescue Exception => e
+  Packo.warn 'Could not migrate the database'
+  Packo.debug e
+end
 
 end

@@ -45,11 +45,11 @@ class Manifest
       }],
 
       :dependencies => dom.xpath('//dependencies/dependency').map {|dependency|
-        Dependency.parse("#{dependency.text}#{'!' if dependency['type'] == 'build'}")
+        Dependency.parse("#{dependency.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
       },
 
       :blockers => dom.xpath('//blockers/blocker').map {|blocker|
-        Blocker.parse("#{blocker.text}#{'!' if blocker['type'] == 'build'}")
+        Blocker.parse("#{blocker.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
       },
 
       :selector => dom.xpath('//selectors/selector').map {|selector|
@@ -126,13 +126,13 @@ class Manifest
 
         xml.dependencies {
           self.dependencies.each {|dependency|
-            xml.dependency({ :type => (dependency.runtime?) ? 'runtime' : 'build' }, dependency.to_s)
+            xml.dependency({ :type => dependency.type }, dependency.to_s)
           }
         }
 
         xml.blockers {
           self.blockers.each {|blocker|
-            xml.blocker({ :type => (dependency.runtime?) ? 'runtime' : 'build' }, blocker.to_s)
+            xml.blocker({ :type => blocker.type }, blocker.to_s)
           }
         }
 

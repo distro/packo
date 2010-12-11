@@ -191,7 +191,7 @@ class Package < Packo::Package
 
   def avoid (klass)
     [klass].flatten.each {|klass|
-      @modules.delete(klass).finalize rescue nil
+      @modules.unregister(klass).finalize rescue nil
     }
   end
 
