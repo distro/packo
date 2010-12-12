@@ -16,4 +16,5 @@ Gem::Specification.new {|s|
     s.add_dependency('datamapper')
     s.add_dependency('versionomy')
     s.add_dependency('fffs')
+    s.add_dependency('colorb')
 }

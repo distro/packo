@@ -23,13 +23,11 @@ require 'optitron'
 require 'find'
 
 require 'packo'
-require 'packo/binary'
 require 'packo/rbuild/modules/packaging'
 
 class Application < Optitron::CLI
   include Packo
   include Models
-  include Binary::Helpers
 
   desc 'Outputs version'
   def version
@@ -60,8 +58,8 @@ class Application < Optitron::CLI
 
         case type
           when :dir; puts "--- #{path if path != '/'}/"
-          when :sym; puts colorize(">>> #{path} -> #{meta}", :CYAN, :DEFAULT, :BOLD)
-          when :obj; puts colorize(">>> #{path}", :DEFAULT, :DEFAULT, :BOLD)
+          when :sym; puts ">>> #{path} -> #{meta}".cyan.bold
+          when :obj; puts ">>> #{path}".bold
         end
       }
     else
@@ -75,8 +73,8 @@ class Application < Optitron::CLI
       package.model.contents.each {|content|
         case content.type
           when :dir; puts "--- /#{content.path}#{'/' if !content.path.empty?}"
-          when :sym; puts colorize(">>> /#{content.path} -> #{content.meta}", :CYAN, :DEFAULT, :BOLD)
-          when :obj; puts colorize(">>> /#{content.path}", :DEFAULT, :DEFAULT, :BOLD)
+          when :sym; puts ">>> /#{content.path} -> #{content.meta}".cyan.bold
+          when :obj; puts ">>> /#{content.path}".bold
         end
       }
     end
@@ -97,11 +95,11 @@ class Application < Optitron::CLI
     end
 
     packages.flatten.compact.each {|package|
-      print "[#{colorize(package.repository, :BLACK, :DEFAULT, :BOLD)}] " if package.repository
+      print "[#{package.repository.black.bold}] " if package.repository
       print "#{package.tags}/"
-      print colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)
-      print "-#{colorize(package.version, :RED)}"
-      print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
+      print package.name.bold
+      print "-#{package.version.to_s.red}"
+      print " (#{package.slot.to_s.blue.bold})" if package.slot
       print " [#{package.features}]" unless package.features.empty?
       print " {#{package.flavor}}"   unless package.flavor.empty?
       print "\n"
@@ -112,23 +110,23 @@ class Application < Optitron::CLI
         case content.type
           when :dir
             if !(File.directory?(path) rescue false)
-              puts colorize("#{'FAIL ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}", :RED)
+              puts "#{'FAIL ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}".red
             else
-              puts colorize("#{'OK   ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}", :GREEN)
+              puts "#{'OK   ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}".green
             end
 
           when :sym
             if content.meta != (File.readlink(path) rescue nil)
-              puts colorize("#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}", :RED)
+              puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}".red
             else
-              puts colorize("#{'OK   ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}", :GREEN)
+              puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}".green
             end
             
           when :obj
             if content.meta != (Digest::SHA1.hexdigest(File.read(path)) rescue nil)
-              puts colorize("#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path}", :RED)
+              puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path}".red
             else
-              puts colorize("#{'OK   ' if System.env[:NO_COLORS]}>>> #{path}", :GREEN)
+              puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path}".green
             end
         end
       }

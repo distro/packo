@@ -28,7 +28,6 @@ require 'packo/binary'
 
 class Application < Optitron::CLI
   include Packo
-  include Binary::Helpers
   include Models
 
   @@scm = ['git'] # implement others
@@ -219,21 +218,21 @@ class Application < Optitron::CLI
         packages.group_by {|package|
           "#{package.repository.type}/#{package.repository.name}"
         }.each {|name, packages|
-          print "#{packages.first.tags}/#{colorize(packages.first.name, :DEFAULT, :DEFAULT, :BOLD)}"
+          print "#{packages.first.tags}/#{packages.first.name.bold}"
 
           print ' ('
           print packages.map {|package|
-            "#{colorize(package.version, :RED)}" + (package.slot ? "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" : '')
+            "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
           }.join(', ')
           print ')'
 
-          print " <#{colorize("#{package.repository.type}/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)} | #{package.repository.uri} | #{package.repository.path}>"
+          print " <#{"#{package.repository.type}/#{package.repository.name}".black.bold} | #{package.repository.uri} | #{package.repository.path}>"
         }
       else
-        print "#{packages.first.tags}/#{colorize(packages.first.name, :DEFAULT, :DEFAULT, :BOLD)} ("
+        print "#{packages.first.tags}/#{packages.first.name.bold} ("
 
         print packages.map {|package|
-          "#{colorize(package.version, :RED)}" + (package.slot ? "%#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)}" : '')
+          "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
         }.join(', ')
 
         print ")"
@@ -254,50 +253,50 @@ class Application < Optitron::CLI
       packages.sort {|a, b|
         a.version <=> b.version
       }.each {|package|
-        print "[#{colorize("source/#{package.repository.name}", :BLACK, :DEFAULT, :BOLD)}] "
-        print colorize(package.name, :DEFAULT, :DEFAULT, :BOLD)
-        print "-#{colorize(package.version, :RED)}"
-        print " (#{colorize(package.slot, :BLUE, :DEFAULT, :BOLD)})" if package.slot
-        print " [#{colorize(package.tags.join(' '), :MAGENTA)}]"
+        print "[#{"source/#{package.repository.name}".black.bold}] "
+        print package.name.bold
+        print "-#{package.version.to_s.red}"
+        print " (#{package.slot.blue.bold})" if package.slot
+        print " [#{package.tags.join(' ').magenta}]"
         print "\n"
 
-        puts "    #{colorize('Description', :GREEN)}: #{package.description}"
-        puts "    #{colorize('Homepage', :GREEN)}:    #{package.homepage}"
-        puts "    #{colorize('License', :GREEN)}:     #{package.license}"
-        puts "    #{colorize('Maintainer', :GREEN)}:  #{package.model.maintainer || 'nobody'}"
+        puts "    #{'Description'.green}: #{package.description}"
+        puts "    #{'Homepage'.green}:    #{package.homepage}"
+        puts "    #{'License'.green}:     #{package.license}"
+        puts "    #{'Maintainer'.green}:  #{package.model.maintainer || 'nobody'}"
 
         case package.repository.type
           when :binary
-            puts "    #{colorize('Features', :GREEN)}:    #{package.features.to_a.select {|f| f.enabled?}.map {|f| f.name}.join(' ')}"
+            puts "    #{'Features'.green}:    #{package.features.to_a.select {|f| f.enabled?}.map {|f| f.name}.join(' ')}"
 
-            print "    #{colorize('Builds', :GREEN)}:      "
+            print "    #{'Builds'.green}:      "
             package.model.data.builds.each {|build|
               print 'With '
 
               if !build.features.empty?
-                print colorize(build.features, :DEFAULT, :DEFAULT, :BOLD)
+                print build.features.bold
               else
                 print 'nothing'
               end
 
-              print " in #{colorize(build.flavor, :DEFAULT, :DEFAULT, :BOLD)} flavor" if build.flavor
-              print colorize(" (SHA1 #{build.digest})", :BLACK, :DEFAULT, :BOLD) if build.digest
+              print " in #{build.flavor.bold} flavor" if build.flavor
+              print " (SHA1 #{build.digest})".black.bold if build.digest
               print "\n                 "
             }
 
           when :source
             (print "\n"; next) unless package.model.data.features.length > 0
 
-            print "    #{colorize('Features', :GREEN)}:    "
+            print "    #{'Features'.green}:    "
 
             features = package.model.data.features
             length   = features.map {|feature| feature.name.length}.max
 
             features.each {|feature|
               if feature.enabled
-                print "#{colorize(feature.name, :WHITE, :DEFAULT, :BOLD)}#{System.env[:NO_COLORS] ? '!' : ''}"
+                print "#{feature.name.white.bold}#{System.env[:NO_COLORS] ? '!' : ''}"
               else
-                print colorize(feature.name, :BLACK, :DEFAULT, :BOLD)
+                print feature.name.black.bold
               end
 
               print "#{' ' * (4 + length - feature.name.length + (System.env[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"

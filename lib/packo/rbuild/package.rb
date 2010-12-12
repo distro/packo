@@ -85,6 +85,8 @@ class Package < Packo::Package
 
     behavior Behaviors::Default
 
+    self.envify!
+
     if (@parent = Package.last)
       self.instance_exec(self, &@parent.instance_eval('@block'))
     end
@@ -122,7 +124,19 @@ class Package < Packo::Package
       self.instance_exec(self, &block) if block
     }
 
-    self.envify!
+    features.each {|feature|
+      next unless feature.enabled?
+
+      feature.needs.each {|need|
+        if tmp = need.match(/^-(.+)$/) && features.get(tmp[1]).enabled?
+          Packo.warn "Feature #{feature} can't be enabled with #{tmp[1]}, disabling."
+          feature.disable!
+        else
+          Packo.warn "Feature #{feature} needs #{need}, disabling"
+          feature.disable!
+        end
+      }
+    }
 
     @@packages.clear
     @@packages[:last] = self
@@ -206,11 +220,7 @@ class Package < Packo::Package
   end
 
   def features (&block)
-    if !block
-      @features
-    else
-      @features.instance_eval &block
-    end
+    block.nil? ? @features : @features.instance_eval(&block)
   end
 
   def flavor (&block)

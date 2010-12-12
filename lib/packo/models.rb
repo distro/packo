@@ -24,6 +24,7 @@ require 'dm-types'
 
 require 'packo/fixes'
 require 'packo/environment'
+require 'packo/package'
 require 'versionomy'
 
 module DataMapper
@@ -65,7 +66,12 @@ class Property
   end
 end
 
-setup :default, Packo::System.env[:DATABASE]
+begin
+  setup :default, Packo::System.env[:DATABASE]
+rescue Exception => e
+  Packo.warn "Could not setup a connection with #{Packo::System.env[:DATABASE]}"
+  Packo.warn e.message
+end
 
 require 'packo/models/installed_package'
 require 'packo/models/repository'
@@ -77,7 +83,7 @@ begin
   auto_upgrade!
 rescue Exception => e
   Packo.warn 'Could not migrate the database'
-  Packo.debug e
+  Packo.warn e.message
 end
 
 end

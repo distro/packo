@@ -31,7 +31,7 @@ class InstalledPackage
   property :repo, String
   has n,   :tags, :through => Resource, :constraint => :destroy
 
-  property :tags_hashed, String, :length => 40,    :required => true, :unique_index => :a # hashed tags
+  property :tags_hashed, String,  :length => 40,   :required => true, :unique_index => :a
   property :name,        String,                   :required => true, :unique_index => :a
   property :version,     Version,                  :required => true
   property :slot,        String,  :default => '',                     :unique_index => :a
@@ -40,8 +40,8 @@ class InstalledPackage
   property :flavor,  Text, :default => ''
   property :features, Text, :default => ''
 
-  property :manual,  Boolean, :default => false
-  property :runtime, Boolean, :default => true  # Installed as build or runtime dependency
+  property :manual, Boolean,                       :default => false
+  property :type,   Enum[:both, :runtime, :build], :default => :both
 
   property :created_at, DateTime
 

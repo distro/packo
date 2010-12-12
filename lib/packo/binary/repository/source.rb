@@ -19,12 +19,10 @@
 
 require 'packo/models'
 require 'packo/rbuild'
-require 'packo/binary/helpers'
 
 module Packo; module Binary; class Repository
 
 class Source < Repository
-  include Packo::Binary::Helpers
   include Packo::Models
 
   def initialize (repository)
@@ -43,7 +41,7 @@ class Source < Repository
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
-          info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
+          Packo.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
 
           pkg = Packo::Package.new(
             :name    => File.basename(what),
@@ -51,13 +49,13 @@ class Source < Repository
           )
 
           begin
-            package = loadPackage(what, pkg)
+            package = Packo.loadPackage(what, pkg)
           rescue LoadError => e
-            warn e.to_s if System.env[:VERBOSE]
+            Packo.warn e.to_s if System.env[:VERBOSE]
           end
 
           if package.name != pkg.name || package.version != pkg.version
-            warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
+            Packo.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
             next
           end
 

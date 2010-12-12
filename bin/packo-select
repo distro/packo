@@ -22,11 +22,9 @@
 require 'optitron'
 
 require 'packo'
-require 'packo/binary/helpers'
 
 class Application < Optitron::CLI
   include Packo
-  include Binary::Helpers
   include Models
 
   desc 'Output version'

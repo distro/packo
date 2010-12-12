@@ -24,12 +24,10 @@ require 'nokogiri'
 require 'digest/sha1'
 
 require 'packo'
-require 'packo/binary'
 require 'packo/rbuild'
 
 class Application < Optitron::CLI
   include Packo
-  include Binary::Helpers
   include Models
 
   desc 'Output version'
@@ -92,7 +90,7 @@ class Application < Optitron::CLI
         files[e['name']] = e.text
       }
 
-      begin; package = loadPackage(path, package); rescue LoadError; end
+      begin; package = Packo.loadPackage(path, package); rescue LoadError; end
 
       if !package
         fatal 'The package could not be instantiated'
@@ -165,7 +163,7 @@ class Application < Optitron::CLI
       end
 
       begin
-        loadPackage(path, package).clean!
+        Packo.loadPackage(path, package).clean!
 
         info "Cleaned #{package.to_s(:name)}"
       rescue Exception => e
@@ -189,7 +187,7 @@ class Application < Optitron::CLI
       package = Package.parse(name.sub(/\.rbuild$/, ''))
   
       begin
-        package = loadPackage('.', package)
+        package = Packo.loadPackage('.', package)
       rescue LoadError
         fatal 'Failed to load the rbuild'
         exit 80
@@ -237,7 +235,7 @@ class Application < Optitron::CLI
   opt 'repository', 'Set a specific source repository', :type => :string
   def manifest (package)
     if package.end_with?('.rbuild')
-      package = loadPackage(File.dirname(package), Packo::Package.parse(package.sub('.rbuild', '')))
+      package = Packo.loadPackage(File.dirname(package), Packo::Package.parse(package.sub('.rbuild', '')))
     else
       tmp = _search(package, params['repository'])
 
@@ -246,7 +244,7 @@ class Application < Optitron::CLI
         exit 2
       end
 
-      package = loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
+      package = Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
     end
 
     if package

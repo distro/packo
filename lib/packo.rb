@@ -20,6 +20,7 @@
 require 'fileutils'
 require 'versionomy'
 require 'ostruct'
+require 'colorb'
 
 require 'packo/extensions'
 require 'packo/system'
@@ -100,47 +101,72 @@ module Packo
     eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
   end
 
-  def self.colorize (text, fg, bg=nil, attr=nil)
-    return text if System.env[:NO_COLORS]
-
-    colors = {
-      :DEFAULT => 9,
-      nil      => 9,
-
-      :BLACK   => 0,
-      :RED     => 1,
-      :GREEN   => 2,
-      :YELLOW  => 3,
-      :BLUE    => 4,
-      :MAGENTA => 5,
-      :CYAN    => 6,
-      :WHITE   => 7
+  def self.loadPackage (path, package)
+    options = {
+      :before => 'module ::Packo::RBuild;',
+      :after  => ';end'
     }
 
-    attributes = {
-      :DEFAULT => 0,
-      nil      => 0,
+    if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
+      features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
 
-      :BOLD      => 1,
-      :UNDERLINE => 4,
-      :BLINK     => 5,
-      :REVERSE   => 7
-    }
+      if features
+        features.text.split(' ').each {|feature|
+          next if RBuild::Features::Default[feature.to_sym]
 
-    "\e[#{attributes[attr]};3#{colors[fg]};4#{colors[bg]}m#{text}\e[0m"
+          begin
+            Packo.load "#{System.env[:PROFILE]}/features/#{feature}", options
+          rescue LoadError
+          rescue Exception => e
+            warn "Something went wrong while loading #{feature} feature."
+            Packo.debug e
+          end
+        }
+      end
+    end
+
+    Packo.load "#{path}/#{package.name}.rbuild", options
+
+    if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
+      pkg.filesystem.parse(tmp.last.lstrip)
+    end
+
+    Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
+
+    if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
+      RBuild::Package.last.filesystem.merge!(pkg.filesystem)
+
+      if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
+        RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
+      end
+
+      return RBuild::Package.last
+    end
   end
 
   def self.info (text)
-    puts "#{colorize('*', :GREEN, :DEFAULT, :BOLD)} #{text}"
+    puts "#{'*'.green.bold} #{text}"
   end
 
   def self.warn (text)
-    puts "#{colorize('*', :YELLOW, :DEFAULT, :BOLD)} #{text}"
+    puts "#{'*'.yellow.bold} #{text}"
   end
 
   def self.fatal (text)
-    puts "#{colorize('*', :RED)} #{text}"
+    puts "#{'*'.red} #{text}"
   end
+
+  def self._info  (*args); Packo.info(*args)  end
+  def self._warn  (*args); Packo.warn(*args)  end
+  def self._fatal (*args); Packo.fatal(*args) end
+
+  def  info  (*args); Packo.info(*args) end
+  def _info  (*args); Packo.info(*args) end
+  def  warn  (*args); Packo.warn(*args) end
+  def _warn  (*args); Packo.warn(*args) end
+  def  fatal (*args); Packo.fatal(*args) end
+  def _fatal (*args); Packo.fatal(*args) end
 end
 
+require 'packo/package'
 require 'packo/models'

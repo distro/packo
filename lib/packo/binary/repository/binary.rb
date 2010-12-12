@@ -18,12 +18,10 @@
 #++
 
 require 'packo/models'
-require 'packo/binary/helpers'
 
 module Packo; module Binary; class Repository
 
 class Binary < Repository
-  include Packo::Binary::Helpers
   include Packo::Models
 
   def initialize (repository)
@@ -37,12 +35,12 @@ class Binary < Repository
   end
 
   def populate
-    info 'Parsing the XML file' if System.env[:VERBOSE]
+    Packo.info 'Parsing the XML file' if System.env[:VERBOSE]
 
     dom = Nokogiri::XML.parse(File.read(self.path))
 
     dom.xpath('//packages/package').each {|e|
-      info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}"
+      Packo.info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}"
 
       e.xpath('.//build').each {|build|
         package = Packo::Package.new(

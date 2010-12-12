@@ -18,4 +18,3 @@
 #++
 
 require 'packo/binary/repository'
-require 'packo/binary/helpers'

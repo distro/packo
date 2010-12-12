@@ -1,5 +1,3 @@
-#! /usr/bin/env ruby
-# encoding: utf-8
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
@@ -19,26 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'optitron'
+module Packo; class Package; class Tags < Array; class Expression
 
-require 'packo'
-
-class Application < Optitron::CLI
-  include Packo
-
-  desc 'Outputs version'
-  def version
-    puts "packø env manager #{VERSION}"
-  end
-
-  desc 'Shows the environment'
-  def show
-    length = System.env.map {|(name, value)| name.length}.max
-    
-    System.env.each {|(name, value)|
-      puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
-    }
-  end
-end
-
-Application.dispatch
+end; end; end; end
