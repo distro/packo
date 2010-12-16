@@ -17,6 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/extensions'
 require 'packo/environment'
 require 'packo/host'
 

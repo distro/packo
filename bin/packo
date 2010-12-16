@@ -1,4 +1,5 @@
 #! /usr/bin/env ruby
+# encoding: utf-8
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
@@ -21,4 +22,41 @@
 require 'rubygems' unless defined?(Gem)
 
 require 'packo/cli/base'
-Packo::CLI::Base.start(ARGV)
+require 'packo/version'
+require 'packo/system'
+
+class Application < Packo::CLI::Base
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
+
+  desc 'version', 'Show current version'
+  map '-v' => :version, '--version' => :version
+  def version
+    puts "packø v. #{Packo.version}"
+  end
+end
+
+commands = Dir.glob('/usr/bin/packo-*').map {|path|
+  File.basename(path).sub('packo-', '')
+}
+
+descriptions = {
+  :base       => 'Manage packages in the system',
+  :files      => 'Manage various informations about package contents',
+  :build      => 'Manage packø building system',
+  :select     => 'Manage various configurations',
+  :repository => 'Manage packø repositories',
+  :env        => 'Manage packø environment'
+}
+
+trusted = [:base]
+
+commands.each {|command|
+  Application.class_eval %{
+    desc '#{command} [ARGUMENTS...]', '#{descriptions[command.to_sym] || '...'}'
+    def #{command} (*arguments)
+      system(*([Packo::System.env[:SECURE] && !#{trusted.include?(command.to_sym) ? 'true' : 'false'} ? 'sandbox' : nil, 'packo-#{command}'] + ARGV[1, ARGV.length]).compact)
+    end
+  }
+}
+
+Application.start(ARGV)

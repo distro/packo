@@ -128,12 +128,22 @@ class Package < Packo::Package
       next unless feature.enabled?
 
       feature.needs.each {|need|
-        if tmp = need.match(/^-(.+)$/) && features.get(tmp[1]).enabled?
-          Packo.warn "Feature #{feature} can't be enabled with #{tmp[1]}, disabling."
+        if tmp = need.match(/^-(.+)$/)
+          if features.get(tmp[1]).enabled?
+            feature.disable!
+
+            if System.env[:VERBOSE]
+              require 'packo/cli'
+              CLI.warn "Feature #{feature} can't be enabled with #{tmp[1]}, disabling."
+            end
+          end
+        elsif features.get(need).disabled?
           feature.disable!
-        else
-          Packo.warn "Feature #{feature} needs #{need}, disabling"
-          feature.disable!
+
+          if System.env[:VERBOSE]
+            require 'packo/cli'
+            CLI.warn "Feature #{feature} needs #{need}, disabling"
+          end
         end
       }
     }

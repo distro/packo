@@ -19,7 +19,7 @@
 
 require 'packo/models'
 
-module Packo; module CLI; class Repository; module Helpers
+module Packo; module CLI; class Repository < Thor; module Helpers
 
 class Binary < Repository
   include Packo::Models

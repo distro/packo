@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module CLI; class Repository; module Helpers
+module Packo; module CLI; class Repository < Thor; module Helpers
 
 class Virtual < Repository
   def initialize (repository)

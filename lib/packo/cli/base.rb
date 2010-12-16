@@ -18,7 +18,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/cli/common'
+require 'packo'
+require 'packo/models'
+require 'packo/cli'
 
 module Packo; module CLI
 
@@ -27,20 +29,14 @@ class Base < Thor
 
   class_option :help, :type => :boolean, :desc => 'Show help usage'
 
-  desc 'version', 'Show current version'
-  map '-v' => :version, '--version' => :version
-  def version
-    puts "packø v. #{Packo.version}"
-  end
-
   desc 'install PACKAGE...', 'Install packages'
   map '-i' => :install, '--install' => :install
-  method_option :destination, :type => :string,  :aliases => '-d', :default => '/',   :desc => 'Set the destination where to install the package'
-  method_option :inherit,     :type => :boolean, :aliases => '-I', :default => false, :desc => 'Apply the passed flags to the eventual dependencies'
-  method_option :force,       :type => :boolean, :aliases => '-f', :default => false, :desc => 'Force installation when something minor goes wrong'
-  method_option :nodeps,      :type => :boolean, :aliases => '-N', :default => false, :desc => 'Ignore blockers and dependencies'
-  method_option :depsonly,    :type => :boolean, :aliases => '-D', :default => false, :desc => 'Install only dependencies'
-  method_option :repository,  :type => :string,  :aliases => '-r',                    :desc => 'Set a specific repository' 
+  method_option :destination, :type => :string,  :default => '/',   :aliases => '-d', :desc => 'Set the destination where to install the package'
+  method_option :inherit,     :type => :boolean, :default => false, :aliases => '-I', :desc => 'Apply the passed flags to the eventual dependencies'
+  method_option :force,       :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
+  method_option :nodeps,      :type => :boolean, :default => false, :aliases => '-N', :desc => 'Ignore blockers and dependencies'
+  method_option :depsonly,    :type => :boolean, :default => false, :aliases => '-D', :desc => 'Install only dependencies'
+  method_option :repository,  :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository' 
   def install (*names)
     outside = options[:destination] != '/'
     type    = names.last.is_a?(Symbol) ? names.pop : :both
@@ -61,10 +57,10 @@ class Base < Thor
         packages = nil
   
         if System.env[:FLAVOR].include?('binary')
-          packages = _search(name, options[:repository], :binary)
+          packages = Models.search(name, options[:repository], :binary)
   
           if packages.empty?
-            warn "#{name} could not be found in the binary repositories, looking in source repositories"
+            CLI.warn "#{name} could not be found in the binary repositories, looking in source repositories"
             packages = nil
           else
             binary = true
@@ -73,7 +69,7 @@ class Base < Thor
   
         begin
           if !packages
-            packages = _search(name, options[:repository], :source)
+            packages = Models.search(name, options[:repository], :source)
   
             binary = false
           end
@@ -83,7 +79,7 @@ class Base < Thor
           }.map {|(name, package)| name}.uniq
   
           if names.length > 1
-            fatal "More than one package matches: #{name}"
+            CLI.fatal "More than one package matches: #{name}"
             names.each {|name|
               puts "    #{name}"
             }
@@ -96,7 +92,7 @@ class Base < Thor
           }.last
   
           if !package
-            fatal "#{name} not found"
+            CLI.fatal "#{name} not found"
             exit 11
           end
   
@@ -105,7 +101,7 @@ class Base < Thor
           _filter(package, env)
   
           if package.repository.type == :binary && !_has(package, env)
-            warn 'The binary package is not available with the features you asked for, trying to build from source'
+            CLI.warn 'The binary package is not available with the features you asked for, trying to build from source'
             packages = nil
             raise ArgumentError
           end
@@ -140,14 +136,14 @@ class Base < Thor
               Packo.sh 'wget', '-c', '-O', "#{env[:TMP]}/#{name}", "#{_uri(package.repository)}/#{name}"
             rescue RuntimeError
               FileUtils.rm "#{env[:TMP]}/#{name}"
-              fatal "Failed to download #{name}"
+              CLI.fatal "Failed to download #{name}"
               exit 12
             end
   
             name = "#{env[:TMP]}/#{name}"
   
             if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
-              fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
+              CLI.fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
               exit 13
             end
   
@@ -156,10 +152,10 @@ class Base < Thor
           when :source
             manifest = RBuild::Package::Manifest.parse(_manifest(package, env))
 
-            unless options[:nodeps]
+            unless options[:nodeps] || System.env[:NODEPS]
               manifest.blockers {|blocker|
                 if blocker.build? && System.has?(blocker)
-                  fatal "#{blocker} can't be installed with #{package}"
+                  CLI.fatal "#{blocker} can't be installed with #{package}"
                   exit 16
                 end
               }
@@ -178,7 +174,7 @@ class Base < Thor
             name = _build(package, env)
 
             if !name
-              fatal "Something went wrong while trying to build #{package.to_s(:whole)}"
+              CLI.fatal "Something went wrong while trying to build #{package.to_s(:whole)}"
               exit 14
             end
 
@@ -197,7 +193,7 @@ class Base < Thor
           manifest = RBuild::Package::Manifest.open("#{path}/manifest.xml")
 
         else
-          fatal 'Unknown package type'
+          CLI.fatal 'Unknown package type'
           exit 15
       end
 
@@ -207,10 +203,10 @@ class Base < Thor
         Environment[:FLAVOR] = Environment[:FEATURES] = ''
       end
 
-      unless options[:nodeps]
+      unless options[:nodeps] || System.env[:NODEPS]
         manifest.blockers {|blocker|
           if blocker.runtime? && System.has?(blocker)
-            fatal "#{blocker} can't be installed with #{package}"
+            CLI.fatal "#{blocker} can't be installed with #{package}"
             exit 16
           end
         }
@@ -273,9 +269,9 @@ class Base < Thor
 
           if !options[:force] && File.exists?(path) && !File.directory?(path)
             if (tmp = _exists?(fake))
-              fatal "#{path} belongs to #{tmp}, use --force to overwrite"
+              CLI.fatal "#{path} belongs to #{tmp}, use --force to overwrite"
             else
-              fatal "#{path} doesn't belong to any package, use --force to overwrite"
+              CLI.fatal "#{path} doesn't belong to any package, use --force to overwrite"
             end
 
             raise RuntimeError.new 'File collision'
@@ -322,7 +318,7 @@ class Base < Thor
 
         pkg.save
       rescue Exception => e
-        fatal 'Something went deeply wrong while installing package contents'
+        CLI.fatal 'Something went deeply wrong while installing package contents'
         Packo.debug e
 
         pkg.destroy rescue nil
@@ -340,14 +336,14 @@ class Base < Thor
 
   desc 'uninstall PACKAGE...', 'Uninstall packages'
   map '-C' => :uninstall, '-R' => :uninstall, 'remove' => :uninstall
-  method_option :destination, :type => :string,  :aliases => '-d', :default => '/',   :desc => 'Set the destination where to install the package'
-  method_option :force,       :type => :boolean, :aliases => '-f', :default => false, :desc => 'Force installation when something minor goes wrong'
+  method_option :destination, :type => :string,  :default => '/',   :aliases => '-d', :desc => 'Set the destination where to install the package'
+  method_option :force,       :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
   def uninstall (*names)
     names.each {|name|
-      packages = _search_installed(name)
+      packages = Models.search_installed(name)
       
       if packages.empty?
-        fatal "No installed packages match #{name}"
+        CLI.fatal "No installed packages match #{name}"
         exit 20
       end
 
@@ -390,11 +386,11 @@ class Base < Thor
 
   desc 'search [EXPRESSION]', 'Search through installed packages'
   map '--search' => :search, '-Ss' => :search
-  method_option :type,       :type => :string,  :aliases => '-t',                    :desc => 'The repository type (binary, source, virtual)'
-  method_option :repository, :type => :string,  :aliases => '-r',                    :desc => 'Set a specific repository'
-  method_option :full,       :type => :boolean, :aliases => '-F', :default => false, :desc => 'Include the repository that owns the package, features and flavor'
+  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type (binary, source, virtual)'
+  method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
+  method_option :full,       :type => :boolean, :default => false, :aliases => '-F', :desc => 'Include the repository that owns the package, features and flavor'
   def search (expression='')
-    search_installed(expression, options[:repository], options[:type]).group_by {|package|
+    Models.search_installed(expression, options[:repository], options[:type]).group_by {|package|
       "#{package.tags}/#{package.name}"
     }.sort.each {|(name, packages)|
       if options[:full]
@@ -437,8 +433,8 @@ class Base < Thor
   method_option :type,       :type => :string, :aliases => '-t', :desc => 'The repository type (binary, source, virtual)'
   method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific repository'
   def info (expression='')
-    search_installed(expression, options[:repository], options[:type]).map {|package|
-      search("#{package.to_s(:name)}-#{package.version}", (package.repository.name rescue nil), (package.repository.type rescue nil), true).first
+    Models.search_installed(expression, options[:repository], options[:type]).map {|package|
+      Models.search("#{package.to_s(:name)}-#{package.version}", (package.repository.name rescue nil), (package.repository.type rescue nil), true).first
     }.compact.each {|package|
       print "[#{"source/#{package.repository.name}".black.bold}] "
       print package.name.bold
@@ -496,36 +492,6 @@ class Base < Thor
     }
   end
 
-  desc 'Manages various informations about package contents'
-  def files
-    require 'packo/cli/files'
-    Packo::CLI::Files.start(ARGV[1, ARGV.length])
-  end
-
-  desc 'Manages packø building system'
-  def build
-    require 'packo/cli/build'
-    Packo::CLI::Build.start(ARGV[1, ARGV.length])
-  end
-
-  desc 'Manages various configurations'
-  def select
-    require 'packo/cli/select'
-    Packo::CLI::Select.start(ARGV[1, ARGV.length])
-  end
-
-  desc 'Manages packø repositories'
-  def repository
-    require 'packo/cli/repository'
-    Packo::CLI::Repository.start(ARGV[1, ARGV.length])
-  end
-
-  desc 'Manages packø environment'
-  def env
-    require 'packo/cli/env'
-    Packo::CLI::Environment.start(ARGV[1, ARGV.length])
-  end
-
   private
 
   def _uri (repository)
@@ -552,7 +518,7 @@ class Base < Thor
   end
 
   def _has (package, env)
-    !!_search(package.to_s(:whole), package.repository.name, package.repository.type).find {|package|
+    !!Models.search(package.to_s(:whole), package.repository.name, package.repository.type).find {|package|
       !!package.model.data.builds.to_a.find {|build|
         build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
         build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
@@ -563,14 +529,14 @@ class Base < Thor
   def _filter (package, env)
     env[:FLAVOR] = env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.join(' ')
 
-    features       = _search(package.to_s(:whole), package.repository.name, package.repository.type).first.features
+    features       = Models.search(package.to_s(:whole), package.repository.name, package.repository.type).first.features
     env[:FEATURES] = env[:FEATURES].split(/\s+/).delete_if {|f|
       !features.has?(f)
     }.join(' ')
   end
 
   def _digest (package, env)
-    _search(package, package.repository.name, :binary).find {|package|
+    Models.search(package, package.repository.name, :binary).find {|package|
       package.model.data.builds.to_a.find {|build|
         build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
         build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort

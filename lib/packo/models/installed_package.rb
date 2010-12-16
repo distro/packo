@@ -50,9 +50,19 @@ class InstalledPackage
 
   def self.search (expression, exact=false, repository=nil)
     if expression.start_with?('[') && expression.end_with?(']')
-      result = self._find_by_expression(expression[1, expression.length - 2]).map {|id|
-        InstalledPackage.get(id)
-      }
+      expression = expression[1, expression.length - 2]
+
+      if repository.adapter.respond_to? :select
+        result = self._find_by_expression(expression).map {|id|
+          InstalledPackage.get(id)
+        }
+      else
+        expression = Packo::Package::Tags::Expression.parse(expression)
+
+        result = packages.all.select {|pkg|
+          expression.evaluate(Packo::Package.wrap(pkg))
+        }
+      end
     else
       if matches = expression.match(/^([<>]?=?)/)
         validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)

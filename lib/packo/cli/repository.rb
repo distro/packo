@@ -21,12 +21,14 @@
 require 'open-uri'
 require 'nokogiri'
 
-require 'packo/cli/common'
+require 'packo'
+require 'packo/models'
+require 'packo/cli'
 require 'packo/cli/repository/helpers'
 
 module Packo; module CLI
 
-class Base < Thor
+class Repository < Thor
   include Thor::Actions
 
   class_option :help, :type => :boolean, :desc => 'Show help usage'
@@ -75,14 +77,14 @@ class Base < Thor
       end
 
       if !kind
-        fatal "I don't know what to do with #{uri}"
+        CLI.fatal "I don't know what to do with #{uri}"
         next
       end
 
       path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
 
-      if Repository.first(:type => type, :name => name)
-        fatal "#{type}/#{name} already exists, delete it first"
+      if Models::Repository.first(:type => type, :name => name)
+        CLI.fatal "#{type}/#{name} already exists, delete it first"
         exit 10
       end
 
@@ -113,12 +115,10 @@ class Base < Thor
         add type, name, uri, path
         Packo.info "Added #{type}/#{name}"
       rescue Exception => e
-        fatal 'Failed to add the cache'
+        CLI.fatal 'Failed to add the cache'
         Packo.debug e
 
-        if (repository = Repository.first(:type => type, :name => name))
-          repository.destroy
-        end
+        _delete(type, name)
       end
     }
   end
@@ -131,7 +131,7 @@ class Base < Thor
       repository = Package::Repository.parse(name)
 
       if repository.type && !Package::Repository::Types.member?(repository.type)
-        fatal "#{repository.type} is not a valid repository type"
+        CLI.fatal "#{repository.type} is not a valid repository type"
         exit 20
       end
 
@@ -141,7 +141,7 @@ class Base < Thor
       repositories = Models::Repository.all(conditions)
 
       if repositories.empty?
-        Packo.fatal "#{repository.type}/#{repository.name} doesn't exist"
+        CLI.fatal "#{repository.type}/#{repository.name} doesn't exist"
         exit 21
       end
 
@@ -151,10 +151,10 @@ class Base < Thor
         repositories.each {|repository|
           FileUtils.rm_rf repository.path, :secure => true
 
-          repository.destroy
+          _delete(repository.type, repository.name)
         }
       rescue Exception => e
-        Packo.fatal "Something went wrong while deleting #{name}"
+        CLI.fatal "Something went wrong while deleting #{name}"
 
         Packo.debug e
       end
@@ -162,6 +162,7 @@ class Base < Thor
   end
 
   desc 'update', 'Update installed repositories'
+  map '-u' => :update
   def update
     Models.Repository.all.each {|repository|
       updated = false
@@ -174,7 +175,7 @@ class Base < Thor
       case repository.type
         when :binary
           if (content = open(uri).read) != File.read(path)
-            repository.destroy
+            _delete(:binary, name)
             File.write(path, content)
             _add(:binary, name, uri, path)
 
@@ -183,7 +184,7 @@ class Base < Thor
 
         when :source
           if _update(path)
-            repository.destroy
+            _delete(:source, name)
             _add(:source, name, uri, path)
 
             updated = true
@@ -200,16 +201,17 @@ class Base < Thor
     }
   end
 
-  desc 'Searches packages with the given expression'
-  opt 'exact', 'Search for the exact name', :type => :boolean, :default => false, :short_name => 'e'
-  opt 'full', 'Include the repository that owns the package', :type => :boolean, :default => false
-  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
-  opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
+  desc 'search [EXPRESSION]', 'Search packages with the given expression'
+  map '--search' => :search, '-Ss' => :search
+  method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
+  method_option :full,       :type => :boolean, :default => false, :aliases => '-F', :desc => 'Include the repository that owns the package'
+  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type' 
+  method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
   def search (expression='')
-    _search(expression, params['exact'], params['repository'], params['type']).group_by {|package|
+    Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|
       "#{package.tags}/#{package.name}"
     }.sort.each {|(name, packages)|
-      if params['full']
+      if options[:full]
         packages.group_by {|package|
           "#{package.repository.type}/#{package.repository.name}"
         }.each {|name, packages|
@@ -237,12 +239,13 @@ class Base < Thor
     }
   end
 
-  desc 'Searches packages with the given expression and returns detailed informations about them'
-  opt 'exact', 'Search for the exact name', :type => :boolean, :default => false, :short_name => 'e'
-  opt 'type', 'The repository type', :type => :string, :in => ['source', 'binary', 'all'], :default => 'all', :short_name => 't'
-  opt 'repository', 'Set a specific repository', :type => :string, :short_name => 'r'
+  desc 'info [EXPRESSION]', 'Search packages with the given expression and return detailed informations about them'
+  map '--info' => :info, '-I' => :info
+  method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
+  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type' 
+  method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
   def info (expression='')
-    _search(expression, params['exact'], params['repository'], params['type']).group_by {|package|
+    Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|
       package.name
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
@@ -305,12 +308,12 @@ class Base < Thor
     }
   end
 
-  desc 'Shows installed repositories'
+  desc 'show [TYPE]', 'Show installed repositories'
   def show (type='all')
     if Package::Repository::Types.member?(type.to_sym)
       _info "Installed #{type} repositories:"
 
-      repositories = Repository.all(:type => type)
+      repositories = Models::Repository.all(:type => type)
       length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
 
       repositories.each {|repository|
@@ -325,33 +328,33 @@ class Base < Thor
     end
   end
 
-  desc 'Outputs the path of a given repository'
+  desc 'path REPOSITORY', 'Output the path of a given repository'
   def path (name)
-    repository = Repository.first(Package::Repository.parse(name).to_hash)
+    repository = Models::Repository.first(Package::Repository.parse(name).to_hash)
 
     exit if !repository
 
     puts repository.path
   end
 
-  desc 'Outputs the URI of a given package'
+  desc 'uri REPOSITORY', 'Output the URI of a given package'
   def uri (name)
-    repository = Repository.first(Package::Repository.parse(name).to_hash)
+    repository = Models::Repository.first(Package::Repository.parse(name).to_hash)
 
     exit if !repository
 
     puts repository.URI
   end
 
-  desc 'Rehash the repository caches'
+  desc 'rehash REPOSITORY...', 'Rehash the repository caches'
   def rehash (*names)
     repositories = []
 
     if names.empty?
-      repositories << Repository.all
+      repositories << Models::Repository.all
     else
       names.each {|name|
-        repositories << Repository.all(:name => name)
+        repositories << Models::Repository.all(:name => name)
       }
     end
 
@@ -363,7 +366,7 @@ class Base < Thor
 
       _info "Rehashing #{type}/#{name}"
 
-      repository.destroy
+      _delete(type, name)
 
       case type
         when :binary
@@ -375,12 +378,10 @@ class Base < Thor
     }
   end
 
-
-
   private
 
   def _add (type, name, uri, path)
-    Repository.wrap(Models::Repository.new(
+    Package::Repository.wrap(Models::Repository.new(
       :type => type,
       :name => name,
 
@@ -389,8 +390,8 @@ class Base < Thor
     )).populate
   end
 
-  def _delete (name, type)
-    Models::Repository.first(:name => name, :type => type).destroy
+  def _delete (type, name)
+    Models::Repository.first(:name => name, :type => type).destroy rescue nil
   end
 
   def _checkout (uri, path)
@@ -405,7 +406,7 @@ class Base < Thor
     end
 
     if !@@scm.member?(scm)
-      fatal "#{scm} is an unsupported SCM"
+      CLI.fatal "#{scm} is an unsupported SCM"
       exit 40
     end
 

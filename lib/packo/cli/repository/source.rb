@@ -20,7 +20,7 @@
 require 'packo/models'
 require 'packo/rbuild'
 
-module Packo; module CLI; class Repository; module Helpers
+module Packo; module CLI; class Repository < Thor; module Helpers
 
 class Source < Repository
   include Packo::Models
@@ -51,11 +51,11 @@ class Source < Repository
           begin
             package = Packo.loadPackage(what, pkg)
           rescue LoadError => e
-            Packo.warn e.to_s if System.env[:VERBOSE]
+            CLI.warn e.to_s if System.env[:VERBOSE]
           end
 
           if package.name != pkg.name || package.version != pkg.version
-            Packo.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
+            CLI.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
             next
           end
 
@@ -106,4 +106,4 @@ class Source < Repository
   end
 end
 
-end; end; end
+end; end; end; end

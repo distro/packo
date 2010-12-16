@@ -17,14 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'fileutils'
-require 'versionomy'
-require 'ostruct'
-require 'colorb'
-
 require 'packo/version'
 require 'packo/extensions'
 require 'packo/system'
+require 'packo/cli'
 
 module Packo
   def self.sh (*cmd, &block)
@@ -117,7 +113,7 @@ module Packo
             Packo.load "#{System.env[:PROFILE]}/features/#{feature}", options
           rescue LoadError
           rescue Exception => e
-            warn "Something went wrong while loading #{feature} feature."
+            CLI.warn "Something went wrong while loading #{feature} feature." if System.env[:VERBOSE]
             Packo.debug e
           end
         }
@@ -142,30 +138,6 @@ module Packo
       return RBuild::Package.last
     end
   end
-
-  def self.info (text)
-    puts "#{'*'.green.bold} #{text}"
-  end
-
-  def self.warn (text)
-    puts "#{'*'.yellow.bold} #{text}"
-  end
-
-  def self.fatal (text)
-    puts "#{'*'.red} #{text}"
-  end
-
-  def self._info  (*args); Packo.info(*args)  end
-  def self._warn  (*args); Packo.warn(*args)  end
-  def self._fatal (*args); Packo.fatal(*args) end
-
-  def  info  (*args); Packo.info(*args) end
-  def _info  (*args); Packo.info(*args) end
-  def  warn  (*args); Packo.warn(*args) end
-  def _warn  (*args); Packo.warn(*args) end
-  def  fatal (*args); Packo.fatal(*args) end
-  def _fatal (*args); Packo.fatal(*args) end
 end
 
 require 'packo/package'
-require 'packo/models'

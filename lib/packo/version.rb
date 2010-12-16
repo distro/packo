@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'versionomy'
+
 module Packo
 
 def self.version

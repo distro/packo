@@ -69,7 +69,7 @@ end
 begin
   setup :default, Packo::System.env[:DATABASE]
 rescue Exception => e
-  Packo.warn "Could not setup a connection with #{Packo::System.env[:DATABASE]}: #{e.message}"
+  CLI.warn "Could not setup a connection with #{Packo::System.env[:DATABASE]}: #{e.message}"
 end
 
 require 'packo/models/installed_package'
@@ -81,7 +81,45 @@ finalize
 begin
   auto_upgrade!
 rescue Exception => e
-  Packo.warn "Could not migrate the database: #{e.message}"
+  CLI.warn "Could not migrate the database: #{e.message}"
+end
+
+end
+
+module Packo
+
+module Models
+  def self.search_installed (expression, name=nil, type=nil)
+    Models::InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil).map {|pkg|
+      Package.wrap(pkg)
+    }
+  end
+  
+  def self.search (expression, name=nil, type=nil, exact=false)
+    packages = []
+  
+    if name && !name.empty?
+      repository      = Package::Repository.parse(name)
+      repository.type = type if Package::Repository::Types.member?(type.to_sym)
+      repository      = Models::Repository.first(repository.to_hash)
+  
+      if repository
+        packages << repository.search(expression, exact)
+      end
+    else
+      Package::Repository::Types.each {|t|
+        if type.nil? || type == 'all' || type == t
+          Models::Repository.all(:type => t).each {|repository|
+            packages << repository.search(expression, exact)
+          }
+        end
+      }
+    end
+  
+    return packages.flatten.compact.map {|package|
+      Package.wrap(package)
+    }
+  end
 end
 
 end

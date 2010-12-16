@@ -1,4 +1,3 @@
-#! /usr/bin/env ruby
 # encoding: utf-8
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
@@ -19,50 +18,49 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'optitron'
 require 'nokogiri'
 require 'digest/sha1'
 
 require 'packo'
 require 'packo/rbuild'
+require 'packo/models'
+require 'packo/cli'
 
-class Application < Optitron::CLI
-  include Packo
-  include Models
+module Packo; module CLI
 
-  desc 'Output version'
-  def version
-    puts "packø building tool #{VERSION}"
-  end
+class Build < Thor
+  include Thor::Actions
 
-  desc 'Creates a package'
-  opt 'output', 'The directory where to save packages', :default => System.env[:TMP]
-  opt 'wipe', 'Wipes the package directory before building it', :type => :boolean, :default => false, :short_name => 'w'
-  opt 'repository', 'Set a specific source repository', :type => :string
-  def package (*name)
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
+
+  desc 'package PACKAGE...', 'Create packages of the matching names'
+  method_option :output,     :type => :string,  :default => System.env[:TMP], :aliases => '-o', :desc => 'The directory where to save packages'
+  method_option :wipe,       :type => :boolean, :default => false,            :aliases => '-w', :desc => 'Wipes the package directory before building it'
+  method_option :repository, :type => :string,                                :aliases => '-r', :desc => 'Set a specific source repository'
+  def package (*packages)
     Environment.new {|env|
       if !env[:ARCH] || !env[:KERNEL] || !env[:LIBC] || !env[:COMPILER]
-        fatal "You have to set ARCH, KERNEL, LIBC and COMPILER to build packages."
+        CLI.fatal 'You have to set ARCH, KERNEL, LIBC and COMPILER to build packages.'
         exit 1
       end
     }
 
-    name.map {|package|
+    packages.map {|package|
       if package.end_with?('.rbuild')
         package
       else
-        packages = _search(package, params['repository'])
+        packages = Models.search(package, options[:repository])
   
         names = packages.group_by {|package|
           "#{package.tags}/#{package.name}"
         }.map {|(name, package)| name}.uniq
   
         if names.length == 0
-          fatal "No package matches #{package}"
+          CLI.fatal "No package matches #{package}"
 
           exit 10
         elsif names.length > 1
-          fatal "More than one package matches: #{package}"
+          CLI.fatal "More than one package matches: #{package}"
   
           names.each {|name|
             puts "    #{name}"
@@ -93,25 +91,25 @@ class Application < Optitron::CLI
       begin; package = Packo.loadPackage(path, package); rescue LoadError; end
 
       if !package
-        fatal 'The package could not be instantiated'
+        CLI.fatal 'The package could not be instantiated'
         exit 12
       end
 
       if package.parent.nil?
-         warn 'The package does not have a parent'
+         CLI.warn 'The package does not have a parent'
       end
 
       package.path = path
 
       info "Building #{package}"
 
-      output = File.realpath(params['output'])
+      output = File.realpath(options[:output])
 
       package.after :pack do |path|
         FileUtils.cp path, output, :preserve => true
       end
 
-      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || params['wipe']
+      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
         info "Cleaning #{package} because something changed."
 
         clean("#{package.to_s(:name)}-#{package.version}")
@@ -130,25 +128,24 @@ class Application < Optitron::CLI
 
         info "Succesfully built #{package}"
       rescue Exception => e
-        fatal "Failed to build #{package}"
-        fatal e.message
+        CLI.fatal "Failed to build #{package}"
+        CLI.fatal e.message
         Packo.debug e
       end
     }
   end
 
-  desc 'Clean a package'
-  opt 'tmp', 'The path to the temporary directory', :default => System.env[:TMP], :short_name => 't'
-  opt 'repository', 'Set a specific source repository', :type => :string
-  def clean (*name)
-    name.map {|package|
+  desc 'clean PACKAGE...', 'Clean packages'
+  method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
+  def clean (*packages)
+    packages.map {|package|
       if package.end_with?('.rbuild')
         package
       else
-        packages = _search(package, params['repository'])
+        packages = Models.search(package, options[:repository])
 
         if (multiple = packages.uniq).length > 1
-          fatal 'Multiple packages with the same name, be more precise.'
+          CLI.fatal 'Multiple packages with the same name, be more precise.'
           exit 2
         end
 
@@ -167,29 +164,29 @@ class Application < Optitron::CLI
 
         info "Cleaned #{package.to_s(:name)}"
       rescue Exception => e
-        fatal "Failed cleaning of #{package.to_s(:name)}"
+        CLI.fatal "Failed cleaning of #{package.to_s(:name)}"
         Packo.debug e
       end
     }
   end
 
-  desc 'Digest the given file'
-  def digest (*file)
-    file.each {|name|
-      if !File.exists?(name)
-        fatal "#{name} does not exist"
+  desc 'digest RBUILD...', 'Digest the given rbuilds'
+  def digest (*files)
+    files.each {|file|
+      if !File.exists?(file)
+        CLI.fatal "#{file} does not exist"
         exit! 40
       end
 
-      Dir.chdir(File.dirname(name))
+      Dir.chdir(File.dirname(file))
 
-      name    = File.basename(name)
-      package = Package.parse(name.sub(/\.rbuild$/, ''))
+      name    = File.basename(file)
+      package = Package.parse(file.sub(/\.rbuild$/, ''))
   
       begin
         package = Packo.loadPackage('.', package)
       rescue LoadError
-        fatal 'Failed to load the rbuild'
+        CLI.fatal 'Failed to load the rbuild'
         exit 80
       end
 
@@ -228,19 +225,19 @@ class Application < Optitron::CLI
       File.write('digest.xml', builder.to_xml(:indent => 4))
     }
   rescue Errno::EACCES
-    fatal "Try to use `packo-build` instead of `packo build` (which is sandbox'd)"
+    CLI.fatal 'Try to set SECURE to false'
   end
 
-  desc 'Output the manifest of the given package'
-  opt 'repository', 'Set a specific source repository', :type => :string
+  desc 'manifest PACKAGE', 'Output the manifest of the given package'
+  method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
   def manifest (package)
     if package.end_with?('.rbuild')
       package = Packo.loadPackage(File.dirname(package), Packo::Package.parse(package.sub('.rbuild', '')))
     else
-      tmp = _search(package, params['repository'])
+      tmp = Models.search(package, options[:repository])
 
       if (multiple = tmp.uniq).length > 1
-        fatal 'Multiple packages with the same name, be more precise.'
+        CLI.fatal 'Multiple packages with the same name, be more precise.'
         exit 2
       end
 
@@ -250,34 +247,10 @@ class Application < Optitron::CLI
     if package
       puts RBuild::Package::Manifest.new(package).to_s
     else
-      fatal 'Package could not be instantiated'
+      CLI.fatal 'Package could not be instantiated'
       exit 23
     end
   end
-
-  private
-
-  def _search (expression, repository=nil)
-    packages = []
-
-    if repository && !repository.empty?
-      repository = Repository.first(Package::Repository.parse(repository).to_hash)
-
-      if repository
-        packages << repository.search(expression, true)
-      end
-    else
-      Repository.all(:type => :source).each {|repository|
-        packages << repository.search(expression, true)
-      }
-    end
-
-    return packages.flatten.compact.map {|package|
-      Package.wrap(package)
-    }
-  rescue RuntimeError => e
-    fatal e.message; exit 99
-  end
 end
 
-Application.dispatch
+end; end

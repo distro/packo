@@ -1,5 +1,3 @@
-#! /usr/bin/env ruby
-# encoding: utf-8
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
@@ -19,19 +17,17 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'optitron'
+require 'packo/system'
+require 'packo/cli'
 
-require 'packo'
+module Packo; module CLI
 
-class Application < Optitron::CLI
-  include Packo
+class Environment < Thor
+  include Thor::Actions
 
-  desc 'Outputs version'
-  def version
-    puts "packø env manager #{VERSION}"
-  end
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
-  desc 'Shows the environment'
+  desc 'show', 'Show the current system environment'
   def show
     length = System.env.map {|(name, value)| name.length}.max
     
@@ -41,4 +37,4 @@ class Application < Optitron::CLI
   end
 end
 
-Application.dispatch
+end; end

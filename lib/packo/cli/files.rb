@@ -1,4 +1,3 @@
-#! /usr/bin/env ruby
 # encoding: utf-8
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
@@ -19,22 +18,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'optitron'
-require 'find'
+require 'packo/system'
+require 'packo/models'
+require 'packo/cli'
 
-require 'packo'
-require 'packo/rbuild/modules/packaging'
+module Packo; module CLI
 
-class Application < Optitron::CLI
-  include Packo
-  include Models
+class Files < Thor
+  include Thor::Actions
 
-  desc 'Outputs version'
-  def version
-    puts "packø files checking #{VERSION}"
-  end
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
-  desc 'Get a file list of a given package'
+  desc 'package PACKAGE', 'Get a file list of a given package'
   def package (name)
     if name.end_with?('.pko')
       path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
@@ -63,7 +58,7 @@ class Application < Optitron::CLI
         end
       }
     else
-      package = _search_installed(name).first
+      package = CLI.search_installed(name).first
 
       if !package
         fatal "No package matches #{name}"
@@ -80,17 +75,17 @@ class Application < Optitron::CLI
     end
   end
 
-  desc 'Check contents for the given packages'
-  def check (*name)
+  desc 'check [PACKAGE...]', 'Check contents for the given packages'
+  def check (*names)
     packages = []
 
-    if name.empty?
+    if names.empty?
       packages << InstalledPackage.all.map {|pkg|
         Package.wrap(pkg)
       }
     else
-      name.each {|name|
-        packages << _search_installed(name)
+      names.each {|name|
+        packages << Models.search_installed(name)
       }
     end
 
@@ -135,13 +130,6 @@ class Application < Optitron::CLI
     }
   end
 
-  private
-
-  def _search_installed (expression, name=nil, type=nil)
-    InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil).map {|pkg|
-      Package.wrap(pkg)
-    }
-  end
 end
 
-Application.dispatch
+end; end

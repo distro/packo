@@ -49,6 +49,7 @@ class Environment < Hash
     :NO_COLORS => false,
     :DEBUG     => nil,
     :VERBOSE   => false,
+    :SECURE    => true,
 
     :TMP => '/tmp'
   }
@@ -76,7 +77,16 @@ class Environment < Hash
   }
 
   def self.[] (name, nodefault=false)
-    ENV["PACKO_#{name}"] || ENV[name.to_s] || (nodefault ? nil : @@default[name.to_sym])
+    value = ENV["PACKO_#{name}"] || ENV[name.to_s] || (nodefault ? nil : @@default[name.to_sym]) or return
+
+    return value unless value.is_a?(String)
+
+    case value
+      when value.strip.empty?; nil
+      when value == 'false';   false
+      when value == 'true';    true
+      else;                    value
+    end
   end
 
   def self.[]= (name, value)
