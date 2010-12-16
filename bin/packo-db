@@ -1,3 +1,4 @@
+#! /usr/bin/env ruby
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
@@ -17,33 +18,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/binary/repository/binary'
-require 'packo/binary/repository/source'
-require 'packo/binary/repository/virtual'
+require 'rubygems' unless defined?(Gem)
 
-module Packo; module Binary
-
-class Repository
-  def self.wrap (repo)
-    case repo.type
-      when :binary;  Binary.new(repo)
-      when :source;  Source.new(repo)
-      when :virtual; Virtual.new(repo)
-    end
-  end
-
-  attr_reader :repository
-
-  def initialize (repo)
-    repo.save
-
-    @repository = repo
-  end
-
-  def type; @repository.type end
-  def name; @repository.name end
-  def uri;  @repository.uri  end
-  def path; @repository.path end
-end
-
-end; end
+require 'packo/cli/db'
+Packo::CLI::DB.start(ARGV)

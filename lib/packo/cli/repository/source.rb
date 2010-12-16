@@ -20,7 +20,7 @@
 require 'packo/models'
 require 'packo/rbuild'
 
-module Packo; module Binary; class Repository
+module Packo; module CLI; class Repository; module Helpers
 
 class Source < Repository
   include Packo::Models

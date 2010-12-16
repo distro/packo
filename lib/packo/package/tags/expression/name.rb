@@ -19,4 +19,10 @@
 
 module Packo; class Package; class Tags < Array; class Expression
 
+class Name < String
+  def inspect
+    self.to_s.downcase
+  end
+end
+
 end; end; end; end

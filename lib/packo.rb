@@ -22,12 +22,11 @@ require 'versionomy'
 require 'ostruct'
 require 'colorb'
 
+require 'packo/version'
 require 'packo/extensions'
 require 'packo/system'
 
 module Packo
-  VERSION = Versionomy.parse('0.0.1')
-
   def self.sh (*cmd, &block)
     options = (Hash === cmd.last) ? cmd.pop : {}
 

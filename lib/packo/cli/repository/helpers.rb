@@ -17,32 +17,4 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; class Package; class Tags < Array; class Expression
-
-class Logic
-  attr_reader :type
-
-  def initialize (what)
-    @type = case what
-      when '!',  /not/i then :not
-      when '&&', /and/i then :and
-      when '||', /or/i  then :or
-    end
-
-    raise SyntaxError.new('Invalid logical operator') unless @type
-  end
-
-  def evaluate (a, b=nil)
-    case @type
-      when :not; !a
-      when :and; !!(a && b)
-      when :or;  !!(a || b)
-    end
-  end
-
-  def inspect
-    self.type.to_s.upcase
-  end
-end
-
-end; end; end; end
+require 'packo/cli/repository/repository'

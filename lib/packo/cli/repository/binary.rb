@@ -19,7 +19,7 @@
 
 require 'packo/models'
 
-module Packo; module Binary; class Repository
+module Packo; module CLI; class Repository; module Helpers
 
 class Binary < Repository
   include Packo::Models
@@ -90,4 +90,4 @@ class Binary < Repository
   end
 end
 
-end; end; end
+end; end; end; end

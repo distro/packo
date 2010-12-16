@@ -74,9 +74,19 @@ class Repository
 
   def search (expression, exact=false)
     if expression.start_with?('[') && expression.end_with?(']')
-      result = _find_by_expression(expression[1, expression.length - 2]).map {|id|
-        Package.get(id)
-      }
+      expression = expression[1, expression.length - 2]
+
+      if repository.adapter.respond_to? :select
+        result = _find_by_expression(expression).map {|id|
+          Package.get(id)
+        }
+      else
+        expression = Packo::Package::Tags::Expression.parse(expression)
+
+        result = packages.all.select {|pkg|
+          expression.evaluate(Packo::Package.wrap(pkg))
+        }
+      end
     else
       if matches = expression.match(/^([<>]?=?)/)
         validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
@@ -172,10 +182,6 @@ class Repository
     end
 
     def _find_by_expression (expression)
-      unless repository.adapter.respond_to? :select
-        raise RuntimeError.new('The adapter does not support tag searching')
-      end
-
       joins, names, expression = _expression_to_sql(expression)
 
       repository.adapter.select(%{

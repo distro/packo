@@ -17,12 +17,33 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Binary; class Repository
+module Packo; module CLI; class Repository; module Helpers
 
-class Virtual < Repository
-  def initialize (repository)
-    super(repository)
+class Repository
+  def self.wrap (repo)
+    case repo.type
+      when :binary;  Binary.new(repo)
+      when :source;  Source.new(repo)
+      when :virtual; Virtual.new(repo)
+    end
   end
+
+  attr_reader :repository
+
+  def initialize (repo)
+    repo.save
+
+    @repository = repo
+  end
+
+  def type; @repository.type end
+  def name; @repository.name end
+  def uri;  @repository.uri  end
+  def path; @repository.path end
 end
 
-end; end; end
+require 'packo/cli/repository/binary'
+require 'packo/cli/repository/source'
+require 'packo/cli/repository/virtual'
+
+end; end; end; end

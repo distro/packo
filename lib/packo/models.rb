@@ -69,8 +69,7 @@ end
 begin
   setup :default, Packo::System.env[:DATABASE]
 rescue Exception => e
-  Packo.warn "Could not setup a connection with #{Packo::System.env[:DATABASE]}"
-  Packo.warn e.message
+  Packo.warn "Could not setup a connection with #{Packo::System.env[:DATABASE]}: #{e.message}"
 end
 
 require 'packo/models/installed_package'
@@ -82,8 +81,7 @@ finalize
 begin
   auto_upgrade!
 rescue Exception => e
-  Packo.warn 'Could not migrate the database'
-  Packo.warn e.message
+  Packo.warn "Could not migrate the database: #{e.message}"
 end
 
 end

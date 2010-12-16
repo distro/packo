@@ -274,14 +274,6 @@ class Autotools < Module
     else
       @configuration.set 'host',  package.host
       @configuration.set 'build', package.host
-
-      if System.host != package.target
-        @configuration.set 'target', package.target
-
-        @configuration.with 'sysroot', "/usr/#{System.host}/#{package.target}"
-      else
-        @configuration.with 'sysroot', '/'
-      end
     end
 
     @configuration.set 'target', package.target

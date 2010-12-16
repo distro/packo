@@ -19,6 +19,8 @@
 
 require 'digest/sha1'
 
+require 'packo/package/tags/expression'
+
 module Packo; class Package
 
 class Tags < Array
@@ -29,8 +31,8 @@ class Tags < Array
   end
 
   def initialize (*tags)
-    tags.flatten.each {|tag|
-      self << tag.to_s
+    tags.flatten.compact.each {|tag|
+      self << tag.to_s.downcase
     }
   end
 

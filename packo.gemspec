@@ -12,7 +12,7 @@ Gem::Specification.new {|s|
     s.has_rdoc     = false
 
     s.add_dependency('nokogiri')
-    s.add_dependency('optitron')
+    s.add_dependency('thor')
     s.add_dependency('datamapper')
     s.add_dependency('versionomy')
     s.add_dependency('fffs')

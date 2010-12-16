@@ -19,4 +19,10 @@
 
 module Packo; class Package; class Tags < Array; class Expression
 
+class Group < Array
+  def inspect
+    '(' + self.map {|e| e.inspect}.join(' ') + ')'
+  end
+end
+
 end; end; end; end
