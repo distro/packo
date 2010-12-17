@@ -20,6 +20,7 @@
 
 require 'packo'
 require 'packo/models'
+require 'packo/rbuild'
 require 'packo/cli'
 
 module Packo; module CLI
@@ -29,7 +30,7 @@ class Base < Thor
 
   class_option :help, :type => :boolean, :desc => 'Show help usage'
 
-  desc 'install PACKAGE...', 'Install packages'
+  desc 'install PACKAGE... [OPTIONS]', 'Install packages'
   map '-i' => :install, '--install' => :install
   method_option :destination, :type => :string,  :default => '/',   :aliases => '-d', :desc => 'Set the destination where to install the package'
   method_option :inherit,     :type => :boolean, :default => false, :aliases => '-I', :desc => 'Apply the passed flags to the eventual dependencies'
@@ -51,6 +52,7 @@ class Base < Thor
     else
       manual = 1
     end
+
 
     names.each {|name|
       if File.extname(name).empty?
@@ -263,7 +265,7 @@ class Base < Thor
       begin
         Find.find("#{path}/dist") {|file|
           type = nil
-          path = "#{optionos[:destination]}/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
+          path = "#{options[:destination]}/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
           fake = path[options[:destination].length, path.length] || ''
           meta = nil
 
@@ -334,7 +336,7 @@ class Base < Thor
     }
   end
 
-  desc 'uninstall PACKAGE...', 'Uninstall packages'
+  desc 'uninstall PACKAGE... [OPTIONS]', 'Uninstall packages'
   map '-C' => :uninstall, '-R' => :uninstall, 'remove' => :uninstall
   method_option :destination, :type => :string,  :default => '/',   :aliases => '-d', :desc => 'Set the destination where to install the package'
   method_option :force,       :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
@@ -384,7 +386,7 @@ class Base < Thor
     }
   end
 
-  desc 'search [EXPRESSION]', 'Search through installed packages'
+  desc 'search [EXPRESSION] [OPTIONS]', 'Search through installed packages'
   map '--search' => :search, '-Ss' => :search
   method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type (binary, source, virtual)'
   method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
@@ -428,7 +430,7 @@ class Base < Thor
     }
   end
 
-  desc 'info [EXPRESSION]', 'Search through installed packages and returns detailed informations about them'
+  desc 'info [EXPRESSION] [OPTIONS]', 'Search through installed packages and returns detailed informations about them'
   map '--info' => :info
   method_option :type,       :type => :string, :aliases => '-t', :desc => 'The repository type (binary, source, virtual)'
   method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific repository'

@@ -41,7 +41,7 @@ class Source < Repository
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
-          Packo.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
+          CLI.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
 
           pkg = Packo::Package.new(
             :name    => File.basename(what),

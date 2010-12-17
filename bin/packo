@@ -48,7 +48,7 @@ descriptions = {
   :env        => 'Manage packø environment'
 }
 
-trusted = [:base]
+trusted = [:base, :select]
 
 commands.each {|command|
   Application.class_eval %{

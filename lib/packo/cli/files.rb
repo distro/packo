@@ -80,7 +80,7 @@ class Files < Thor
     packages = []
 
     if names.empty?
-      packages << InstalledPackage.all.map {|pkg|
+      packages << Models::InstalledPackage.all.map {|pkg|
         Package.wrap(pkg)
       }
     else

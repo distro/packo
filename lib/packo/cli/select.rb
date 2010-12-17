@@ -32,7 +32,7 @@ class Select < Thor
   def add (name, description, path)
     Models::Selector.first_or_create(:name => name).update(:description => description, :path => path)
 
-    info "#{name} added"
+    CLI.info "#{name} added"
   end
 
   desc 'delete NAME', 'Delete a module from the database'
@@ -46,7 +46,7 @@ class Select < Thor
     
     selector.destroy
 
-    info "#{name} deleted"
+    CLI.info "#{name} deleted"
   end
 end
 

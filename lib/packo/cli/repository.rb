@@ -31,6 +31,8 @@ module Packo; module CLI
 class Repository < Thor
   include Thor::Actions
 
+  @@scm = ['git']
+
   class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'add URI...', 'Add repositories'
@@ -112,8 +114,8 @@ class Repository < Thor
       end
 
       begin
-        add type, name, uri, path
-        Packo.info "Added #{type}/#{name}"
+        _add type, name, uri, path
+        CLI.info "Added #{type}/#{name}"
       rescue Exception => e
         CLI.fatal 'Failed to add the cache'
         Packo.debug e
@@ -145,7 +147,7 @@ class Repository < Thor
         exit 21
       end
 
-      Packo.info "Deleting #{[repository.type, repository.name].join('/')}"
+      CLI.info "Deleting #{[repository.type, repository.name].join('/')}"
 
       begin
         repositories.each {|repository|
@@ -194,14 +196,14 @@ class Repository < Thor
       end
 
       if updated
-        Packo.info "Updated #{type}/#{name}"
+        CLI.info "Updated #{type}/#{name}"
       else
-        Packo.info "#{type}/#{name} already up to date"
+        CLI.info "#{type}/#{name} already up to date"
       end
     }
   end
 
-  desc 'search [EXPRESSION]', 'Search packages with the given expression'
+  desc 'search [EXPRESSION] [OPTIONS]', 'Search packages with the given expression'
   map '--search' => :search, '-Ss' => :search
   method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
   method_option :full,       :type => :boolean, :default => false, :aliases => '-F', :desc => 'Include the repository that owns the package'
@@ -239,7 +241,7 @@ class Repository < Thor
     }
   end
 
-  desc 'info [EXPRESSION]', 'Search packages with the given expression and return detailed informations about them'
+  desc 'info [EXPRESSION] [OPTIONS]', 'Search packages with the given expression and return detailed informations about them'
   map '--info' => :info, '-I' => :info
   method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
   method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type' 
@@ -311,7 +313,7 @@ class Repository < Thor
   desc 'show [TYPE]', 'Show installed repositories'
   def show (type='all')
     if Package::Repository::Types.member?(type.to_sym)
-      _info "Installed #{type} repositories:"
+      CLI.info "Installed #{type} repositories:"
 
       repositories = Models::Repository.all(:type => type)
       length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
@@ -364,7 +366,7 @@ class Repository < Thor
       uri  = repository.uri
       path = repository.path
 
-      _info "Rehashing #{type}/#{name}"
+      CLI.info "Rehashing #{type}/#{name}"
 
       _delete(type, name)
 
@@ -381,7 +383,7 @@ class Repository < Thor
   private
 
   def _add (type, name, uri, path)
-    Package::Repository.wrap(Models::Repository.new(
+    Helpers::Repository.wrap(Models::Repository.create(
       :type => type,
       :name => name,
 

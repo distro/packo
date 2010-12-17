@@ -35,12 +35,12 @@ class Binary < Repository
   end
 
   def populate
-    Packo.info 'Parsing the XML file' if System.env[:VERBOSE]
+    CLI.info 'Parsing the XML file' if System.env[:VERBOSE]
 
     dom = Nokogiri::XML.parse(File.read(self.path))
 
     dom.xpath('//packages/package').each {|e|
-      Packo.info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}"
+      CLI.info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}"
 
       e.xpath('.//build').each {|build|
         package = Packo::Package.new(

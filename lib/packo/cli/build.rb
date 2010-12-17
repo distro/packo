@@ -33,7 +33,7 @@ class Build < Thor
 
   class_option :help, :type => :boolean, :desc => 'Show help usage'
 
-  desc 'package PACKAGE...', 'Create packages of the matching names'
+  desc 'package PACKAGE... [OPTIONS]', 'Create packages of the matching names'
   method_option :output,     :type => :string,  :default => System.env[:TMP], :aliases => '-o', :desc => 'The directory where to save packages'
   method_option :wipe,       :type => :boolean, :default => false,            :aliases => '-w', :desc => 'Wipes the package directory before building it'
   method_option :repository, :type => :string,                                :aliases => '-r', :desc => 'Set a specific source repository'
@@ -101,7 +101,7 @@ class Build < Thor
 
       package.path = path
 
-      info "Building #{package}"
+      CLI.info "Building #{package}"
 
       output = File.realpath(options[:output])
 
@@ -110,7 +110,7 @@ class Build < Thor
       end
 
       if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
-        info "Cleaning #{package} because something changed."
+        CLI.info "Cleaning #{package} because something changed."
 
         clean("#{package.to_s(:name)}-#{package.version}")
 
@@ -123,10 +123,10 @@ class Build < Thor
 
       begin
         package.build {|stage|
-          info "Executing #{stage.name}"
+          CLI.info "Executing #{stage.name}"
         }
 
-        info "Succesfully built #{package}"
+        CLI.info "Succesfully built #{package}"
       rescue Exception => e
         CLI.fatal "Failed to build #{package}"
         CLI.fatal e.message
@@ -135,7 +135,7 @@ class Build < Thor
     }
   end
 
-  desc 'clean PACKAGE...', 'Clean packages'
+  desc 'clean PACKAGE... [OPTIONS]', 'Clean packages'
   method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
   def clean (*packages)
     packages.map {|package|
@@ -162,7 +162,7 @@ class Build < Thor
       begin
         Packo.loadPackage(path, package).clean!
 
-        info "Cleaned #{package.to_s(:name)}"
+        CLI.info "Cleaned #{package.to_s(:name)}"
       rescue Exception => e
         CLI.fatal "Failed cleaning of #{package.to_s(:name)}"
         Packo.debug e
@@ -228,7 +228,7 @@ class Build < Thor
     CLI.fatal 'Try to set SECURE to false'
   end
 
-  desc 'manifest PACKAGE', 'Output the manifest of the given package'
+  desc 'manifest PACKAGE [OPTIONS]', 'Output the manifest of the given package'
   method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
   def manifest (package)
     if package.end_with?('.rbuild')
