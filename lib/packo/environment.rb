@@ -51,7 +51,7 @@ class Environment < Hash
     :VERBOSE   => false,
     :SECURE    => true,
 
-    :TMP => '/tmp'
+    :TMP => '/var/tmp/packo'
   }
 
   @@callbacks = {

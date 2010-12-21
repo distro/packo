@@ -25,9 +25,7 @@ module Packo; class Package
 
 class Tags < Array
   def self.parse (value)
-    value.is_a?(Array) ?
-      Tags.new(value) :
-      Tags.new(value.to_s.split('/'))
+    Tags.new(value.is_a?(Array) ? value : Tags.new(value.to_s.split(%r{/|\s+})))
   end
 
   def initialize (*tags)
@@ -37,7 +35,7 @@ class Tags < Array
   end
 
   def == (tags)
-    self.to_a.sort == tags.to_a.sort
+    self.to_a.sort == Tags.parse(tags).to_a.sort
   end
 
   def hashed

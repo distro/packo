@@ -78,7 +78,7 @@ class Host
     self.kernel = data[:KERNEL]
     self.misc   = data[:MISC]
 
-    if !self.misc && data[:LIBC] == 'glibc'
+    if !self.misc && data[:LIBC] == 'glibc' && (self.kernel == 'linux')
       self.misc = 'gnu'
     end
 

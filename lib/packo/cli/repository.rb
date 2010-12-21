@@ -130,9 +130,9 @@ class Repository < Thor
   map '-d' => :delete, '-R' => :delete
   def delete (*names)
     names.each {|name|
-      repository = Package::Repository.parse(name)
+      repository = Packo::Repository.parse(name)
 
-      if repository.type && !Package::Repository::Types.member?(repository.type)
+      if repository.type && !Packo::Repository::Types.member?(repository.type)
         CLI.fatal "#{repository.type} is not a valid repository type"
         exit 20
       end
@@ -312,7 +312,7 @@ class Repository < Thor
 
   desc 'show [TYPE]', 'Show installed repositories'
   def show (type='all')
-    if Package::Repository::Types.member?(type.to_sym)
+    if Packo::Repository::Types.member?(type.to_sym)
       CLI.info "Installed #{type} repositories:"
 
       repositories = Models::Repository.all(:type => type)
@@ -324,7 +324,7 @@ class Repository < Thor
 
       puts ''
     elsif type == 'all'
-      Package::Repository::Types.each {|type|
+      Packo::Repository::Types.each {|type|
         show(type)
       }
     end
@@ -332,7 +332,7 @@ class Repository < Thor
 
   desc 'path REPOSITORY', 'Output the path of a given repository'
   def path (name)
-    repository = Models::Repository.first(Package::Repository.parse(name).to_hash)
+    repository = Models::Repository.first(Packo::Repository.parse(name).to_hash)
 
     exit if !repository
 
@@ -341,7 +341,7 @@ class Repository < Thor
 
   desc 'uri REPOSITORY', 'Output the URI of a given package'
   def uri (name)
-    repository = Models::Repository.first(Package::Repository.parse(name).to_hash)
+    repository = Models::Repository.first(Packo::Repository.parse(name).to_hash)
 
     exit if !repository
 

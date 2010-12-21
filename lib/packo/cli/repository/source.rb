@@ -22,86 +22,55 @@ require 'packo/rbuild'
 
 module Packo; module CLI; class Repository < Thor; module Helpers
 
-class Source < Repository
+class Source < Packo::Repository::Source
   include Packo::Models
+  include Helpers::Repository
 
-  def initialize (repository)
-    super(repository)
-
-    dom = Nokogiri::XML.parse(File.read("#{self.path}/repository.xml"))
-
-    repository.data.update(
-      :address => dom.xpath('//address').first.text
-    )
+  def initialize (model)
+    @model = model
   end
 
-  def populate (what=[self.path], root=self.path)
-    last = nil
+  def populate
+    self.generate
 
-    what.select {|what| File.directory? what}.each {|what|
-      if File.file? "#{what}/#{File.basename(what)}.rbuild"
-        Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
-          CLI.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
+    self.packages.each {|package|
+      pkg = repository.packages.first_or_create(
+        :repo => repository,
 
-          pkg = Packo::Package.new(
-            :name    => File.basename(what),
-            :version => version.match(/-(\d.*?)\.rbuild$/)[1]
-          )
+        :tags_hashed => package.tags.hashed,
+        :name        => package.name,
+        :version     => package.version,
+        :slot        => package.slot,
+        :revision    => package.revision
+      )
 
-          begin
-            package = Packo.loadPackage(what, pkg)
-          rescue LoadError => e
-            CLI.warn e.to_s if System.env[:VERBOSE]
-          end
+      pkg.update(
+        :description => package.description,
+        :homepage    => [package.homepage].flatten.join(' '),
+        :license     => [package.license].flatten.join(' '),
 
-          if package.name != pkg.name || package.version != pkg.version
-            CLI.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
-            next
-          end
+        :maintainer => package.maintainer
+      )
 
-          pkg = repository.packages.first_or_create(
-            :repo => repository,
+      package.tags.each {|tag|
+        pkg.tags.first_or_create(:name => tag.to_s)
+      }
 
-            :tags_hashed => package.tags.hashed,
-            :name        => package.name,
-            :version     => package.version,
-            :slot        => package.slot,
-            :revision    => package.revision
-          )
+      pkg.data.update(
+        :path => File.dirname(version.sub("#{self.path}/", ''))
+      )
 
-          pkg.update(
-            :description => package.description,
-            :homepage    => [package.homepage].flatten.join(' '),
-            :license     => [package.license].flatten.join(' '),
+      package.features.each {|f|
+        feature = pkg.data.features.first_or_create(
+          :source => pkg.data,
+          :name   => f.name
+        )
 
-            :maintainer => package.maintainer
-          )
-
-          package.tags.each {|tag|
-            pkg.tags.first_or_create(:name => tag.to_s)
-          }
-
-          pkg.data.update(
-            :path => File.dirname(version.sub("#{self.path}/", ''))
-          )
-
-          package.features.each {|f|
-            feature = pkg.data.features.first_or_create(
-              :source => pkg.data,
-              :name   => f.name
-            )
-
-            feature.update(
-              :description => f.description,
-              :enabled     => f.enabled?
-            )
-          }
-        }
-      else
-        populate(Dir.entries(what).map {|e|
-          "#{what}/#{e}" if e != '.' && e != '..'
-        }.compact, root)
-      end
+        feature.update(
+          :description => f.description,
+          :enabled     => f.enabled?
+        )
+      }
     }
   end
 end

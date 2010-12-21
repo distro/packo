@@ -22,10 +22,9 @@ require 'dm-constraints'
 require 'dm-migrations'
 require 'dm-types'
 
-require 'packo/fixes'
-require 'packo/environment'
-require 'packo/package'
 require 'versionomy'
+
+require 'packo'
 
 module DataMapper
 
@@ -69,7 +68,7 @@ end
 begin
   setup :default, Packo::System.env[:DATABASE]
 rescue Exception => e
-  CLI.warn "Could not setup a connection with #{Packo::System.env[:DATABASE]}: #{e.message}"
+  Packo::CLI.warn "Could not setup a connection with #{Packo::System.env[:DATABASE]}: #{e.message}"
 end
 
 require 'packo/models/installed_package'
@@ -81,7 +80,7 @@ finalize
 begin
   auto_upgrade!
 rescue Exception => e
-  CLI.warn "Could not migrate the database: #{e.message}"
+  Packo::CLI.warn "Could not migrate the database: #{e.message}"
 end
 
 end
@@ -99,15 +98,15 @@ module Models
     packages = []
   
     if name && !name.empty?
-      repository      = Package::Repository.parse(name)
-      repository.type = type if Package::Repository::Types.member?(type.to_sym)
+      repository      = Packo::Repository.parse(name)
+      repository.type = type if Packo::Repository::Types.member?(type.to_sym)
       repository      = Models::Repository.first(repository.to_hash)
   
       if repository
         packages << repository.search(expression, exact)
       end
     else
-      Package::Repository::Types.each {|t|
+      Packo::Repository::Types.each {|t|
         if type.nil? || type == 'all' || type == t
           Models::Repository.all(:type => t).each {|repository|
             packages << repository.search(expression, exact)

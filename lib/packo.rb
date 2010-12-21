@@ -21,6 +21,8 @@ require 'packo/version'
 require 'packo/extensions'
 require 'packo/system'
 require 'packo/cli'
+require 'packo/package'
+require 'packo/repository'
 
 module Packo
   def self.sh (*cmd, &block)
@@ -139,5 +141,3 @@ module Packo
     end
   end
 end
-
-require 'packo/package'

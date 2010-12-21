@@ -19,27 +19,20 @@
 
 module Packo; module CLI; class Repository < Thor; module Helpers
 
-class Repository
-  def self.wrap (repo)
-    case repo.type
-      when :binary;  Binary.new(repo)
-      when :source;  Source.new(repo)
-      when :virtual; Virtual.new(repo)
+module Repository
+  def self.wrap (model)
+    case model.type
+      when :binary;  Binary.new(model)
+      when :source;  Source.new(model)
+      when :virtual; Virtual.new(model)
     end
   end
 
-  attr_reader :repository
-
-  def initialize (repo)
-    repo.save
-
-    @repository = repo
-  end
-
-  def type; @repository.type end
-  def name; @repository.name end
-  def uri;  @repository.uri  end
-  def path; @repository.path end
+  def model; @model      end
+  def type;  @model.type end
+  def name;  @model.name end
+  def uri;   @model.uri  end
+  def path;  @model.path end
 end
 
 require 'packo/cli/repository/binary'

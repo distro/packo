@@ -21,69 +21,50 @@ require 'packo/models'
 
 module Packo; module CLI; class Repository < Thor; module Helpers
 
-class Binary < Repository
+class Binary < Packo::Repository::Binary
   include Packo::Models
+  include Helpers::Repository
 
-  def initialize (repository)
-    super(repository)
-
-    dom = Nokogiri::XML.parse(File.read(self.path))
-
-    dom.xpath('//mirrors/mirror').each {|e|
-      repository.data.mirrors.first_or_create(:binary => repository.data, :uri => e.text)
-    }
+  def initialize (model)
+    @model = model
   end
 
   def populate
-    CLI.info 'Parsing the XML file' if System.env[:VERBOSE]
+    self.generate
 
-    dom = Nokogiri::XML.parse(File.read(self.path))
+    self.packages.each {|package|
+      pkg = repository.packages.first_or_create(
+        :repo => @model,
 
-    dom.xpath('//packages/package').each {|e|
-      CLI.info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}"
+        :tags_hashed => package.tags.hashed,
+        :name        => package.name,
+        :version     => package.version,
+        :slot        => package.slot,
+        :revision    => package.revision
+      )
 
-      e.xpath('.//build').each {|build|
-        package = Packo::Package.new(
-          :tags     => e['tags'].split(/\s+/),
-          :name     => e['name'],
-          :version  => build.parent['name'],
-          :slot     => (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
-          :revision => build.parent['revision'],
-        )
+      pkg.update(
+        :features => package.features,
 
-        pkg = repository.packages.first_or_create(
-          :repo => repository,
+        :description => package.description,
+        :homepage    => package.homepage,
+        :license     => package.license,
 
-          :tags_hashed => package.tags.hashed,
-          :name        => package.name,
-          :version     => package.version,
-          :slot        => package.slot,
-          :revision    => package.revision
-        )
+        :maintainer => package.maintainer
+      )
 
-        pkg.update(
-          :description => e.xpath('.//description').first.text,
-          :homepage    => e.xpath('.//homepage').first.text,
-          :license     => e.xpath('.//license').first.text,
+      package.tags.each {|tag|
+        pkg.tags.first_or_create(:name => tag.to_s)
+      }
 
-          :maintainer => e['maintainer']
-        )
-
-        package.tags.each {|tag|
-          pkg.tags.first_or_create(:name => tag.to_s)
-        }
-
-        pkg.data.update(
-          :features => build.parent['features']
-        )
-
+      package.builds.each {|build|
         bld = pkg.data.builds.first_or_create(
-          :flavor   => (build.xpath('.//flavor').first.text rescue ''),
-          :features => (build.xpath('.//features').first.text rescue ''),
+          :flavor   => build.flavor,
+          :features => build.features
         )
 
         bld.update(
-          :digest => build['digest']
+          :digest => build.digest
         )
       }
     }

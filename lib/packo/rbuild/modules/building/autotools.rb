@@ -149,108 +149,106 @@ class Autotools < Module
       package.slot = slot
     end
 
-    before :initialize do |package|
-      if System.env[:CROSS]
-        package.host = Host.new(System.env!)
-      else
-        package.host = Host.new(package.environment)
+    if Environment[:CROSS]
+      package.host = Host.new(System.env!)
+    else
+      package.host = Host.new(package.environment)
+    end
+
+    package.target = Host.new(package.environment)
+
+    package.environment[:CHOST]   = package.host.to_s
+    package.environment[:CTARGET] = package.target.to_s
+
+    package.autotools = Class.new(Module::Helper) {
+      def initialize (package)
+        super(package)
+
+        @versions = {}
+        @enabled  = true
       end
 
-      package.target = Host.new(package.environment)
+      def enabled?;   @enabled         end
+      def disabled?; !@enabled         end
+      def enable!;    @enabled = true  end
+      def disable!;   @enabled = false end
 
-      package.environment[:CHOST]   = package.host.to_s
-      package.environment[:CTARGET] = package.target.to_s
+      def configure (conf)
+        package.environment.sandbox {
+          Packo.sh "#{conf.path} #{conf}"
+        }
+      end
 
-      package.autotools = Class.new(Module::Helper) {
-        def initialize (package)
-          super(package)
+      def autogen
+        self.autoreconf
+        self.autoheader
+        self.automake
+      end
 
-          @versions = {}
-          @enabled  = true
-        end
+      def autoreconf (*args)
+        version = args.last.is_a?(Numeric) ? args.pop : nil
 
-        def enabled?;   @enabled         end
-        def disabled?; !@enabled         end
-        def enable!;    @enabled = true  end
-        def disable!;   @enabled = false end
+        package.environment.sandbox {
+          Packo.sh "autoreconf#{"-#{version}" if version}", *args
+        }
+      end
 
-        def configure (conf)
-          package.environment.sandbox {
-            Packo.sh "#{conf.path} #{conf}"
-          }
-        end
+      def aclocal (*args)
+        version = args.last.is_a?(Numeric) ? args.pop : @versions[:aclocal]
 
-        def autogen
-          self.autoreconf
-          self.autoheader
-          self.automake
-        end
+        package.environment.sandbox {
+          Packo.sh "aclocal#{"-#{version}" if version}", *args
+        }
+      end
 
-        def autoreconf (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : nil
+      def autoconf (*args)
+        version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoconf]
 
-          package.environment.sandbox {
-            Packo.sh "autoreconf#{"-#{version}" if version}", *args
-          }
-        end
+        package.environment.sandbox {
+          Packo.sh "autoconf#{"-#{version}" if version}", *args
+        }
+      end
 
-        def aclocal (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : @versions[:aclocal]
+      def autoheader (*args)
+        version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoheader]
 
-          package.environment.sandbox {
-            Packo.sh "aclocal#{"-#{version}" if version}", *args
-          }
-        end
+        package.environment.sandbox {
+          Packo.sh "autoheader#{"-#{version}" if version}", *args
+        }
+      end
 
-        def autoconf (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoconf]
+      def automake (*args)
+        version = args.last.is_a?(Numeric) ? args.pop : @versions[:automake]
 
-          package.environment.sandbox {
-            Packo.sh "autoconf#{"-#{version}" if version}", *args
-          }
-        end
+        package.environment.sandbox {
+          Packo.sh "automake#{"-#{version}" if version}", *args
+        }
+      end
 
-        def autoheader (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoheader]
+      def autoupdate (*args)
+        version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoupdate]
 
-          package.environment.sandbox {
-            Packo.sh "autoheader#{"-#{version}" if version}", *args
-          }
-        end
+        package.environment.sandbox {
+          Packo.sh "autoupdate#{"-#{version}" if version}", *args
+        }
+      end
 
-        def automake (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : @versions[:automake]
+      def make (*args)
+        package.environment.sandbox {
+          Packo.sh 'make', *args
+        }
+      end
 
-          package.environment.sandbox {
-            Packo.sh "automake#{"-#{version}" if version}", *args
-          }
-        end
+      def install (path=nil)
+        package.environment.sandbox {
+          self.make "DESTDIR=#{path || package.distdir}", 'install'
+        }
+      end
 
-        def autoupdate (*args)
-          version = args.last.is_a?(Numeric) ? args.pop : @versions[:autoupdate]
-
-          package.environment.sandbox {
-            Packo.sh "autoupdate#{"-#{version}" if version}", *args
-          }
-        end
-
-        def make (*args)
-          package.environment.sandbox {
-            Packo.sh 'make', *args
-          }
-        end
-
-        def install (path=nil)
-          package.environment.sandbox {
-            self.make "DESTDIR=#{path || package.distdir}", 'install'
-          }
-        end
-
-        def version (name, slot=nil)
-          slot ? @versions[name.to_sym] = slot : @versions[name.to_sym]
-        end
-      }.new(package)
-    end
+      def version (name, slot=nil)
+        slot ? @versions[name.to_sym] = slot : @versions[name.to_sym]
+      end
+    }.new(package)
   end
 
   def finalize
@@ -267,15 +265,8 @@ class Autotools < Module
     @configuration.set 'sharedstatedir', '/com'
     @configuration.set 'localstatedir',  '/var'
 
-    if package.host != package.target
-      @configuration.set 'host',  package.host
-      @configuration.set 'build', package.host
-      @configuration.set 'target',  package.host
-    else
-      @configuration.set 'host',  package.host
-      @configuration.set 'build', package.host
-    end
-
+    @configuration.set 'host',   package.host
+    @configuration.set 'build',  package.host
     @configuration.set 'target', package.target
 
     package.stages.callbacks(:configure).do(@configuration) {

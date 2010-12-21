@@ -19,7 +19,7 @@
 
 require 'uri'
 
-module Packo; class Package
+module Packo
 
 class Repository
   Types = [:binary, :source, :virtual]
@@ -73,6 +73,10 @@ class Repository
     @uri = value.is_a?(URI) ? value : URI.parse(value) if value
   end
 
+  def packages
+    []
+  end
+
   def to_hash
     result = {}
 
@@ -88,4 +92,8 @@ class Repository
   end
 end
 
-end; end
+end
+
+require 'packo/repository/binary'
+require 'packo/repository/source'
+require 'packo/repository/virtual'

@@ -93,7 +93,8 @@ class Package
   attr_accessor :tags, :name, :version, :slot, :revision,
                 :repository,
                 :flavor, :features,
-                :description, :homepage, :license
+                :description, :homepage, :license,
+                :maintainer
 
   attr_reader :model
 
@@ -113,6 +114,8 @@ class Package
     self.homepage    = data[:homepage]
     self.license     = data[:license]
 
+    self.maintainer = data[:maintainer]
+
     @model = data[:model]
   end
 
@@ -129,7 +132,7 @@ class Package
   end
 
   def slot= (value)
-    @slot = value.to_s.empty? ? nil : value.to_s
+    @slot = (value.to_s.empty?) ? nil : value.to_s
   end
 
   def flavor= (value)
@@ -142,12 +145,12 @@ class Package
 
   def == (package)
     self.name == package.name &&
-    self.tags == (package.is_a?(Models::Repository::Package) ? Package.wrap(package).tags : package.tags)
+    self.tags == ((defined?(Packo::Models) && package.is_a?(Packo::Models::Repository::Package)) ? Package.wrap(package).tags : package.tags)
   end
 
   def === (package)
     self.name     == package.name &&
-    self.tags     == (package.is_a?(Models::Repository::Package) ? Package.wrap(package).tags : package.tags) &&
+    self.tags     == ((defined?(Packo::Models) && package.is_a?(Packo::Models::Repository::Package)) ? Package.wrap(package).tags : package.tags) &&
     self.version  == package.version &&
     self.slot     == package.slot &&
     self.revision == package.revision

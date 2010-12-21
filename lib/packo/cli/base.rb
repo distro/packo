@@ -497,7 +497,7 @@ class Base < Thor
   private
 
   def _uri (repository)
-    Repository.first(Package::Repository.parse(name).to_hash).URI rescue nil
+    Repository.first(Packo::Repository.parse(name).to_hash).URI rescue nil
   end
 
   def _build (package, env)
