@@ -1,14 +1,16 @@
+Kernel.load 'lib/packo/version.rb'
+
 Gem::Specification.new {|s|
     s.name         = 'packo'
-    s.version      = '0.0.1'
+    s.version      = Packo.version.to_s
     s.author       = 'meh.'
     s.email        = 'meh@paranoici.org'
-    s.homepage     = 'http://github.com/meh/packo'
+    s.homepage     = 'http://github.com/distro/packo'
     s.platform     = Gem::Platform::RUBY
     s.summary      = 'The "pacco" package manager.'
     s.files        = Dir.glob('lib/**/*.rb')
     s.require_path = 'lib'
-    s.executables  = ['packo', 'packo-base', 'packo-files', 'packo-repository', 'packo-build', 'packo-select', 'packo-env']
+    s.executables  = Dir.glob('bin/**').map {|p| p[4, p.length]}
     s.has_rdoc     = false
 
     s.add_dependency('nokogiri')

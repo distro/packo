@@ -21,10 +21,16 @@ module Packo; module CLI; class Repository < Thor; module Helpers
 
 module Repository
   def self.wrap (model)
+    unless model
+      raise ArgumentError.new('You passed a nil model.')
+    end
+
+    model.save
+
     case model.type
-      when :binary;  Binary.new(model)
-      when :source;  Source.new(model)
-      when :virtual; Virtual.new(model)
+      when :binary;  Helpers::Binary.new(model)
+      when :source;  Helpers::Source.new(model)
+      when :virtual; Helpers::Virtual.new(model)
     end
   end
 

@@ -73,10 +73,6 @@ class Repository
     @uri = value.is_a?(URI) ? value : URI.parse(value) if value
   end
 
-  def packages
-    []
-  end
-
   def to_hash
     result = {}
 
@@ -88,7 +84,7 @@ class Repository
   end
 
   def to_s
-    "#{type}/#{name}"
+    "#{self.type}/#{self.name}"
   end
 end
 

@@ -26,14 +26,12 @@ class Binary < Packo::Repository::Binary
   include Helpers::Repository
 
   def initialize (model)
-    @model = model
+    super(model.to_hash.merge(:model => model))
   end
 
   def populate
-    self.generate
-
     self.packages.each {|package|
-      pkg = repository.packages.first_or_create(
+      pkg = model.packages.first_or_create(
         :repo => @model,
 
         :tags_hashed => package.tags.hashed,

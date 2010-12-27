@@ -17,7 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package/repository'
 require 'packo/package/tags'
 require 'packo/package/flavor'
 require 'packo/package/features'
@@ -90,57 +89,48 @@ class Package
     end
   end
 
-  attr_accessor :tags, :name, :version, :slot, :revision,
-                :repository,
-                :flavor, :features,
-                :description, :homepage, :license,
-                :maintainer
-
   attr_reader :model
 
   def initialize (data)
-    self.tags       = data[:tags]
-    self.name       = data[:name]
-    self.version    = data[:version]
-    self.slot       = data[:slot]
-    self.revision   = data[:revision]
+    @data = {}
 
-    self.repository = data[:repository]
-
-    self.flavor   = data[:flavor]
-    self.features = data[:features]
-
-    self.description = data[:description]
-    self.homepage    = data[:homepage]
-    self.license     = data[:license]
-
-    self.maintainer = data[:maintainer]
+    data.each {|name, value|
+      self.send "#{name}=", value
+    }
 
     @model = data[:model]
   end
 
+  def method_missing (id, *args, &block)
+    if id.to_s.end_with?('=')
+      @data[id.to_s.sub('=', '').to_sym] = args.shift
+    else
+      @data[id]
+    end
+  end
+
   def tags= (value)
-    @tags = Tags.parse(value) if value
+    @data[:tags] = Tags.parse(value) if value
   end
 
   def version= (value)
-    @version = ((value.is_a?(Versionomy::Value)) ? value : Versionomy.parse(value.to_s)) if value
-  end
-
-  def revision= (value)
-    @revision = value.to_i rescue 0
+    @data[:version] = ((value.is_a?(Versionomy::Value)) ? value : Versionomy.parse(value.to_s)) if value
   end
 
   def slot= (value)
-    @slot = (value.to_s.empty?) ? nil : value.to_s
+    @data[:slot] = (value.to_s.empty?) ? nil : value.to_s
+  end
+
+  def revision= (value)
+    @data[:revision] = value.to_i rescue 0
   end
 
   def flavor= (value)
-    @flavor = ((value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s))
+    @data[:flavor] = ((value.is_a?(Flavor)) ? value : Flavor.parse(value.to_s))
   end
 
   def features= (value)
-    @features = ((value.is_a?(Features)) ? value : Features.parse(value.to_s))
+    @data[:features] = ((value.is_a?(Features)) ? value : Features.parse(value.to_s))
   end
 
   def == (package)
@@ -166,7 +156,9 @@ class Package
     result = {}
 
     [:tags, :name, :version, :slot, :revision, :repository, :flavor, :features].each {|name|
-      result[name] = self.send(name) unless self.send(name).nil?
+      if tmp = self.send(name)
+        result[name] = tmp
+      end
     }
 
     return result

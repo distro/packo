@@ -47,24 +47,36 @@ class Repository < Thor
       if uri.scheme.nil? || uri.scheme == 'file'
         kind = :file
 
-        if File.directory? uri.path
-          dom = Nokogiri::XML.parse(File.read("#{uri.path}/repository.xml"))
+        if uri.to_s.end_with?('.rb')
+          uri = File.realpath(uri.path)
+
+          type = :virtual
+          name = File.basename(uri.to_s).sub('.rb', '')
         else
-          dom = Nokogiri::XML.parse(File.read(uri.path))
+          if File.directory? uri.path
+            dom = Nokogiri::XML.parse(File.read("#{uri.path}/repository.xml"))
+          else
+            dom = Nokogiri::XML.parse(File.read(uri.path))
+          end
+
+          uri = File.realpath(uri.path)
+
+          type = dom.root['type'].to_sym
+          name = dom.root['name']
         end
-
-        uri = File.realpath(uri.path)
-
-        type = dom.root['type'].to_sym
-        name = dom.root['name']
       elsif ['http', 'https', 'ftp'].member?(uri.scheme)
         kind = :fetched
 
-        xml = open(uri).read
-        dom = Nokogiri::XML.parse(xml)
+        if uri.to_s.end_with?('.rb')
+          type = :virtual
+          name = File.basename(uri.to_s).sub('.rb', '')
+        else
+          xml = open(uri).read
+          dom = Nokogiri::XML.parse(xml)
 
-        type = dom.root['type'].to_sym
-        name = dom.root['name']
+          type = dom.root['type'].to_sym
+          name = dom.root['name']
+        end
       elsif @@scm.member?(uri.scheme)
         kind = :scm
 
@@ -95,7 +107,10 @@ class Repository < Thor
           path << '.xml'
 
           FileUtils.mkpath(File.dirname(path))
-          File.write(path, open(kind == :file && !uri.to_s.match(/\.xml$/) ? "#{uri}/repository.xml" : uri).read)
+          File.write(path, open((kind == :file && (!uri.to_s.end_with?('.xml'))) ?
+            "#{uri}/repository.xml" :
+            uri
+          ).read)
 
         when :source
           FileUtils.rm_rf path, :secure => true rescue nil
@@ -111,6 +126,15 @@ class Repository < Thor
             else
               _checkout(uri.to_s, path)
           end
+
+        when :virtual
+          path << '.rb'
+
+          FileUtils.mkpath(File.dirname(path))
+          File.write(path, open((kind == :file && (!uri.to_s.end_with?('.rb'))) ?
+            "#{uri}/repository.rb" :
+            uri
+          ).read)
       end
 
       begin

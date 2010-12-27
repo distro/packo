@@ -17,8 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package'
 require 'nokogiri'
+
+require 'packo/package'
 
 module Packo; class Repository
 
@@ -51,35 +52,29 @@ class Binary < Repository
     repo
   end
 
-  attr_reader :packages, :mirrors
-
   def initialize (data)
     if data[:type] != :binary
       raise ArgumentError.new('It has to be a binary repository')
     end
 
     super(data)
-    clear
-
-    generate if path
   end
 
-  def clear
-    @packages = []
-    @mirrors  = []
-  end
-
-  def generate (data=nil)
-    self.clear
-
-    dom = Nokogiri::XML.parse(data || File.read(self.path))
-
-    dom.xpath('//mirrors/mirror').each {|e|
-      @mirrors << e.text
+  def mirrors (data=nil)
+    Nokogiri::XML.parse(data || File.read(self.path)).xpath('//mirrors/mirror').map {|e|
+      e.text
     }
+  end
 
-    dom.xpath('//packages/package').each {|e|
+  def packages (data=nil)
+    Enumerator.new(self, :each_package, data)
+  end
+
+  def each_package (data=nil, &block)
+    Nokogiri::XML.parse(data || File.read(self.path)).xpath('//packages/package').each {|e|
       CLI.info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}" if System.env[:VERBOSE]
+
+      packages = []
 
       e.xpath('.//build').each {|build|
         package = Package.new(
@@ -98,10 +93,10 @@ class Binary < Repository
           :maintainer => e['maintainer']
         )
 
-        if @packages.member?(package)
-          package = @packages.find {|p| p == package}
+        if packages.member?(package)
+          package = packages.find {|p| p == package}
         else
-          @packages << package
+          packages << package
         end
 
         package.builds << Package::Build.new(
@@ -109,6 +104,10 @@ class Binary < Repository
           :features => (build.xpath('.//features').first.text rescue ''),
           :digest   => build['digest']
         )
+      }
+
+      packages.each {|package|
+        block.call(package)
       }
     }
   end

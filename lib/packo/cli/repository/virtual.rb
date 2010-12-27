@@ -19,9 +19,32 @@
 
 module Packo; module CLI; class Repository < Thor; module Helpers
 
-class Virtual < Repository
-  def initialize (repository)
-    super(repository)
+class Virtual < Packo::Repository::Virtual
+  include Packo::Models
+  include Helpers::Repository
+
+  def initialize (model)
+    super(model.to_hash.merge(:model => model))
+  end
+
+  def populate
+    self.packages.each {|package|
+      pkg = model.packages.first_or_create(
+        :repo => model,
+
+        :tags_hashed => package.tags.hashed,
+        :name        => package.name,
+        :version     => package.version,
+        :slot        => package.slot,
+        :revision    => package.revision
+      )
+
+      package.tags.each {|tag|
+        pkg.tags.first_or_create(:name => tag.to_s)
+      }
+
+      pkg.data.update(:content => package.data)
+    }
   end
 end
 

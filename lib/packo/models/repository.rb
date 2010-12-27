@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package/repository'
+require 'packo/repository'
 
 require 'packo/models/repository/package'
 
@@ -32,8 +32,8 @@ class Repository
 
   property :id, Serial
 
-  property :name, String,                           :required => true
   property :type, Enum[:binary, :source, :virtual], :required => true
+  property :name, String,                           :required => true
 
   property :uri,  URI,  :required => true
   property :path, Text, :required => true
@@ -62,6 +62,15 @@ class Repository
       when :source;  Source.first_or_create(:repo => self)
       when :virtual; Virtual.first_or_create(:repo => self)
     end
+  end
+
+  def to_hash
+    Hash[
+      :type => self.type,
+      :name => self.name,
+      :uri  => self.uri,
+      :path => self.path
+    ]
   end
 
   def URI

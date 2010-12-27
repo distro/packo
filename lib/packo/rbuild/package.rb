@@ -39,8 +39,6 @@ class Package < Packo::Package
     @@packages[:last]
   end
 
-  undef :description, :homepage, :license
-
   include Stages::Callable
 
   def self.define (name, version=nil, slot=nil, revision=nil, &block)

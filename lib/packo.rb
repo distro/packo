@@ -21,8 +21,8 @@ require 'packo/version'
 require 'packo/extensions'
 require 'packo/system'
 require 'packo/cli'
-require 'packo/package'
 require 'packo/repository'
+require 'packo/package'
 
 module Packo
   def self.sh (*cmd, &block)

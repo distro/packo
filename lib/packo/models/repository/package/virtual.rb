@@ -25,6 +25,8 @@ class Virtual
   belongs_to :package, :key => true
 
   property :package_id, Integer, :key => true
+
+  property :content, Object
 end
 
 end; end; end; end

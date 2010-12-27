@@ -23,37 +23,23 @@ require 'nokogiri'
 module Packo; class Repository
 
 class Source < Repository
-  attr_reader :packages, :address
-
   def initialize (data)
     if data[:type] != :source
-      raise ArgumentError.new('It has to be a binary repository')
+      raise ArgumentError.new('It has to be a source repository')
     end
 
     super(data)
-    clear
-
-    generate if path
   end
 
-  def clear
-    @packages = []
-    @address  = nil
+  def address
+    Nokogiri::XML.parse(File.read("#{self.path}/repository.xml")).xpath('//address').first.text rescue nil
   end
 
-  def generate
-    self.clear
-
-    dom = Nokogiri::XML.parse(File.read("#{self.path}/repository.xml"))
-
-    @address = dom.xpath('//address').first
-
-    _generate
+  def packages (what=[self.path], root=self.path)
+    Enumerator.new(self, :each_package, what, root)
   end
 
-  private
-
-  def _generate (what=[self.path], root=self.path)
+  def each_package (what=[self.path], root=self.path, &block)
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
@@ -75,16 +61,15 @@ class Source < Repository
             next
           end
 
-          @packages << package unless @packages.member?(package)
+          block.call(package)
         }
       else
-        _generate(Dir.entries(what).map {|e|
+        each_package(Dir.entries(what).map {|e|
           "#{what}/#{e}" if e != '.' && e != '..'
-        }.compact, root)
+        }.compact, root, &block)
       end
     }
   end
-
 end
 
 end; end

@@ -18,7 +18,6 @@
 #++
 
 require 'packo/models'
-require 'packo/rbuild'
 
 module Packo; module CLI; class Repository < Thor; module Helpers
 
@@ -27,14 +26,12 @@ class Source < Packo::Repository::Source
   include Helpers::Repository
 
   def initialize (model)
-    @model = model
+    super(model.to_hash.merge(:model => model))
   end
 
   def populate
-    self.generate
-
     self.packages.each {|package|
-      pkg = repository.packages.first_or_create(
+      pkg = model.packages.first_or_create(
         :repo => repository,
 
         :tags_hashed => package.tags.hashed,

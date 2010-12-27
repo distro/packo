@@ -53,7 +53,6 @@ class Base < Thor
       manual = 1
     end
 
-
     names.each {|name|
       if File.extname(name).empty?
         packages = nil
