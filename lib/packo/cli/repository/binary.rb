@@ -52,7 +52,7 @@ class Binary < Packo::Repository::Binary
       )
 
       package.tags.each {|tag|
-        pkg.tags.first_or_create(:name => tag.to_s)
+        pkg.tags << Tag.first_or_create(:name => tag.to_s)
       }
 
       package.builds.each {|build|
@@ -65,6 +65,8 @@ class Binary < Packo::Repository::Binary
           :digest => build.digest
         )
       }
+
+      pkg.save
     }
   end
 end

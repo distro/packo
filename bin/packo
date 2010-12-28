@@ -45,10 +45,11 @@ descriptions = {
   :build      => 'Manage packø building system',
   :select     => 'Manage various configurations',
   :repository => 'Manage packø repositories',
-  :env        => 'Manage packø environment'
+  :env        => 'Manage packø environment',
+  :db         => 'Manage packø databases'
 }
 
-trusted = [:base, :select]
+trusted = [:base, :select, :db]
 
 commands.each {|command|
   Application.class_eval %{

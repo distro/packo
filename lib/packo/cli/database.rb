@@ -1,4 +1,3 @@
-#! /usr/bin/env ruby
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
@@ -18,7 +17,23 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'rubygems' unless defined?(Gem)
+require 'packo/system'
+require 'packo/cli'
 
-require 'packo/cli/database'
-Packo::CLI::Database.start(ARGV)
+module Packo; module CLI
+
+class Database < Thor
+  include Thor::Actions
+
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
+
+  desc 'export WHAT [OPTIONS]', 'Export various stuff from a database'
+  def export (what)
+  end
+
+  desc 'import WHAT [OPTIONS]', 'Import various stuff from an exported file'
+  def import (what)
+  end
+end
+
+end; end

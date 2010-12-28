@@ -40,10 +40,12 @@ class Virtual < Packo::Repository::Virtual
       )
 
       package.tags.each {|tag|
-        pkg.tags.first_or_create(:name => tag.to_s)
+        pkg.tags << Tag.first_or_create(:name => tag.to_s)
       }
 
       pkg.data.update(:content => package.data)
+
+      pkg.save
     }
   end
 end

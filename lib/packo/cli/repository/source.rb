@@ -50,7 +50,7 @@ class Source < Packo::Repository::Source
       )
 
       package.tags.each {|tag|
-        pkg.tags.first_or_create(:name => tag.to_s)
+        pkg.tags << Tag.first_or_create(:name => tag.to_s)
       }
 
       pkg.data.update(
@@ -68,6 +68,8 @@ class Source < Packo::Repository::Source
           :enabled     => f.enabled?
         )
       }
+
+      pkg.save
     }
   end
 end

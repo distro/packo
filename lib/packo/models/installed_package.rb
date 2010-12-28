@@ -32,7 +32,7 @@ class InstalledPackage
   has n,   :tags, :through => Resource, :constraint => :destroy
 
   property :tags_hashed, String,  :length => 40,   :required => true, :unique_index => :a
-  property :name,        String,                   :required => true, :unique_index => :a
+  property :name,        String,  :length => 255,  :required => true, :unique_index => :a
   property :version,     Version,                  :required => true
   property :slot,        String,  :default => '',                     :unique_index => :a
   property :revision,    Integer, :default => 0
