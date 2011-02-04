@@ -155,11 +155,21 @@ class Environment < Hash
 
     mod = ::Module.new
 
-    ["#{Environment[:PROFILE]}/packo.conf", Environment[:CONFIG_FILE]].each {|file|
-      if File.readable? file
+    files = [Environment[:CONFIG_FILE]] + Environment[:PROFILE].split(/\s*;\s*/)
+
+    if File.readable?("#{ENV['HOME']}/.packo.profiles")
+      files << File.read("#{ENV['HOME']}/.packo.profiles").split("\n")
+    elsif File.readable?('/etc/packo.profiles')
+      files << File.read('/etc/packo.profiles').split("\n")
+    end
+
+    files.flatten.uniq.each {|file|
+      begin
         suppress_warnings {
           mod.module_eval File.read(file)
         }
+      rescue Exception => e
+        Packo.debug e
       end
     }
 

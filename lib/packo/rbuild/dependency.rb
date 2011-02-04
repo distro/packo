@@ -31,9 +31,9 @@ class Dependency < Packo::Package
       type = :both
     end
 
-    if matches = text.match(/^([<>]?=?)/)
+    if matches = text.match(/^([<>~]?=?)/)
       validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
-      text.sub!(/^([<>]?=?)/, '')
+      text.sub!(/^([<>~]?=?)/, '')
     else
       validity = nil
     end
@@ -43,7 +43,7 @@ class Dependency < Packo::Package
     self.new(parsed.to_hash, validity, type)
   end
 
-  attr_reader :type
+  attr_reader :type, :validity
 
   def initialize (data, validity=nil, type=nil)
     super(data)

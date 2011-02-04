@@ -17,13 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/version'
-require 'packo/extensions'
-require 'packo/system'
-require 'packo/cli'
-require 'packo/repository'
-require 'packo/package'
-
 module Packo
   def self.sh (*cmd, &block)
     options = (Hash === cmd.last) ? cmd.pop : {}
@@ -61,7 +54,7 @@ module Packo
   end
 
   def self.debug (argument, options={})
-    if !System.env[:DEBUG] && !options[:force]
+    if !Packo.const_defined?(:System) || (!System.env[:DEBUG] && !options[:force])
       return
     end
 
@@ -141,3 +134,10 @@ module Packo
     end
   end
 end
+
+require 'packo/version'
+require 'packo/extensions'
+require 'packo/system'
+require 'packo/cli'
+require 'packo/repository'
+require 'packo/package'

@@ -19,4 +19,6 @@ Gem::Specification.new {|s|
     s.add_dependency('versionomy')
     s.add_dependency('fffs')
     s.add_dependency('colorb')
+    s.add_dependency('ruby-lzma')
+    s.add_dependency('json')
 }

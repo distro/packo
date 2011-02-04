@@ -28,18 +28,26 @@ class Database < Thor
 
   class_option :help, :type => :boolean, :desc => 'Show help usage'
 
-  desc 'export WHAT [OPTIONS]', 'Export a database'
+  desc 'export TYPE [DATA...] [OPTIONS]', 'Export a database'
   map '-e' => :export
   method_option :output, :type => :string, :aliases => '-o', :desc => 'Output to a file instead of stdout'
-  def export (*what)
-    
+  def export (type, *data)
+    exported = Definition.new(type, *data).export
+
+    if options[:output]
+      file = File.new(options[:output])
+      file.write(exported)
+      file.close
+    else
+      puts exported
+    end
   end
 
   desc 'import FILE... [OPTIONS]', 'Import an exported database'
   map '-i' => :import
   def import (*files)
     files.each {|file|
-      Definition.open(file).commit
+      Definition.open(file).import
     }
   end
 end

@@ -45,22 +45,24 @@ class Fetcher < Module
     end
   end
 
+  def self.fetch (url, to)
+    if !System.env[:FETCHER]
+      raise RuntimeError.new('Set a FETCHER variable.')
+    end
+
+    Packo.sh System.env[:FETCHER].interpolate(OpenStruct.new(
+      :source => Fetcher.url(url, self),
+      :output => to
+    )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), :silent => !System.env[:VERBOSE]
+  end
+
   def initialize (package)
     super(package)
 
     package.stages.add :fetch, self.method(:fetch), :after => :beginning
 
     after :initialize do |result, package|
-      package.define_singleton_method :fetch do |url, to|
-        if !System.env[:FETCHER]
-          raise RuntimeError.new('Set a FETCHER variable.')
-        end
-
-        Packo.sh System.env[:FETCHER].interpolate(OpenStruct.new(
-          :source => Fetcher.url(url, self),
-          :output => to
-        )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), :silent => !System.env[:VERBOSE]
-      end
+      package.define_singleton_method :fetch, &Fetcher.method(:fetch)
     end
   end
 
