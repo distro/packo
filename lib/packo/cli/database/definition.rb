@@ -17,31 +17,36 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/system'
-require 'packo/cli'
+module Packo; module CLI; class Database < Thor; module Helpers
 
-module Packo; module CLI
-
-class Database < Thor
-  include Thor::Actions
-  include Database::Helpers
-
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
-
-  desc 'export WHAT [OPTIONS]', 'Export a database'
-  map '-e' => :export
-  method_option :output, :type => :string, :aliases => '-o', :desc => 'Output to a file instead of stdout'
-  def export (*what)
-    
+class Definition
+  def self.parse (data)
+    Definition.new(JSON.parse(data))
   end
 
-  desc 'import FILE... [OPTIONS]', 'Import an exported database'
-  map '-i' => :import
-  def import (*files)
-    files.each {|file|
-      Definition.open(file).commit
-    }
+  def self.open (path)
+    data = File.read(path)
+
+    Definition.parse(LZMA.decompress(data) rescue data)
+  end
+
+  def initialize (data)
+    self.import(data)
+  end
+
+  def import (data)
+
+  end
+
+  def commit
+    query = ''
+    
+    query << 'BEGIN;'
+
+    query << 'COMMIT;'
+
+    database.execute(query)
   end
 end
 
-end; end
+end; end; end; end

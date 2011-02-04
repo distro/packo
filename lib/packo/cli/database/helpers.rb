@@ -17,31 +17,4 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/system'
-require 'packo/cli'
-
-module Packo; module CLI
-
-class Database < Thor
-  include Thor::Actions
-  include Database::Helpers
-
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
-
-  desc 'export WHAT [OPTIONS]', 'Export a database'
-  map '-e' => :export
-  method_option :output, :type => :string, :aliases => '-o', :desc => 'Output to a file instead of stdout'
-  def export (*what)
-    
-  end
-
-  desc 'import FILE... [OPTIONS]', 'Import an exported database'
-  map '-i' => :import
-  def import (*files)
-    files.each {|file|
-      Definition.open(file).commit
-    }
-  end
-end
-
-end; end
+require 'packo/cli/database/definition'

@@ -77,19 +77,19 @@ class Callbacks
   def do (*args)
     self.sort!
 
-		catch(:halt) do
-	    @callbacks[:before].each {|c|
-				c.call(*args)
-			}
+    catch(:halt) do
+      @callbacks[:before].each {|c|
+        c.call(*args)
+      }
 
-  	  result = yield *args if block_given?
+      result = yield *args if block_given?
 
-    	@callbacks[:after].each {|c|
-				c.call(result, *args)
-			}
+      @callbacks[:after].each {|c|
+        c.call(result, *args)
+      }
 
-			result
-		end
+      result
+    end
   end
 end
 
