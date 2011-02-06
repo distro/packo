@@ -17,7 +17,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/misc/unpacking/tar'
-require 'packo/rbuild/modules/misc/unpacking/zip'
-require 'packo/rbuild/modules/misc/unpacking/lzma'
-require 'packo/rbuild/modules/misc/unpacking/xz'
+module Packo; module RBuild; module Modules; module Misc
+
+Unpacker.register /\.lzma$/ do |path, to|
+  Packo.sh 'lzma', '-dfk', path
+
+  path.sub!(/\.lzma$/, '')
+
+  if to
+    Do.mv(path, (path = to))
+  end
+
+  path
+end
+
+end; end; end; end

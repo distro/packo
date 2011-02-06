@@ -34,6 +34,7 @@ class Environment < Hash
 
     :FLAVOR   => 'headers documentation',
     :FEATURES => '',
+    :USE      => '',
 
     :PROFILE => '/etc/packo.profile',
 

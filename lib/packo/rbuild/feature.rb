@@ -36,7 +36,12 @@ class Feature < Packo::Package::Feature
       self.instance_exec(self, &Features::Default[self.name.to_sym])
     end
 
+    self.do(&block)
+  end
+
+  def do (&block)
     self.instance_exec(self, &block) if block
+    self
   end
 
   def needs (*names)

@@ -69,20 +69,35 @@ class Fetcher < Module
   def fetch
     version = package.version
 
-    distfiles = []
-    sources   = [package.source].flatten.compact.map {|s|
-      Fetcher.url(s, package)
-    }
+    if package.source.is_a?(Hash)
+      distfiles = {}
+      sources   = Hash[package.source.clone.map {|(name, source)|
+        [name, Fetcher.url(source, package)]
+      }]
 
-    package.stages.callbacks(:fetch).do(sources) {
-      sources.each {|source|
-        distfiles << "#{package.fetchdir || System.env[:TMP]}/#{File.basename(source).sub(/\?.*$/, '')}"
+      package.stages.callbacks(:fetch).do(sources) {
+        sources.each {|name, source|
+          distfiles[name] = "#{package.fetchdir || System.env[:TMP]}/#{File.basename(source).sub(/\?.*$/, '')}"
 
-        package.fetch source, distfiles.last
+          package.fetch source, distfiles[name]
+        }
       }
-    }
+    else
+      distfiles = []
+      sources   = [package.source].flatten.compact.map {|source|
+        Fetcher.url(source, package)
+      }
 
-    package.distfiles distfiles
+      package.stages.callbacks(:fetch).do(sources) {
+        sources.each {|source|
+          distfiles << "#{package.fetchdir || System.env[:TMP]}/#{File.basename(source).sub(/\?.*$/, '')}"
+
+          package.fetch source, distfiles.last
+        }
+      }
+    end
+
+    package.distfiles = distfiles
   end
 end
 

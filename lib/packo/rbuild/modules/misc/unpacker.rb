@@ -35,7 +35,8 @@ class Unpacker < Module
       FileUtils.mkpath(to) rescue nil
       block.call(path, to)
     else
-      raise ArgumentError.new('Archive format unsupported')
+      Packo.debug 'Archive format unsupported'
+      path
     end
   end
 
@@ -51,9 +52,10 @@ class Unpacker < Module
 
   def unpack
     package.stages.callbacks(:unpack).do {
-      Unpacker.do package.distfiles.first, "#{package.directory}/work"
+      Unpacker.do((package.distfiles[:default] || package.distfiles.first), "#{package.directory}/work")
 
-      Dir.chdir "#{package.workdir}/#{package.name}-#{package.version}" rescue false
+      Dir.chdir package.workdir
+      Dir.chdir "#{package.name}-#{package.version}" rescue false
     }
   end
 end

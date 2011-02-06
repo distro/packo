@@ -69,10 +69,10 @@ class Package < Packo::Package
 
     @modules      = []
     @environment  = Environment.new(self)
+    @stages       = Stages.new(self)
     @do           = Do.new(self)
     @dependencies = Dependencies.new(self)
     @blockers     = Blockers.new(self)
-    @stages       = Stages.new(self)
     @features     = Features.new(self)
     @flavor       = Flavor.new(self)
 
@@ -80,8 +80,6 @@ class Package < Packo::Package
     @stages.add :blockers,     @blockers.method(:check),     :at => :beginning
 
     behavior Behaviors::Default
-
-    self.envify!
 
     if (@parent = Package.last)
       self.instance_exec(self, &@parent.instance_eval('@block'))
@@ -119,6 +117,8 @@ class Package < Packo::Package
     stages.callbacks(:initialize).do(self) {
       self.instance_exec(self, &block) if block
     }
+
+    self.envify!
 
     features.each {|feature|
       next unless feature.enabled?
@@ -169,15 +169,17 @@ class Package < Packo::Package
         self.flavor.send("#{matches[2]}!")
     }
 
-    environment[:FEATURES].split(/\s+/).each {|feature|
+    "#{environment[:FEATURES]} #{environment[:USE]}".split(/\s+/).each {|feature|
       feature = Feature.parse(feature)
 
       self.features {
         next if !self.has?(feature.name)
 
-        (feature.enabled?) ?
-          self.get(feature.name).enabled! :
-          self.get(feature.name).disabled!
+        if feature.enabled?
+          self.get(feature.name).enable!
+        else
+          self.get(feature.name).disable!
+        end
       }
     }
   end

@@ -22,25 +22,34 @@ require 'tempfile'
 module Packo; module RBuild; module Modules; module Building
 
 class Patch < Module
+  def self.do (patch, options={})
+    begin
+      if patch.is_a?(FFFS::File) || options[:stream]
+        temp = Tempfile.new('patch')
+        temp.write patch.to_s
+        temp.close
+
+        Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'"
+
+        temp.unlink
+      else
+        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
+      end
+    rescue Exception => e
+      Packo.debug e
+      return false
+    end
+
+    return true
+  end
+
   def initialize (package)
     super(package)
 
     package.stages.add :patch, self.method(:patch), :after => :unpack, :strict => true
 
     before :initialize do |package|
-      package.define_singleton_method :patch do |patch, options={}|
-        if patch.is_a?(FFFS::File) || options[:stream]
-          temp = Tempfile.new('patch')
-          temp.write patch.to_s
-          temp.close
-
-          Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'"
-
-          temp.unlink
-        else
-          Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
-        end
-      end
+      package.define_singleton_method :patch, &Patch.method(:do)
     end
   end
 
@@ -54,17 +63,17 @@ class Patch < Module
 
   private
     
-    def _patch (what)
-      if what.is_a?(FFFS::Directory)
-        what.sort.each {|(name, file)|
-          Do.cd(what.name) {
-            _patch(file)
-          }
+  def _patch (what)
+    if what.is_a?(FFFS::Directory)
+      what.sort.each {|(name, file)|
+        Do.cd(what.name) {
+          _patch(file)
         }
-      else
-        package.patch(what) rescue nil
-      end
+      }
+    else
+      package.patch(what) rescue nil
     end
+  end
 end
 
 end; end; end; end

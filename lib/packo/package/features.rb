@@ -47,8 +47,8 @@ class Features
   end
 
   def each
-    @values.each_value {|f|
-      yield f
+    @values.each_value {|feature|
+      yield feature
     }
   end
 
@@ -69,7 +69,7 @@ class Features
   end
 
   def has? (name)
-    @values.key? name
+    @values.key? name.to_sym
   end
 
   def to_hash

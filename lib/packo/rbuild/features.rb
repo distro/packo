@@ -32,18 +32,20 @@ class Features < Packo::Package::Features
 
   attr_reader :package
 
-  def initialize (package)
+  def initialize (package, values={})
+    super(values)
+
     @package = package
-    @values  = {}
 
     yield self if block_given?
   end
 
-  def method_missing (name, *args, &block)
-    if block
-      @values[name] = Feature.new(@package, name, &block)
-    else
-      @values[name] || Feature.new(@package, name, false)
+  def method_missing (id, *args, &block)
+    case id.to_s
+      when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new(@package, $1, false)).enabled?
+      when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).disable!
+      when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).enable!
+      when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).do(&block)
     end
   end
 

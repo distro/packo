@@ -159,7 +159,8 @@ class Build < Thor
       end
 
       begin
-        Packo.loadPackage(path, package).clean!
+        package = Packo.loadPackage(path, package)
+        package.clean!
 
         CLI.info "Cleaned #{package.to_s(:name)}"
       rescue Exception => e
