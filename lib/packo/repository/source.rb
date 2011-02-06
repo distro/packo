@@ -56,10 +56,12 @@ class Source < Repository
             CLI.warn e.to_s if System.env[:VERBOSE]
           end
 
-          if package.name != pkg.name || package.version != pkg.version
+          if !package || package.name != pkg.name || package.version != pkg.version
             CLI.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
             next
           end
+
+          package.path = version.sub("#{self.path}/", '')
 
           block.call(package)
         }

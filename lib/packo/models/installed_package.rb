@@ -52,7 +52,7 @@ class InstalledPackage
     if expression.start_with?('[') && expression.end_with?(']')
       expression = expression[1, expression.length - 2]
 
-      if repository.adapter.respond_to? :select
+      if DataMapper.repository.adapter.respond_to? :select
         result = self._find_by_expression(expression).map {|id|
           InstalledPackage.get(id)
         }
@@ -117,65 +117,66 @@ class InstalledPackage
   end
 
   private
-    def self._expression_to_sql (value)
-      value.downcase!
-      value.gsub!(/(\s+and\s+|\s*&&\s*)/i, ' && ')
-      value.gsub!(/(\s+or\s+|\s*\|\|\s*)/i, ' || ')
-      value.gsub!(/(\s+not\s+|\s*!\s*)/i, ' !')
-      value.gsub!(/\(\s*!/, '(!')
 
-      joins      = String.new
-      names      = []
-      expression = value.clone
+  def self._expression_to_sql (value)
+    value.downcase!
+    value.gsub!(/(\s+and\s+|\s*&&\s*)/i, ' && ')
+    value.gsub!(/(\s+or\s+|\s*\|\|\s*)/i, ' || ')
+    value.gsub!(/(\s+not\s+|\s*!\s*)/i, ' !')
+    value.gsub!(/\(\s*!/, '(!')
 
-      expression.scan(/(("(([^\\"]|\\.)*)")|([^\s&!|()]+))/) {|match|
-        names.push((match[2] || match[4]).downcase)
+    joins      = String.new
+    names      = []
+    expression = value.clone
+
+    expression.scan(/(("(([^\\"]|\\.)*)")|([^\s&!|()]+))/) {|match|
+      names.push((match[2] || match[4]).downcase)
+    }
+
+    names.compact!
+    names.uniq!
+
+    names.each_index {|index|
+      joins << %{
+        LEFT JOIN (
+            SELECT _used_tag_#{index}.package_id
+
+            FROM packo_models_installed_package_tags AS _used_tag_#{index}
+
+            INNER JOIN packo_models_tags AS _tag_#{index}
+                ON _used_tag_#{index}.tag_id = _tag_#{index}.id AND _tag_#{index}.name = ?
+        ) AS _tag_check_#{index}
+            ON packo_models_installed_packages.id = _tag_check_#{index}.package_id
       }
 
-      names.compact!
-      names.uniq!
+      if (replace = names[index]).match(/[\s&!|]/)
+        replace = %{"#{replace}"}
+      end
 
-      names.each_index {|index|
-        joins << %{
-          LEFT JOIN (
-              SELECT ____u_t_#{index}.package_id
+      expression.gsub!(/([\s()]|\G)!\s*#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (_tag_check_#{index}.package_id IS NULL) \\2")
+      expression.gsub!(/([\s()]|\G)#{Regexp.escape(replace)}([\s()]|$)/,     "\\1 (_tag_check_#{index}.package_id IS NOT NULL) \\2")
+    }
 
-              FROM packo_models_installed_package_tags AS ____u_t_#{index}
+    expression.gsub!(/([\G\s()])&&([\s()\A])/,   '\1 AND \2')
+    expression.gsub!(/([\G\s()])\|\|([\s()\A])/, '\1 OR  \2')
+    expression.gsub!(/([\G\s()])!([\s()\A])/,    '\1 NOT \2')
 
-              INNER JOIN packo_models_tags AS ____t_#{index}
-                  ON ____u_t_#{index}.tag_id = ____t_#{index}.id AND ____t_#{index}.name = ?
-          ) AS ____t_i_#{index}
-              ON packo_models_installed_packages.id = ____t_i_#{index}.package_id
-        }
+    return joins, names, expression
+  end
 
-        if (replace = names[index]).match(/[\s&!|]/)
-          replace = %{"#{replace}"}
-        end
+  def self._find_by_expression (expression)
+    joins, names, expression = self._expression_to_sql(expression)
 
-        expression.gsub!(/([\s()]|\G)!\s*#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (____t_i_#{index}.package_id IS NULL) \\2")
-        expression.gsub!(/([\s()]|\G)#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (____t_i_#{index}.package_id IS NOT NULL) \\2")
-      }
+    repository.adapter.select(%{
+      SELECT DISTINCT packo_models_installed_packages.id
 
-      expression.gsub!(/([\G\s()])&&([\s()\A])/, '\1 AND \2')
-      expression.gsub!(/([\G\s()])\|\|([\s()\A])/, '\1 OR \2')
-      expression.gsub!(/([\G\s()])!([\s()\A])/, '\1 NOT \2')
+      FROM packo_models_installed_packages
 
-      return joins, names, expression
-    end
+      #{joins}
 
-    def self._find_by_expression (expression, repository)
-      joins, names, expression = self._expression_to_sql(expression)
-
-      repository.adapter.select(%{
-        SELECT DISTINCT packo_models_installed_packages.id
-
-        FROM packo_models_installed_packages
-
-        #{joins}
-
-        WHERE #{expression}
-      }, *names)
-    end
+      WHERE #{expression}
+    }, *names) rescue []
+  end
 end
 
 end; end

@@ -32,7 +32,7 @@ class Source < Packo::Repository::Source
   def populate
     self.packages.each {|package|
       pkg = model.packages.first_or_create(
-        :repo => repository,
+        :repo => model,
 
         :tags_hashed => package.tags.hashed,
         :name        => package.name,
@@ -54,7 +54,7 @@ class Source < Packo::Repository::Source
       }
 
       pkg.data.update(
-        :path => File.dirname(version.sub("#{self.path}/", ''))
+        :path => File.dirname(package.path)
       )
 
       package.features.each {|f|

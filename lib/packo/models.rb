@@ -28,6 +28,31 @@ require 'packo'
 
 module DataMapper
 
+module Adapters
+  class DataObjectsAdapter < AbstractAdapter
+    private
+      def operation_statement(operation, qualify)
+        statements  = []
+        bind_values = []
+
+        operation.each do |operand|
+          statement, values = conditions_statement(operand, qualify)
+          next unless statement
+          statements << statement
+          bind_values.concat(values) if values
+        end
+
+        statement = statements.join(" #{operation.slug.to_s.upcase} ")
+
+        if statements.size > 1
+          statement = "(#{statement})"
+        end
+
+        return (statement.empty? ? nil : statement), bind_values
+      end
+  end
+end
+
 if Packo::System.env[:DEBUG].to_i > 2
   Logger.new($stdout, :debug)
 end

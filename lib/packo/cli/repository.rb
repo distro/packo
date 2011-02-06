@@ -22,6 +22,7 @@ require 'open-uri'
 require 'nokogiri'
 
 require 'packo'
+require 'packo/rbuild'
 require 'packo/models'
 require 'packo/cli/repository/helpers'
 
@@ -189,7 +190,7 @@ class Repository < Thor
   desc 'update', 'Update installed repositories'
   map '-u' => :update
   def update
-    Models.Repository.all.each {|repository|
+    Models::Repository.all.each {|repository|
       updated = false
 
       type = repository.type

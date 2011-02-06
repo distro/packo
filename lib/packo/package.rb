@@ -119,8 +119,8 @@ class Package
     end
   end
 
-  def tags= (value)
-    @data[:tags] = Tags.parse(value) if value
+  def tags= (*value)
+    @data[:tags] = Tags.parse(value.length > 1 ? value : value.first) unless value.empty? || !value.first
   end
 
   def version= (value)
