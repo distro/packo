@@ -46,6 +46,8 @@ class Environment < Hash
     :REPOSITORIES => '/var/lib/packo/repositories',
     :SELECTORS    => '/var/lib/packo/selectors',
 
+    :FETCHER => 'wget -c -O "#{output}" "#{source}"',
+
     :NO_COLORS => false,
     :DEBUG     => nil,
     :VERBOSE   => false,
@@ -155,7 +157,9 @@ class Environment < Hash
 
     mod = ::Module.new
 
-    files = [Environment[:CONFIG_FILE]] + Environment[:PROFILE].split(/\s*;\s*/)
+    files = [Environment[:CONFIG_FILE]] + Environment[:PROFILE].split(/\s*;\s*/).map {|profile|
+      "#{profile}/config"
+    }
 
     if File.readable?("#{ENV['HOME']}/.packo.profiles")
       files << File.read("#{ENV['HOME']}/.packo.profiles").split("\n")
@@ -167,14 +171,16 @@ class Environment < Hash
       begin
         suppress_warnings {
           mod.module_eval File.read(file)
-        }
+        } if File.readable?(file)
       rescue Exception => e
         Packo.debug e
       end
     }
 
     if package && package.respond_to?(:on)
-      ["#{Environment[:PROFILE]}/modules", Environment[:CONFIG_MODULES]].each {|path|
+      (Environment[:PROFILE].split(/\s*;\s*/).map {|profile|
+        "#{profile}/config"
+      } + [Environment[:CONFIG_MODULES]]).each {|path|
         Dir.glob("#{path}/*.rb").each {|file|
           Packo.load file, binding
         }

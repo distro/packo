@@ -21,9 +21,8 @@
 
 require 'rubygems' unless defined?(Gem)
 
+require 'packo'
 require 'packo/cli/base'
-require 'packo/version'
-require 'packo/system'
 
 class Application < Packo::CLI::Base
   class_option :help, :type => :boolean, :desc => 'Show help usage'
@@ -46,10 +45,11 @@ descriptions = {
   :select     => 'Manage various configurations',
   :repository => 'Manage packø repositories',
   :env        => 'Manage packø environment',
-  :db         => 'Manage packø databases'
+  :db         => 'Manage packø databases',
+  :kernel     => 'Manage kernel sources',
 }
 
-trusted = [:base, :select, :db]
+trusted = [:base, :select, :db, :kernel]
 
 commands.each {|command|
   Application.class_eval %{

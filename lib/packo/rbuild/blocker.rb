@@ -21,6 +21,8 @@ module Packo; module RBuild
 
 class Blocker < Packo::Package
   def self.parse (text)
+    text = text.dup
+
     if text.end_with? '!!'
       text[-2, 2] = ''
       type = :runtime
@@ -58,9 +60,9 @@ class Blocker < Packo::Package
 
   def to_s (name=false)
     if name
-      "#{@tags}/#{@name}#{"-#{@version}" if @version}"
+      "#{tags}/#{name}#{"-#{version}" if version}"
     else
-      features = @features.to_a.sort {|a, b|
+      features = features.to_a.sort {|a, b|
         if a.enabled? && b.enabled?     ;  0
         elsif a.enabled? && !b.enabled? ; -1
         else                            ;  1
@@ -69,11 +71,11 @@ class Blocker < Packo::Package
         (feature.enabled? ? '' : '-') + feature.name.to_s
       }.join(',')
 
-      flavor = @flavor.to_a.map {|f|
+      flavor = flavor.to_a.map {|f|
         f.name.to_s
       }.sort
 
-      "#{@validity}#{@tags}/#{@name}#{"-#{@version}" if @version}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
+      "#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
     end
   end
 end

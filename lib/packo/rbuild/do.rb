@@ -42,6 +42,16 @@ class Do
     FileUtils.touch(path) rescue nil
   end
 
+  def self.mv (*files, to)
+    if files.length == 1
+      Do.dir(File.dirname(to))
+      FileUtils.mv(files.first, to, :force => true)
+    else
+      Do.dir(to)
+      FileUtils.mv(files, to, :force => true)
+    end
+  end
+
   def self.rm (*path)
     path.each {|path|
       next unless File.exists?(path)

@@ -33,7 +33,11 @@ class PKO < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :pack, self.method(:pack), :after => :install
+    package.stages.add :pack, self.method(:pack), :at => :end, :strict => true
+  end
+
+  def finalize
+    package.stages.delete :pack, self.method(:pack)
   end
 
   def pack

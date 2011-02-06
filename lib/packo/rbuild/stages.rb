@@ -60,7 +60,7 @@ class Stages
 
   def delete (name, method=nil)
     @stages.delete_if {|stage|
-      stage == name && method ? stage == method : true
+      stage.name == name && (!method || stage.method == method)
     }
 
     @sorted = false

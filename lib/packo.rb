@@ -115,10 +115,14 @@ module Packo
       end
     end
 
-    Packo.load "#{path}/#{package.name}.rbuild", options
+    begin
+      Packo.load "#{path}/#{package.name}.rbuild", options
 
-    if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
-      pkg.filesystem.parse(tmp.last.lstrip)
+      if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
+        pkg.filesystem.parse(tmp.last.lstrip)
+      end
+    rescue Exception => e
+      Packo.debug e
     end
 
     Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options

@@ -23,7 +23,6 @@ require 'nokogiri'
 
 require 'packo'
 require 'packo/models'
-require 'packo/cli'
 require 'packo/cli/repository/helpers'
 
 module Packo; module CLI

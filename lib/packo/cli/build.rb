@@ -24,7 +24,6 @@ require 'digest/sha1'
 require 'packo'
 require 'packo/rbuild'
 require 'packo/models'
-require 'packo/cli'
 
 module Packo; module CLI
 
@@ -175,7 +174,7 @@ class Build < Thor
     files.each {|file|
       if !File.exists?(file)
         CLI.fatal "#{file} does not exist"
-        exit! 40
+        exit 40
       end
 
       Dir.chdir(File.dirname(file))
@@ -187,7 +186,12 @@ class Build < Thor
         package = Packo.loadPackage('.', package)
       rescue LoadError
         CLI.fatal 'Failed to load the rbuild'
-        exit 80
+        exit 41
+      end
+
+      if !package
+        CLI.fatal "Couldn't instantiate the package."
+        exit 42
       end
 
       package.after :fetch do |result|

@@ -61,8 +61,6 @@ class Package < Packo::Package
       @filesystem << FFFS::Directory.new(dir)
     }
 
-    @data = {}
-
     if !self.version
       @block = block
       
@@ -113,7 +111,7 @@ class Package < Packo::Package
       end
     end
 
-    self.directory = "#{package.environment[:TMP]}/#{self.tags.to_s(true)}/#{@name}/#{@slot}/#{@version}".gsub(%r{/*/}, '/')
+    self.directory = "#{package.environment[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}".gsub(%r{/*/}, '/')
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
@@ -212,8 +210,10 @@ class Package < Packo::Package
   end
 
   def avoid (klass)
-    [klass].flatten.each {|klass|
-      @modules.unregister(klass).finalize rescue nil
+    [klass].flatten.compact.each {|klass|
+      @modules.delete(@modules.find {|mod|
+        mod.class == klass
+      }).finalize rescue nil
     }
   end
 
@@ -221,10 +221,6 @@ class Package < Packo::Package
     uses.each {|use|
       self.use(use)
     }
-  end
-
-  def tags (*value)
-    value.flatten.compact.empty? ? @tags : self.tags = value
   end
 
   def features (&block)
@@ -239,23 +235,13 @@ class Package < Packo::Package
     end
   end
 
-  def method_missing (id, *args)
-    id = id.to_s.sub(/=$/, '').to_sym
-
-    if args.length == 0
-      return @data[id]
-    else
-      @data[id] = (args.length > 1) ? args : args.first
-    end
-  end
-
   def package; self end
 
   def to_s (type=nil)
     return super(type) if super(type)
 
     case type
-      when :package;    "#{@name}-#{@version}#{"%#{@slot}" if @slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s.empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
+      when :package;    "#{name}-#{version}#{"%#{slot}" if slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s.empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
       when :everything; "#{super(:whole)} #{self.environment.reject {|n| n == :DEBUG}.to_s }}"
       else              "#{super(:whole)}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavor.to_s}}" if !@flavor.to_s.empty?}"
     end

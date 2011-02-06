@@ -20,7 +20,7 @@
 module Packo; module RBuild; class Stages;
 
 class Stage
-  attr_reader :name, :options
+  attr_reader :name, :options, :method
 
   def initialize (name, method, options)
     @name    = name.to_sym

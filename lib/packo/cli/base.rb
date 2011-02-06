@@ -21,7 +21,6 @@
 require 'packo'
 require 'packo/models'
 require 'packo/rbuild'
-require 'packo/cli'
 
 module Packo; module CLI
 

@@ -100,14 +100,22 @@ class Package
       self.send "#{name}=", value
     }
 
+    self.tags = [] unless self.tags
+
     @model = data[:model]
   end
 
-  def method_missing (id, *args, &block)
-    if id.to_s.end_with?('=')
-      @data[id.to_s.sub('=', '').to_sym] = args.shift
+  def method_missing (id, *args)
+    id = id.to_s.sub(/[=?]$/, '').to_sym
+
+    if args.length == 0
+      return @data[id]
     else
-      @data[id]
+      if respond_to? "#{id}="
+        send "#{id}=", *args
+      else
+        @data[id] = (args.length > 1) ? args : args.first
+      end
     end
   end
 
@@ -136,16 +144,16 @@ class Package
   end
 
   def == (package)
-    self.name == package.name &&
-    self.tags == ((defined?(Packo::Models) && package.is_a?(Packo::Models::Repository::Package)) ? Package.wrap(package).tags : package.tags)
+    name == package.name &&
+    tags == ((defined?(Packo::Models) && package.is_a?(Packo::Models::Repository::Package)) ? Package.wrap(package).tags : package.tags)
   end
 
   def === (package)
-    self.name     == package.name &&
-    self.tags     == ((defined?(Packo::Models) && package.is_a?(Packo::Models::Repository::Package)) ? Package.wrap(package).tags : package.tags) &&
-    self.version  == package.version &&
-    self.slot     == package.slot &&
-    self.revision == package.revision
+    name     == package.name &&
+    tags     == ((defined?(Packo::Models) && package.is_a?(Packo::Models::Repository::Package)) ? Package.wrap(package).tags : package.tags) &&
+    version  == package.version &&
+    slot     == package.slot &&
+    revision == package.revision
   end
 
   alias eql? ===
@@ -168,8 +176,8 @@ class Package
 
   def to_s (type=:whole)
     case type
-      when :whole; "#{self.to_s(:name)}#{"-#{@version}" if @version}#{"%#{@slot}" if @slot}"
-      when :name;  "#{@tags}/#{@name}"
+      when :whole; "#{self.to_s(:name)}#{"-#{version}" if version}#{"%#{slot}" if slot}"
+      when :name;  "#{tags}/#{name}"
     end
   end
 end
