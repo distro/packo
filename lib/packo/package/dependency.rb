@@ -17,9 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild
+module Packo; class Package
 
-class Dependency < Packo::Package
+class Dependency < Package
   def self.parse (text)
     text = text.dup
 
@@ -57,6 +57,21 @@ class Dependency < Packo::Package
   def runtime?; [:runtime, :both].member?(@type) end
   def build?;   [:build, :both].member(@type)    end
   def both?;    @type == :both                   end
+
+  def in? (package)
+    return false if package.name != name || package.tags != tags
+
+    return true if !version
+
+    case validity
+      when '~', '~=' then !!package.version.to_s.match(/^#{Regexp.escape(version.to_s)}/)
+      when '>'       then package.version >  version
+      when '>='      then package.version >= version
+      when '<'       then package.version <  version
+      when '<='      then package.version <= version
+      else                package.version == version
+    end
+  end
 
   def to_s (name=false)
     if name

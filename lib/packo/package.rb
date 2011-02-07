@@ -91,7 +91,7 @@ class Package
     end
   end
 
-  attr_reader :model
+  attr_reader :data, :model
 
   def initialize (data)
     @data = {}

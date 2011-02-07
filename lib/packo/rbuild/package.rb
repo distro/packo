@@ -21,10 +21,10 @@ require 'fffs'
 require 'find'
 
 require 'packo/package'
+require 'packo/package/dependencies'
+require 'packo/package/blockers'
 
 require 'packo/rbuild/do'
-require 'packo/rbuild/dependencies'
-require 'packo/rbuild/blockers'
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
 require 'packo/rbuild/flavor'
@@ -76,8 +76,8 @@ class Package < Packo::Package
     @features     = Features.new(self)
     @flavor       = Flavor.new(self)
 
-    @stages.add :dependencies, @dependencies.method(:check), :at => :beginning
-    @stages.add :blockers,     @blockers.method(:check),     :at => :beginning
+    @stages.add :dependencies, self.method(:dependencies_check), :at => :beginning
+    @stages.add :blockers,     self.method(:blockers_check),     :at => :beginning
 
     behavior Behaviors::Default
 
@@ -161,6 +161,8 @@ class Package < Packo::Package
   rescue; end
 
   def envify!
+    environment.apply!
+
     environment[:FLAVOR].split(/\s+/).each {|element|
       matches = element.match(/^([+-])?(.+)$/)
 
@@ -182,6 +184,14 @@ class Package < Packo::Package
         end
       }
     }
+  end
+
+  def dependencies_check
+    stages.callbacks(:dependencies).do(self)
+  end
+
+  def blockers_check
+    stages.callbacks(:blockers).do(self)
   end
 
   def build

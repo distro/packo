@@ -52,7 +52,10 @@ class Unpacker < Module
 
   def unpack
     package.stages.callbacks(:unpack).do {
-      Unpacker.do((package.distfiles[:default] || package.distfiles.first), "#{package.directory}/work")
+      Unpacker.do((package.ditfiles.is_a?(Hash) ?
+        package.distfiles[:default] :
+        package.distfiles.first
+      ), "#{package.directory}/work")
 
       Dir.chdir package.workdir
       Dir.chdir "#{package.name}-#{package.version}" rescue false

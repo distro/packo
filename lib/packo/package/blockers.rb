@@ -17,29 +17,21 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/dependency'
+require 'packo/package/blocker'
 
-module Packo; module RBuild
+module Packo; class Package
 
-class Dependencies < Array
+class Blockers < Array
   attr_reader :package
 
   def initialize (package)
     @package = package
   end
 
-  alias __push push
-
-  def push (dependency)
-    __push(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
+  def push (blocker)
+    super(blocker.is_a?(Blocker) ? blocker : Blocker.parse(blocker))
     self.compact!
     self
-  end
-
-  alias << push
-
-  def check
-    package.stages.callbacks(:dependencies).do(self)
   end
 end
 

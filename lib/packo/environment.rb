@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/profile'
+
 module Packo
 
 class Environment < Hash
@@ -36,9 +38,8 @@ class Environment < Hash
     :FEATURES => '',
     :USE      => '',
 
-    :PROFILE => '/etc/packo.profile',
+    :PROFILES => '',
 
-    :CONFIG_FILE    => '/etc/packo.conf',
     :CONFIG_PATH    => '/etc/packo',
     :CONFIG_MODULES => '/etc/packo/modules',
 
@@ -84,11 +85,12 @@ class Environment < Hash
 
     return value unless value.is_a?(String)
 
-    case value
-      when value.strip.empty?; nil
-      when value == 'false';   false
-      when value == 'true';    true
-      else;                    value
+    return nil if value.strip.empty?
+
+    return case value.strip
+      when 'false';   false
+      when 'true';    true
+      else;           value
     end
   end
 
@@ -151,46 +153,44 @@ class Environment < Hash
     end
   end
 
-  attr_reader :package
+  attr_reader :package, :profiles
 
   def initialize (package=nil, noenv=false)
-    @package = package
+    @package  = package
+    @profiles = []
 
-    mod = ::Module.new
+    @profiles << Profile.path(Environment[:CONFIG_PATH])
+    @profiles << Profile.path('/var/lib/packo')
 
-    files = [Environment[:CONFIG_FILE]] + Environment[:PROFILE].split(/\s*;\s*/).map {|profile|
-      "#{profile}/config"
-    }
+    Environment[:PROFILES].split(/\s*;\s*/).each {|profile|
+      @profiles << Profile.path(profile)
+    } if Environment[:PROFILES]
 
     if File.readable?("#{ENV['HOME']}/.packo.profiles")
-      files << File.read("#{ENV['HOME']}/.packo.profiles").split("\n")
+      files = File.read("#{ENV['HOME']}/.packo.profiles").split("\n")
     elsif File.readable?('/etc/packo.profiles')
       files << File.read('/etc/packo.profiles').split("\n")
     end
 
-    files.flatten.uniq.each {|file|
-      begin
-        suppress_warnings {
-          mod.module_eval File.read(file)
-        } if File.readable?(file)
-      rescue Exception => e
-        Packo.debug e
-      end
+    files.each {|profile|
+      @profiles << Profile.path(profile)
+    } if files
+
+    @profiles.compact!
+
+    apply! unless noenv
+
+    yield self if block_given?
+  end
+
+  def apply! (noenv=false)
+    self.clear
+
+    @profiles.each {|profile|
+      profile.apply!(self, @package)
     }
 
-    if package && package.respond_to?(:on)
-      (Environment[:PROFILE].split(/\s*;\s*/).map {|profile|
-        "#{profile}/config"
-      } + [Environment[:CONFIG_MODULES]]).each {|path|
-        Dir.glob("#{path}/*.rb").each {|file|
-          Packo.load file, binding
-        }
-      }
-    end
-
-    mod.constants.each {|const|
-      self[const] = mod.const_get const
-    }
+    return if noenv
 
     Environment.each {|key, value|
       next if value.nil?
@@ -205,23 +205,17 @@ class Environment < Hash
       else
         self[key] = value unless self[key] && value == @@default[key] && !Environment[key, true]
       end
-    } unless noenv
-
-    yield self if block_given?
+    }
   end
-
-  alias __get []
 
   def [] (name)
-    __get(name.to_sym)
+    super(name.to_sym)
   end
-
-  alias __set []=
 
   def []= (name, value)
     self.instance_exec(value, &@@callbacks[name.to_sym]) if @@callbacks[name.to_sym]
 
-    __set(name.to_sym, value)
+    super(name.to_sym, value)
   end
 
   def sandbox (changes={}, &block)

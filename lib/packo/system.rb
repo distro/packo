@@ -34,7 +34,7 @@ System = Class.new {
   def initialize
     @environment      = Environment.new
     @environmentClean = Environment.new(nil, true)
-    @host             = Host.new(@environmentClean)
+    @host             = Host.new(@environmentClean) rescue nil
   end
 
   def has? (package, exact=true)

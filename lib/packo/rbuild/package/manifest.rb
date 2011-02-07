@@ -18,6 +18,7 @@
 #++
 
 require 'nokogiri'
+require 'base64'
 
 module Packo; module RBuild; class Package < Packo::Package
 
@@ -32,6 +33,8 @@ class Manifest
       :name    => dom.xpath('//package/name').first.text,
       :version => Versionomy.parse(dom.xpath('//package/version').first.text),
       :slot    => dom.xpath('//package/slot').first.text,
+
+      :data => Marshal.load(Base64.decode64(dom.xpath('//package/data').first.text)),
 
       :description => dom.xpath('//package/description').first.text,
       :homepage    => dom.xpath('//package/homepage').first.text.split(/\s+/),
@@ -77,6 +80,8 @@ class Manifest
       :version => what.version,
       :slot    => what.slot,
 
+      :data => what.data,
+
       :description => what.description,
       :homepage    => [what.homepage].flatten.compact.join(' '),
       :license     => [what.license].flatten.compact.join(' '),
@@ -85,7 +90,10 @@ class Manifest
       :features => what.features,
 
       :environment => what.environment.reject {|name, value|
-        [:DATABASE, :FLAVORS, :PROFILE, :CONFIG_FILE, :CONFIG_PATH, :CONFIG_MODULES, :REPOSITORIES, :SELECTORS, :NO_COLORS, :DEBUG, :VERBOSE, :TMP].member?(name.to_sym)
+        [:DATABASE, :FLAVORS, :PROFILE, :CONFIG_FILE, :CONFIG_PATH,
+         :CONFIG_MODULES, :REPOSITORIES, :SELECTORS, :FETCHER,
+         :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
+        ].member?(name.to_sym)
       }
     )
 
@@ -122,6 +130,8 @@ class Manifest
               xml.variable({ :name => name }, value)
             }
           }
+
+          xml.data Base64.encode64(Marshal.dump(self.package.data))
         }
 
         xml.dependencies {

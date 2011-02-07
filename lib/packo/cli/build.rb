@@ -237,7 +237,7 @@ class Build < Thor
   method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
   def manifest (package)
     if package.end_with?('.rbuild')
-      package = Packo.loadPackage(File.dirname(package), Packo::Package.parse(package.sub('.rbuild', '')))
+      package = Packo.loadPackage(File.dirname(package), Packo::Package.parse(File.basename(package).sub('.rbuild', '')))
     else
       tmp = Models.search(package, options[:repository])
 

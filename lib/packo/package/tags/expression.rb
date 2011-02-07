@@ -87,8 +87,6 @@ class Expression
   end
 
   def evaluate (package)
-    ap package.is_a?(Array) ? package : package.tags.to_a
-
     _evaluate(@base, package.is_a?(Array) ? package : package.tags.to_a)
   end
 
