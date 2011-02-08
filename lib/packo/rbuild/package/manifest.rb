@@ -34,7 +34,7 @@ class Manifest
       :version => Versionomy.parse(dom.xpath('//package/version').first.text),
       :slot    => dom.xpath('//package/slot').first.text,
 
-      :data => Marshal.load(Base64.decode64(dom.xpath('//package/data').first.text)),
+      :exports => Marshal.load(Base64.decode64(dom.xpath('//package/exports').first.text)),
 
       :description => dom.xpath('//package/description').first.text,
       :homepage    => dom.xpath('//package/homepage').first.text.split(/\s+/),
@@ -80,7 +80,7 @@ class Manifest
       :version => what.version,
       :slot    => what.slot,
 
-      :data => what.data,
+      :exports => what.exports,
 
       :description => what.description,
       :homepage    => [what.homepage].flatten.compact.join(' '),
@@ -131,7 +131,7 @@ class Manifest
             }
           }
 
-          xml.data Base64.encode64(Marshal.dump(self.package.data))
+          xml.exports Base64.encode64(Marshal.dump(self.package.exports))
         }
 
         xml.dependencies {

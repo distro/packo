@@ -67,6 +67,7 @@ class Package < Packo::Package
       return @@packages[:last] = self
     end
 
+    @export       = []
     @modules      = []
     @environment  = Environment.new(self)
     @stages       = Stages.new(self)
@@ -192,6 +193,22 @@ class Package < Packo::Package
 
   def blockers_check
     stages.callbacks(:blockers).do(self)
+  end
+
+  def export! (*names)
+    @export.insert(-1, *names)
+    @export.compact!
+    @export.uniq!
+  end
+
+  def exports
+    result = {}
+
+    @exports.each {|export|
+      result[export] = @data[export]
+    }
+
+    result
   end
 
   def build

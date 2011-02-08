@@ -45,26 +45,40 @@ class Profile
     }
   end
 
+  def method_missing (id, *args)
+    id = id.to_s.sub(/[=?]$/, '').to_sym
+
+    if args.length == 0
+      return @paths[id]
+    else
+      if respond_to? "#{id}="
+        send "#{id}=", *args
+      else
+        @paths[id] = (args.length > 1) ? args : args.first
+      end
+    end
+  end
+
   def apply! (environment, package=nil)
     mod = ::Module.new
 
     begin
       suppress_warnings {
-        mod.module_eval File.read(@paths[:config])
-      } if File.readable?(@paths[:config])
+        mod.module_eval File.read(config)
+      } if File.readable?(config)
     rescue Exception => e
       Packo.debug e
     end
 
     if package
-      if @paths[:modules] && File.directory?(@paths[:modules])
-        Dir.glob("#{@paths[:modules]}/*").each {|script|
+      if modules && File.directory?(modules)
+        Dir.glob("#{modules}/*").each {|script|
           package.instance_exec(package, File.read(script)) if File.readable?(script)
         }
       end
 
-      if @paths[:tags] && File.readable?(@paths[:tags])
-        file   = File.read(@paths[:tags])
+      if tags && File.readable?(tags)
+        file   = File.read(tags)
         tags   = {}
         values = file.split(/^\s*\[.*?\]\s*$/); values.shift
 
@@ -73,7 +87,7 @@ class Profile
         }
 
         tags.each {|expr, value|
-          next unless Packo::Package::Tags::Expression.parse(epxr).evaluate(package) rescue false
+          next unless Packo::Package::Tags::Expression.parse(expr).evaluate(package) rescue false
 
           begin
             suppress_warnings {
@@ -85,7 +99,7 @@ class Profile
         }
       end
 
-      if @paths[:packages] && File.readable?(@paths[:packages])
+      if packages && File.readable?(packages)
         file     = File.read(@paths[:packages])
         packages = {}
         values   = file.split(/^\s*\[.*?\]\s*$/); values.shift

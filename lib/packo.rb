@@ -104,13 +104,15 @@ module Packo
         features.text.split(' ').each {|feature|
           next if RBuild::Features::Default[feature.to_sym]
 
-          begin
-            Packo.load "#{System.env[:PROFILE]}/features/#{feature}", options
-          rescue LoadError
-          rescue Exception => e
-            CLI.warn "Something went wrong while loading #{feature} feature." if System.env[:VERBOSE]
-            Packo.debug e
-          end
+          (package.environment || Environment.new).profiles.each {|profile|
+            begin
+              Packo.load "#{profile.features}/#{feature}", options
+            rescue LoadError
+            rescue Exception => e
+              CLI.warn "Something went wrong while loading #{feature} feature." if System.env[:VERBOSE]
+              Packo.debug e
+            end
+          }
         }
       end
     end
