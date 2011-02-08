@@ -33,7 +33,9 @@ class Feature < Packo::Package::Feature
     @dependencies = []
 
     if Features::Default[self.name.to_sym]
-      self.instance_exec(self, &Features::Default[self.name.to_sym])
+      Features::Default[self.name.to_sym].each {|feature|
+        self.instance_exec(self, &feature)
+      }
     end
 
     self.do(&block)

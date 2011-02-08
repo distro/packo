@@ -26,7 +26,7 @@ module Packo; module RBuild
 class Features < Packo::Package::Features
   Default = Class.new(Hash) {
     def define (name, &block)
-      self[name.to_sym] = block
+      (self[name.to_sym] ||= []) << block
     end
   }.new
 
