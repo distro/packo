@@ -160,16 +160,17 @@ class Environment < Hash
     @profiles = []
 
     @profiles << Profile.path(Environment[:CONFIG_PATH])
+    @profiles << Profile.path("#{ENV['HOME']}/.packo")
     @profiles << Profile.path('/var/lib/packo')
 
     Environment[:PROFILES].split(/\s*;\s*/).each {|profile|
       @profiles << Profile.path(profile)
     } if Environment[:PROFILES]
 
-    if File.readable?("#{ENV['HOME']}/.packo.profiles")
-      files = File.read("#{ENV['HOME']}/.packo.profiles").split("\n")
-    elsif File.readable?('/etc/packo.profiles')
-      files << File.read('/etc/packo.profiles').split("\n")
+    if File.readable?("#{ENV['HOME']}/.packo/profiles")
+      files = File.read("#{ENV['HOME']}/.packo/profiles").split("\n")
+    elsif File.readable?('/etc/packo/profiles')
+      files << File.read('/etc/packo/profiles').split("\n")
     end
 
     files.each {|profile|
@@ -197,11 +198,7 @@ class Environment < Hash
 
       # This is an array, not a call to self.[]
       if [:FEATURES].member?(key)
-        if self[key].is_a?(String)
-          self[key] << " #{value}"
-        else
-          self[key] = value
-        end
+        (self[key] ||= '') << " #{value}"
       else
         self[key] = value unless self[key] && value == @@default[key] && !Environment[key, true]
       end

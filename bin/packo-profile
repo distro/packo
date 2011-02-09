@@ -1,4 +1,4 @@
-# encoding: utf-8
+#! /usr/bin/env ruby
 #--
 # Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
@@ -18,23 +18,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo'
+require 'rubygems' unless defined?(Gem)
 
-module Packo; module CLI
-
-class Environment < Thor
-  include Thor::Actions
-
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
-
-  desc 'show', 'Show the current system environment'
-  def show
-    length = System.env.map {|(name, value)| name.length}.max
-    
-    System.env.each {|(name, value)|
-      puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
-    }
-  end
-end
-
-end; end
+require 'packo/cli/profile'
+Packo::CLI::Profile.start(ARGV)
