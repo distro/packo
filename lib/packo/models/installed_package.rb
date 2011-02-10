@@ -43,6 +43,8 @@ class InstalledPackage
   property :manual, Boolean,                       :default => false
   property :type,   Enum[:both, :runtime, :build], :default => :both
 
+  property :destination, Text
+
   property :created_at, DateTime
 
   has n, :dependencies, :constraint => :destroy

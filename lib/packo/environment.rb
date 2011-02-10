@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'tmpdir'
+
 require 'packo/profile'
 
 module Packo
@@ -34,19 +36,11 @@ class Environment < Hash
     :LDFLAGS   => '-Wl,-O1 -Wl,--as-needed',
     :MAKE_JOBS => 1,
 
-    :FLAVOR   => 'headers documentation',
+    :FLAVOR   => 'vanilla',
     :FEATURES => '',
     :USE      => '',
 
     :PROFILES => '',
-
-    :CONFIG_PATH    => '/etc/packo',
-    :CONFIG_MODULES => '/etc/packo/modules',
-
-    :DATABASE => 'sqlite:///var/lib/packo/db',
-
-    :REPOSITORIES => '/var/lib/packo/repositories',
-    :SELECTORS    => '/var/lib/packo/selectors',
 
     :FETCHER => 'wget -c -O "#{output}" "#{source}"',
 
@@ -55,8 +49,30 @@ class Environment < Hash
     :VERBOSE   => false,
     :SECURE    => true,
 
-    :TMP => '/var/tmp/packo'
+    :TMP => "#{Dir.tmpdir}/packo-#{ENV['USER'] || Process.euid}"
   }
+
+  if Process.euid == 0 && ENV['USER'] == 'root'
+    @@default.merge!(
+      :CONFIG_PATH  => '/etc/packo', 
+      :INSTALL_PATH => '/',
+
+      :DATABASE => 'sqlite:///var/lib/packo/db',
+
+      :REPOSITORIES => '/var/lib/packo/repositories',
+      :SELECTORS    => '/var/lib/packo/selectors',
+    )
+  else
+    @@default.merge!(
+      :CONFIG_PATH  => "#{ENV['HOME']}/.packo",
+      :INSTALL_PATH => "#{ENV['HOME']}/.packo/disk",
+
+      :DATABASE => "sqlite://#{ENV['HOME']}/.packo/db",
+
+      :REPOSITORIES => "#{ENV['HOME']}/.packo/repositories",
+      :SELECTORS    => "#{ENV['HOME']}/.packo/selectors",
+    )
+  end
 
   @@callbacks = {
     :COMPILER => lambda {|value|
@@ -179,7 +195,7 @@ class Environment < Hash
 
     @profiles.compact!
 
-    apply! unless noenv
+    apply!(noenv)
 
     yield self if block_given?
   end
@@ -191,7 +207,13 @@ class Environment < Hash
       profile.apply!(self, @package)
     }
 
-    return if noenv
+    if noenv
+      @@default.each {|key, value|
+        self[key] = value unless self[key]
+      }
+
+      return
+    end
 
     Environment.each {|key, value|
       next if value.nil?

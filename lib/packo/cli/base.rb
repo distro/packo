@@ -31,15 +31,15 @@ class Base < Thor
 
   desc 'install PACKAGE... [OPTIONS]', 'Install packages'
   map '-i' => :install, '--install' => :install
-  method_option :destination, :type => :string,  :default => '/',   :aliases => '-d', :desc => 'Set the destination where to install the package'
-  method_option :inherit,     :type => :boolean, :default => false, :aliases => '-I', :desc => 'Apply the passed flags to the eventual dependencies'
-  method_option :force,       :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
-  method_option :nodeps,      :type => :boolean, :default => false, :aliases => '-N', :desc => 'Ignore blockers and dependencies'
-  method_option :depsonly,    :type => :boolean, :default => false, :aliases => '-D', :desc => 'Install only dependencies'
-  method_option :repository,  :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository' 
+  method_option :destination, :type => :string,  :default => System.env[:INSTALL_PATH], :aliases => '-d', :desc => 'Set the destination where to install the package'
+  method_option :inherit,     :type => :boolean, :default => false,                     :aliases => '-I', :desc => 'Apply the passed flags to the eventual dependencies'
+  method_option :force,       :type => :boolean, :default => false,                     :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
+  method_option :ignore,      :type => :boolean, :default => false,                     :aliases => '-x', :desc => 'Ignore the installation and do not add the package to the database'
+  method_option :nodeps,      :type => :boolean, :default => false,                     :aliases => '-N', :desc => 'Ignore blockers and dependencies'
+  method_option :depsonly,    :type => :boolean, :default => false,                     :aliases => '-D', :desc => 'Install only dependencies'
+  method_option :repository,  :type => :string,                                         :aliases => '-r', :desc => 'Set a specific repository' 
   def install (*names)
-    outside = options[:destination] != '/'
-    type    = names.last.is_a?(Symbol) ? names.pop : :both
+    type = names.last.is_a?(Symbol) ? names.pop : :both
 
     FileUtils.mkpath options[:destination] rescue nil
     FileUtils.mkpath System.env[:SELECTORS] rescue nil
@@ -328,16 +328,17 @@ class Base < Thor
         exit 17
       end
 
-      if outside && !options[:force]
+      if options[:ignore]
         pkg.destroy
+      else
+        pkg.update(:destination => options[:destination])
       end
     }
   end
 
   desc 'uninstall PACKAGE... [OPTIONS]', 'Uninstall packages'
   map '-C' => :uninstall, '-R' => :uninstall, 'remove' => :uninstall
-  method_option :destination, :type => :string,  :default => '/',   :aliases => '-d', :desc => 'Set the destination where to install the package'
-  method_option :force,       :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
+  method_option :force, :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
   def uninstall (*names)
     names.each {|name|
       packages = Models.search_installed(name)
@@ -349,7 +350,7 @@ class Base < Thor
 
       packages.each {|installed|
         installed.model.contents.each {|content|
-          path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
+          path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
 
           case content.type
             when :obj

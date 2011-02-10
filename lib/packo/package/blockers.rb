@@ -33,6 +33,8 @@ class Blockers < Array
     self.compact!
     self
   end
+
+  alias << push
 end
 
 end; end

@@ -204,7 +204,7 @@ class Package < Packo::Package
   def exports
     result = {}
 
-    @exports.each {|export|
+    @export.each {|export|
       result[export] = @data[export]
     }
 

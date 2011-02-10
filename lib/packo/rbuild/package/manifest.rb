@@ -20,6 +20,8 @@
 require 'nokogiri'
 require 'base64'
 
+require 'packo'
+
 module Packo; module RBuild; class Package < Packo::Package
 
 class Manifest
@@ -48,11 +50,11 @@ class Manifest
       }],
 
       :dependencies => dom.xpath('//dependencies/dependency').map {|dependency|
-        Dependency.parse("#{dependency.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
+        Package::Dependency.parse("#{dependency.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
       },
 
       :blockers => dom.xpath('//blockers/blocker').map {|blocker|
-        Blocker.parse("#{blocker.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
+        Package::Blocker.parse("#{blocker.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
       },
 
       :selector => dom.xpath('//selectors/selector').map {|selector|

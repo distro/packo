@@ -73,24 +73,26 @@ class Dependency < Package
     end
   end
 
-  def to_s (name=false)
-    if name
-      "#{tags}/#{name}#{"-#{version}" if version}"
-    else
-      features = features.to_a.sort {|a, b|
-        if a.enabled? && b.enabled?     ;  0
-        elsif a.enabled? && !b.enabled? ; -1
-        else                            ;  1
-        end
-      }.map {|feature|
-        (feature.enabled? ? '' : '-') + feature.name.to_s
-      }.join(',')
+  def to_s (type=:normal)
+    case type
+      when :short
+        "#{tags}/#{name}#{"-#{version}" if version}"
 
-      flavor = flavor.to_a.map {|f|
-        f.name.to_s
-      }.sort
+      else
+        features = features.to_a.sort {|a, b|
+          if a.enabled? && b.enabled?     ;  0
+          elsif a.enabled? && !b.enabled? ; -1
+          else                            ;  1
+          end
+        }.map {|feature|
+          (feature.enabled? ? '' : '-') + feature.name.to_s
+        }.join(',')
 
-      "#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
+        flavor = flavor.to_a.map {|f|
+          f.name.to_s
+        }.sort
+
+        "#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
     end
   end
 end

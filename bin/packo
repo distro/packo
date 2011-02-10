@@ -55,7 +55,7 @@ commands.each {|command|
   Application.class_eval %{
     desc '#{command} [ARGUMENTS...]', '#{descriptions[command.to_sym] || '...'}'
     def #{command} (*arguments)
-      system(*([(Packo::System.env[:SECURE] && !#{trusted.include?(command.to_sym) ? true : false}) ? 'sandbox' : nil, 'packo-#{command}'] + ARGV[1, ARGV.length]).compact)
+      system(*([((Packo::System.env[:SECURE] && !#{trusted.include?(command.to_sym) ? true : false}) ? 'sandbox' : nil), 'fakeroot', 'packo-#{command}'] + ARGV[1, ARGV.length]).compact)
     end
   }
 }

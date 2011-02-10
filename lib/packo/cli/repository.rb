@@ -437,7 +437,7 @@ class Repository < Thor
     end
 
     case scm
-      when 'git'; Packo.sh 'git', 'clone', uri.to_s, path, :silent => !System.env[:VERBOSE]
+      when 'git'; Packo.sh 'git', 'clone', '--depth', '1', uri.to_s, path, :silent => !System.env[:VERBOSE]
     end
   end
 

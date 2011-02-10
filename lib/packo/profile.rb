@@ -126,6 +126,10 @@ class Profile
       environment[const] = mod.const_get const
     }
   end
+
+  def hash
+    @paths.hash
+  end
 end
 
 end

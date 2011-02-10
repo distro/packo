@@ -35,6 +35,7 @@ class Build < Thor
   desc 'package PACKAGE... [OPTIONS]', 'Create packages of the matching names'
   method_option :output,     :type => :string,  :default => System.env[:TMP], :aliases => '-o', :desc => 'The directory where to save packages'
   method_option :wipe,       :type => :boolean, :default => false,            :aliases => '-w', :desc => 'Wipes the package directory before building it'
+  method_option :ask,        :type => :boolean, :default => false,            :aliases => '-a', :desc => 'Prompt the user if he want to continue building or not'
   method_option :repository, :type => :string,                                :aliases => '-r', :desc => 'Set a specific source repository'
   def package (*packages)
     Environment.new {|env|
@@ -241,9 +242,14 @@ class Build < Thor
     else
       tmp = Models.search(package, options[:repository])
 
+      if tmp.empty?
+        CLI.fatal 'Package not found'
+        exit 21
+      end
+
       if (multiple = tmp.uniq).length > 1
         CLI.fatal 'Multiple packages with the same name, be more precise.'
-        exit 2
+        exit 22
       end
 
       package = Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
@@ -255,6 +261,13 @@ class Build < Thor
       CLI.fatal 'Package could not be instantiated'
       exit 23
     end
+  end
+
+  def initialize (*args)
+    FileUtils.mkpath(System.env[:TMP])
+    File.umask 022
+
+    super(*args)
   end
 end
 
