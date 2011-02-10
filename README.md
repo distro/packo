@@ -9,8 +9,6 @@ These environment variables are needed for testing.
     export PACKO_DATABASE=sqlite:///tmp/packo_database
     export PACKO_SELECTORS=/tmp/packo_selectors
     export PACKO_REPOSITORIES=/tmp/packo_repositories
-    export PACKO_TMP=/tmp
-    export PACKO_PROFILE=~/projects/distro/profiles/default
     export PACKO_VERBOSE=true
 
 Then you can start doing some things.
@@ -40,7 +38,15 @@ To get a list of packø's environment variables just do:
 
     $ packo env show
 
-Installation is nearly finished, just few things are missing.
+To install a package just do:
+
+    $ packo install package
+
+It should build and install the package or download the binary package and install it.
+
+If you have a local .pko file you can install it directly:
+
+    $ packo install package.pko
 
 How to install
 --------------
@@ -57,7 +63,8 @@ And then install the adapter you want to use, to get a list of adapters do
 
 Then modify the `PACKO_DATABASE` env variable and you're ready to use packo.
 
-At this point you should install `sandbox` which is a package developed by Gentoo devs.
+At this point you should install `sandbox` which is developed by Gentoo devs
+and `fakeroot` which is developed by Debian devs.
 
 Common problems
 ---------------
@@ -66,8 +73,8 @@ Common problems
     to, so sandbox killed the process to prevent damages, if you're sure you wanted it to access that place configure
     `sandbox` to be able to do so. Read `sandbox`'s documentation to know how to do so.
 
-*   If you can't install sandbox you can use packo anyway, just don't use the protected syntax (packo &lt;command&gt;) but use
-    packo-&lt;command&gt; which is the not secure way. I suggest getting sandbox anyway beacause packages could do something harmful by mistake or on purpose, you can never know.
+*   If you can't install `sandbox` and `fakeroot` you can use packo anyway, just don't use the protected syntax (packo &lt;command&gt;) but use
+    packo-&lt;command&gt; which is the not secure way. I suggest getting `sandbox` and `fakeroot` anyway because packages could do something harmful by mistake or on purpose, you can never know.
 
 It's slow as hell :(
 --------------------
