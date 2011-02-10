@@ -19,21 +19,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'rubygems' unless defined?(Gem)
-
-require 'packo'
-require 'packo/cli/base'
-
-class Application < Packo::CLI::Base
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
-
-  desc 'version', 'Show current version'
-  map '-v' => :version, '--version' => :version
-  def version
-    puts "packø v. #{Packo.version}"
-  end
-end
-
 commands = Dir.glob('/usr/bin/packo-*').map {|path|
   File.basename(path).sub('packo-', '')
 }
@@ -51,11 +36,31 @@ descriptions = {
 
 trusted = [:base, :select, :db, :profile]
 
+if commands.member?(ARGV.first)
+  command = ARGV.shift
+
+  exit system(*([((!trusted.include?(command.to_sym)) ? 'sandbox' : nil), 'fakeroot', "packo-#{command}"] + ARGV).compact)
+end
+
+require 'rubygems' unless defined?(Gem)
+
+require 'packo'
+require 'packo/cli/base'
+
+class Application < Packo::CLI::Base
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
+
+  desc 'version', 'Show current version'
+  map '-v' => :version, '--version' => :version
+  def version
+    puts "packø v. #{Packo.version}"
+  end
+end
+
 commands.each {|command|
   Application.class_eval %{
     desc '#{command} [ARGUMENTS...]', '#{descriptions[command.to_sym] || '...'}'
     def #{command} (*arguments)
-      system(*([((Packo::System.env[:SECURE] && !#{trusted.include?(command.to_sym) ? true : false}) ? 'sandbox' : nil), 'fakeroot', 'packo-#{command}'] + ARGV[1, ARGV.length]).compact)
     end
   }
 }
