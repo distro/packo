@@ -36,18 +36,18 @@ class Features
     @values = {}
 
     if values.is_a?(Array)
-      values.each {|feature|
+      values.dup.each {|feature|
         @values[feature.name] = feature
       }
     elsif values.is_a?(Hash)
-      values.each {|name, value|
+      values.dup.each {|name, value|
         @values[name.to_sym] = Feature.new(name, value || false)
       }
     end
   end
 
   def each
-    @values.each_value {|feature|
+    @values.dup.each_value {|feature|
       yield feature
     }
   end

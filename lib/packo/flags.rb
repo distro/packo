@@ -17,11 +17,26 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; module Behaviors
+module Packo
 
-Default = [
-  Modules::Misc::Fetcher, Modules::Misc::Unpacker,
-  Modules::Building::Patch, Modules::Building::Autotools
-]
+class Flags < Array
+  def self.parse (string)
+    Flags.new(*string.to_s.split(/\s+/))
+  end
 
-end; end; end
+  def initialize (*flags)
+    self.insert(-1, *flags)
+  end
+
+  def push (value)
+    super(value.to_s.strip)
+  end
+
+  alias << push
+
+  def to_s
+    self.join(' ')
+  end
+end
+
+end

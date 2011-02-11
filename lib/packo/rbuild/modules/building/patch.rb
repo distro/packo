@@ -53,6 +53,10 @@ class Patch < Module
     end
   end
 
+  def finalize
+    package.stages.delete :patch, self.method(:patch)
+  end
+
   def patch
     package.stages.callbacks(:patch).do(package) {
       package.filesystem.patches.each {|name, file|

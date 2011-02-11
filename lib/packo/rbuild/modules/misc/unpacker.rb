@@ -50,6 +50,10 @@ class Unpacker < Module
     end
   end
 
+  def finalize
+    package.stages.delete :unpack, self.method(:unpack)
+  end
+
   def unpack
     package.stages.callbacks(:unpack).do {
       Unpacker.do((package.ditfiles.is_a?(Hash) ?

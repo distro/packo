@@ -63,6 +63,10 @@ class Fetcher < Module
     end
   end
 
+  def finalize
+    package.stages.delete :fetch, self.method(:fetch)
+  end
+
   def fetch
     version = package.version
 

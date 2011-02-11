@@ -81,6 +81,7 @@ class Package < Packo::Package
     @stages.add :blockers,     self.method(:blockers_check),     :at => :beginning
 
     behavior Behaviors::Default
+    use      Modules::Packaging::PKO
 
     if (@parent = Package.last)
       self.instance_exec(self, &@parent.instance_eval('@block'))
@@ -121,10 +122,10 @@ class Package < Packo::Package
 
     self.envify!
 
-    features.each {|feature|
+    features.dup.each {|feature|
       next unless feature.enabled?
 
-      feature.needs.each {|need|
+      feature.needs.dup.each {|need|
         if tmp = need.match(/^-(.+)$/)
           if features.get(tmp[1]).enabled?
             feature.disable!

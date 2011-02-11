@@ -44,6 +44,10 @@ class Feature
   def description (value=nil)
     value ? @description = value : @description
   end
+
+  def to_s
+    name.to_s
+  end
 end
 
 end; end

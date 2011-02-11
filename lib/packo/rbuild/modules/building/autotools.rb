@@ -25,7 +25,7 @@ class Autotools < Module
 
     attr_reader :module
 
-    def initialize (mod)
+    def initialize (mod=nil)
       @module = mod
 
       @enable = {}
@@ -260,10 +260,10 @@ class Autotools < Module
   def configure
     @configuration = Configuration.new(self)
 
-    @configuration.set 'prefix',         '/usr'
-    @configuration.set 'sysconfdir',     '/etc'
-    @configuration.set 'sharedstatedir', '/com'
-    @configuration.set 'localstatedir',  '/var'
+    @configuration.set 'prefix',         "#{System.env[:INSTALL_PATH]}/usr"
+    @configuration.set 'sysconfdir',     "#{System.env[:INSTALL_PATH]}/etc"
+    @configuration.set 'sharedstatedir', "#{System.env[:INSTALL_PATH]}/com"
+    @configuration.set 'localstatedir',  "#{System.env[:INSTALL_PATH]}/var"
 
     @configuration.set 'host',   package.host
     @configuration.set 'build',  package.host

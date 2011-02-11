@@ -20,6 +20,7 @@
 require 'tmpdir'
 
 require 'packo/profile'
+require 'packo/flags'
 
 module Packo
 
@@ -211,18 +212,22 @@ class Environment < Hash
       @@default.each {|key, value|
         self[key] = value unless self[key]
       }
+    else
+      Environment.each {|key, value|
+        next if value.nil?
 
-      return
+        # This is an array, not a call to self.[]
+        if [:FEATURES].member?(key)
+          (self[key] ||= '') << " #{value}"
+        else
+          self[key] = value unless self[key] && value == @@default[key] && !Environment[key, true]
+        end
+      }
     end
 
-    Environment.each {|key, value|
-      next if value.nil?
-
-      # This is an array, not a call to self.[]
-      if [:FEATURES].member?(key)
-        (self[key] ||= '') << " #{value}"
-      else
-        self[key] = value unless self[key] && value == @@default[key] && !Environment[key, true]
+    self.each {|key, value|
+      if key.to_s.end_with?('FLAGS')
+        self[key] = Flags.parse(value.to_s)
       end
     }
   end
@@ -233,6 +238,10 @@ class Environment < Hash
 
   def []= (name, value)
     self.instance_exec(value, &@@callbacks[name.to_sym]) if @@callbacks[name.to_sym]
+
+    if name.to_s.end_with?('FLAGS')
+      value = Flags.parse(value)
+    end
 
     super(name.to_sym, value)
   end
