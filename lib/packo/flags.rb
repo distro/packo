@@ -28,11 +28,29 @@ class Flags < Array
     self.insert(-1, *flags)
   end
 
-  def push (value)
-    super(value.to_s.strip)
+  def push (*values)
+    values.each {|value|
+      super(value.to_s.strip)
+    }
+  
+    self
   end
 
   alias << push
+
+  def delete (*values)
+    values.each {|value|
+      super(value)
+    }
+
+    self
+  end
+
+  def replace (from, to)
+    self.insert(-1, *self.clear.map {|value|
+      value.match(from) ? to : value
+    })
+  end
 
   def to_s
     self.join(' ')
