@@ -22,13 +22,9 @@ require 'net/http'
 module Packo; module RBuild; module Modules; module Misc
 
 Fetcher.register :sourceforge, do |url, package|
-  matches = url.interpolate(package).match(%r{^(.*?)/(.*?)$})
-
-  project = matches[1]
-  path    = matches[2]
+  whole, project, path = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a
 
   body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{project}/files/#{File.dirname(path)}/"))
-
 
   urls = body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).select {|(url)|
     url.match(%r{((tar\.(lzma|xz|bz2|gz))|zip|rar)/download$})

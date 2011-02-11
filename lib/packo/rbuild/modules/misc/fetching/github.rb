@@ -17,6 +17,12 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/building/autotools'
-require 'packo/rbuild/modules/building/rake'
-require 'packo/rbuild/modules/building/patch'
+module Packo; module RBuild; module Modules; module Misc
+
+Fetcher.register :github do |url, package|
+  whole, user, project, file = url.interpolate(package).match(%r{^(.*?)/(.*?)/(.*?)$}).to_a
+
+  ["https://github.com/#{user}/#{project}/tarball/#{file}", "#{project}-#{file}.tar.gz"]
+end
+
+end; end; end; end

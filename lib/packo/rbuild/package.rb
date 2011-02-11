@@ -145,6 +145,8 @@ class Package < Packo::Package
       }
     }
 
+    stages.callbacks(:initialized).do(self)
+
     @@packages.clear
     @@packages[:last] = self
   end

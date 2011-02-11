@@ -29,12 +29,9 @@ class Fetcher < Module
   end
 
   def self.url (url, package)
-    matches = url.to_s.match(%r{^(.+?)://(.+)$})
+    whole, scheme, url = url.to_s.match(%r{^(.+?)://(.+)$}).to_a
 
-    raise ArgumentError.new('Invalid URI passed') unless matches
-
-    scheme = matches[1]
-    url    = matches[2]
+    raise ArgumentError.new('Invalid URI passed') unless whole
 
     if ['https', 'http', 'ftp'].member?(scheme)
       "#{scheme}://#{url.interpolate(package)}"
@@ -89,8 +86,8 @@ class Fetcher < Module
       }
 
       package.stages.callbacks(:fetch).do(sources) {
-        sources.each {|source|
-          distfiles << "#{package.fetchdir || System.env[:TMP]}/#{File.basename(source).sub(/\?.*$/, '')}"
+        sources.each {|(source, output)|
+          distfiles << "#{package.fetchdir || System.env[:TMP]}/#{output || File.basename(source).sub(/\?.*$/, '')}"
 
           package.fetch source, distfiles.last
         }

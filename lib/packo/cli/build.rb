@@ -231,7 +231,7 @@ class Build < Thor
       File.write('digest.xml', builder.to_xml(:indent => 4))
     }
   rescue Errno::EACCES
-    CLI.fatal 'Try to set SECURE to false'
+    CLI.fatal 'Try to use packo-build instead.'
   end
 
   desc 'manifest PACKAGE [OPTIONS]', 'Output the manifest of the given package'

@@ -65,19 +65,19 @@ class Profile
     begin
       suppress_warnings {
         mod.module_eval File.read(config)
-      } if File.readable?(config)
+      } if File.readable?(config.to_s)
     rescue Exception => e
       Packo.debug e
     end
 
     if package
-      if modules && File.directory?(modules)
+      if File.directory?(modules.to_s)
         Dir.glob("#{modules}/*").each {|script|
           package.instance_exec(package, File.read(script)) if File.readable?(script)
         }
       end
 
-      if tags && File.readable?(tags)
+      if File.readable?(tags.to_s)
         file   = File.read(tags)
         tags   = {}
         values = file.split(/^\s*\[.*?\]\s*$/); values.shift
@@ -99,7 +99,7 @@ class Profile
         }
       end
 
-      if packages && File.readable?(packages)
+      if File.readable?(packages.to_s)
         file     = File.read(@paths[:packages])
         packages = {}
         values   = file.split(/^\s*\[.*?\]\s*$/); values.shift

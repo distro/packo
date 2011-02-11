@@ -19,3 +19,4 @@
 
 require 'packo/rbuild/modules/misc/fetching/gnu'
 require 'packo/rbuild/modules/misc/fetching/sourceforge'
+require 'packo/rbuild/modules/misc/fetching/github'

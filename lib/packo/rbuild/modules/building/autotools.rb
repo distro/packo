@@ -239,9 +239,9 @@ class Autotools < Module
         }
       end
 
-      def install (path=nil)
+      def install (path=nil, *args)
         package.environment.sandbox {
-          self.make "DESTDIR=#{path || package.distdir}", 'install'
+          self.make "DESTDIR=#{path || package.distdir}", 'install', *args
         }
       end
 

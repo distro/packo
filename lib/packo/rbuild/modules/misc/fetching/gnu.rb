@@ -21,11 +21,8 @@ require 'net/http'
 
 module Packo; module RBuild; module Modules; module Misc
 
-Fetcher.register :gnu, do |url, package|
-  matches = url.interpolate(package).match(%r{^(.*?)/(.*?)$})
-
-  name    = matches[1]
-  version = matches[2]
+Fetcher.register :gnu do |url, package|
+  whole, name, version = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a
 
   packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/")).scan(
     %r{href="(#{name}-#{version}.*?)"}
