@@ -69,6 +69,20 @@ class Source < Packo::Repository::Source
         )
       }
 
+      package.flavor.each {|f|
+        next if [:vanilla, :documentation, :headers, :debug].member?(f.name)
+
+        flavor = pkg.data.flavor.first_or_create(
+          :source => pkg.data,
+          :name   => f.name
+        )
+
+        flavor.update(
+          :description => f.description,
+          :enabled     => f.enabled?
+        )
+      }
+
       pkg.save
     }
   end

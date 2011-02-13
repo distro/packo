@@ -81,7 +81,12 @@ class Do
 
     @relative = '/usr'
     @opts     = nil
+    @verbose  = true
   end
+
+  def verbose?;     @verbose         end
+  def verbose!;     @verbose = true  end
+  def not_verbose!; @verbose = false end
 
   def root
     "#{@root ? @root : package.distdir}/#{@relative}".gsub(%r{/*/}, '/')
@@ -108,57 +113,57 @@ class Do
 
   def ins (*files)
     files.map {|file| Dir.glob(file)}.flatten.each {|file|
-      FileUtils.cp    file, "#{root}/#{File.basename(file)}"
-      FileUtils.chmod @opts, "#{root}/#{File.basename(file)}"
+      FileUtils.cp file, "#{root}/#{File.basename(file)}", :verbose => @verbose
+      FileUtils.chmod @opts, "#{root}/#{File.basename(file)}", :verbose => @verbose
     }
   end
 
   def dir (path)
-    FileUtils.mkpath("#{root}/#{path}")
-    FileUtils.chmod @opts || 0755, "#{root}/#{path}"
+    FileUtils.mkpath "#{root}/#{path}", :verbose => @verbose
+    FileUtils.chmod @opts || 0755, "#{root}/#{path}", :verbose => @verbose
   end
 
   def bin (*bins)
     FileUtils.mkpath "#{root}/bin"
 
-    bins.map {|bin| Dir.glob(bin)}.flatten.each {|bin|
-      FileUtils.cp    bin, "#{root}/bin/#{File.basename(bin)}"
-      FileUtils.chmod @opts || 0755, "#{root}/bin/#{File.basename(bin)}"
+    bins.map {|bin| Dir.glob(bin)}.flatten.each {|(file, name)|
+      FileUtils.cp file, "#{root}/bin/#{File.basename(name || file)}", :verbose => @verbose
+      FileUtils.chmod @opts || 0755, "#{root}/bin/#{File.basename(name || file)}", :verbose => @verbose
     }
   end
 
   def sbin (*sbins)
     FileUtils.mkpath "#{root}/sbin"
 
-    sbins.map {|sbin| Dir.glob(sbin)}.flatten.each {|sbin|
-      FileUtils.cp    sbin, "#{root}/sbin/#{File.basename(sbin)}"
-      FileUtils.chmod @opts || 0755, "#{root}/sbin/#{File.basename(sbin)}"
+    sbins.map {|sbin| Dir.glob(sbin)}.flatten.each {|(file, name)|
+      FileUtils.cp file, "#{root}/sbin/#{File.basename(name || file)}", :verbose => @verbose
+      FileUtils.chmod @opts || 0755, "#{root}/sbin/#{File.basename(name || file)}", :verbose => @verbose
     }
   end
 
   def lib (*libs)
      FileUtils.mkpath "#{root}/lib"
 
-    libs.map {|lib| Dir.glob(lib)}.flatten.each {|lib|
-      FileUtils.cp    lib, "#{root}/lib/#{File.basename(lib)}"
-      FileUtils.chmod @opts || (lib.match(/\.a(\.|$)/) ? 0644 : 0755), "#{root}/lib/#{File.basename(lib)}" rescue nil
+    libs.map {|lib| Dir.glob(lib)}.flatten.each {|(file, name)|
+      FileUtils.cp file, "#{root}/lib/#{File.basename(name || file)}", :verbose => @verbose
+      FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), "#{root}/lib/#{File.basename(name || file)}", :verbose => @verbose
     }
   end
   
   def doc (*docs)
     into("/usr/share/doc/#{package.name}-#{package.version}") {
-      docs.map {|doc| Dir.glob(doc)}.flatten.each {|doc|
-        FileUtils.cp    doc, "#{root}/#{File.basename(doc)}"
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(doc)}"
+      docs.map {|doc| Dir.glob(doc)}.flatten.each {|(file, name)|
+        FileUtils.cp file, "#{root}/#{File.basename(name || file)}", :verbose => @verbose
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(name || file)}", :verbose => @verbose
       }
     }
   end
 
   def html (*htmls)
     into("/usr/share/doc/#{package.name}-#{package.version}/html") {
-      htmls.map {|html| Dir.glob(html)}.flatten.each {|html|
-        FileUtils.cp    html, "#{root}/#{File.basename(html)}"
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(html)}"
+      htmls.map {|html| Dir.glob(html)}.flatten.each {|(file, name)|
+        FileUtils.cp file, "#{root}/#{File.basename(name || file)}", :verbose => @verbose
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(name || file)}", :verbose => @verbose
       }
     }
   end
@@ -166,8 +171,8 @@ class Do
   def man (*mans)
     mans.map {|man| Dir.glob(man)}.flatten.each {|man|
       into("/usr/share/man/man#{man[-1]}") {
-        FileUtils.cp    man, "#{root}/#{File.basename(man)}"
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(man)}"
+        FileUtils.cp man, "#{root}/#{File.basename(man)}", :verbose => @verbose
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(man)}", :verbose => @verbose
       }
     }
   end
@@ -175,29 +180,29 @@ class Do
   def info (*infos)
     infos.map {|info| Dir.glob(info)}.flatten.each {|info|
       into("/usr/share/info/#{info[-1]}") {
-        FileUtils.cp    info, "#{root}/#{File.basename(info)}"
-        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => true
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}"
+        FileUtils.cp info, "#{root}/#{File.basename(info)}", :verbose => @verbose
+        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => !@verbose rescue nil
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}", :verbose => @verbose
       }
     }
   end
 
   def sym (link, to)
     FileUtils.mkpath "#{root}/#{File.dirname(to)}"
-    FileUtils.ln_sf link, "#{root}/#{to}"
+    FileUtils.ln_sf link, "#{root}/#{to}", :verbose => @verbose
   end
 
   def hard (link, to)
     FileUtils.mkpath "#{root}/#{File.dirname(to)}"
-    FileUtils.ln_f link, "#{root}/#{to}"
+    FileUtils.ln_f link, "#{root}/#{to}", :verbose => @verbose
   end
 
   def own (user, group, *files)
     infos.map {|info| Dir.glob(info)}.flatten.each {|info|
       into("/usr/share/info/#{info[-1]}") {
-        FileUtils.cp    info, "#{root}/#{File.basename(info)}"
-        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => true
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}"
+        FileUtils.cp info, "#{root}/#{File.basename(info)}", :verbose => @verbose
+        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => !@verbose rescue nil
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}", :verbose => @verbose
       }
     }
   end

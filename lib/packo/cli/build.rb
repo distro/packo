@@ -23,7 +23,6 @@ require 'digest/sha1'
 
 require 'packo'
 require 'packo/rbuild'
-require 'packo/models'
 
 module Packo; module CLI
 
@@ -49,6 +48,8 @@ class Build < Thor
       if package.end_with?('.rbuild')
         package
       else
+        require 'packo/models'
+
         packages = Models.search(package, options[:repository])
   
         names = packages.group_by {|package|
@@ -142,6 +143,8 @@ class Build < Thor
       if package.end_with?('.rbuild')
         package
       else
+        require 'packo/models'
+
         packages = Models.search(package, options[:repository])
 
         if (multiple = packages.uniq).length > 1
@@ -181,11 +184,12 @@ class Build < Thor
 
       Dir.chdir(File.dirname(file))
 
-      name    = File.basename(file)
-      package = Package.parse(file.sub(/\.rbuild$/, ''))
-  
       begin
-        package = Packo.loadPackage('.', package)
+        if File.basename(package).match(/.*?-\d/)
+          package = Packo.loadPackage(File.dirname(package), Package.parse(File.basename(package).sub(/\.rbuild$/, '')))
+        else
+          package = Packo.loadPackage(package)
+        end
       rescue LoadError
         CLI.fatal 'Failed to load the rbuild'
         exit 41
@@ -238,8 +242,14 @@ class Build < Thor
   method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
   def manifest (package)
     if package.end_with?('.rbuild')
-      package = Packo.loadPackage(File.dirname(package), Packo::Package.parse(File.basename(package).sub('.rbuild', '')))
+      if File.basename(package).match(/.*?-\d/)
+        package = Packo.loadPackage(File.dirname(package), Package.parse(File.basename(package).sub(/\.rbuild$/, '')))
+      else
+        package = Packo.loadPackage(package)
+      end
     else
+      require 'packo/models'
+
       tmp = Models.search(package, options[:repository])
 
       if tmp.empty?
@@ -261,6 +271,78 @@ class Build < Thor
       CLI.fatal 'Package could not be instantiated'
       exit 23
     end
+  end
+
+  desc 'info FILE', 'Get informations about an rbuild'
+  def info (file)
+    if File.basename(file).match(/.*?-\d/)
+      package = Packo.loadPackage(File.dirname(file), Package.parse(File.basename(file).sub(/\.rbuild$/, '')))
+    else
+      package = Packo.loadPackage(file)
+    end
+
+    print package.name.bold
+    print "-#{package.version.to_s.red}"
+    print " (#{package.slot.blue.bold})" if package.slot
+    print " [#{package.tags.join(' ').magenta}]"
+    print "\n"
+
+    puts "    #{'Description'.green}: #{package.description}"
+    puts "    #{'Homepage'.green}:    #{package.homepage}"
+    puts "    #{'License'.green}:     #{package.license}"
+    puts "    #{'Maintainer'.green}:  #{package.maintainer || 'nobody'}"
+
+    flavor = []
+    package.flavor.each {|f|
+      next if [:vanilla, :documentation, :headers, :debug].member?(f.name)
+
+      flavor << f
+    }
+
+    features = []
+    package.features.each {|f|
+      features << f
+    }
+
+    length = (flavor + features).map {|f|
+      f.name.length
+    }.max
+
+    if flavor.length > 0
+      print "    #{'Flavor'.green}:      "
+
+      flavor.each {|element|
+        if element.enabled
+          print "#{element.name.to_s.white.bold}#{System.env[:NO_COLORS] ? '!' : ''}"
+        else
+          print element.name.to_s.black.bold
+        end
+
+        print "#{' ' * (4 + length - element.name.length + (System.env[:NO_COLORS] && !element.enabled? ? 1 : 0))}#{element.description || '...'}"
+
+        print "\n                   "
+      }
+
+      print "\r" if features.length > 0
+    end
+
+    if features.length > 0
+      print "    #{'Features'.green}:    "
+
+      features.each {|feature|
+        if feature.enabled
+          print "#{feature.name.to_s.white.bold}#{System.env[:NO_COLORS] ? '!' : ''}"
+        else
+          print feature.name.to_s.black.bold
+        end
+
+        print "#{' ' * (4 + length - feature.name.length + (System.env[:NO_COLORS] && !feature.enabled? ? 1 : 0))}#{feature.description || '...'}"
+
+        print "\n                 "
+      }
+    end
+
+    print "\n"
   end
 
   def initialize (*args)

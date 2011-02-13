@@ -19,7 +19,6 @@
 #++
 
 require 'packo'
-require 'packo/models'
 
 module Packo; module CLI
 
@@ -31,6 +30,8 @@ class Files < Thor
   desc 'package PACKAGE', 'Get a file list of a given package'
   def package (name)
     if name.end_with?('.pko')
+      require 'packo/rbuild'
+
       path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
       RBuild::Modules::Packaging::PKO.unpack(File.realpath(name), path)
 
@@ -57,7 +58,9 @@ class Files < Thor
         end
       }
     else
-      package = CLI.search_installed(name).first
+      require 'packo/models'
+
+      package = Models.search_installed(name).first
 
       if !package
         fatal "No package matches #{name}"
@@ -76,6 +79,8 @@ class Files < Thor
 
   desc 'check [PACKAGE...]', 'Check contents for the given packages'
   def check (*names)
+    require 'packo/models'
+
     packages = []
 
     if names.empty?

@@ -77,10 +77,11 @@ class Environment < Hash
 
   @@callbacks = {
     :COMPILER => lambda {|value|
-      self[:CPP] = 'cpp'
-      self[:AS]  = 'as'
-      self[:AR]  = 'ar'
-      self[:LD]  = 'ld'
+      self[:CPP]    = 'cpp'
+      self[:AS]     = 'as'
+      self[:AR]     = 'ar'
+      self[:LD]     = 'ld'
+      self[:RANLIB] = 'ranlib'
 
       case value
         when 'gcc'

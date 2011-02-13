@@ -91,10 +91,12 @@ class Package
     end
   end
 
-  attr_reader :data, :model
+  attr_reader :model, :environment
 
   def initialize (data)
-    @data = {}
+    @data         = {}
+    @environment  = Environment.new(self)
+    @export       = []
 
     data.each {|name, value|
       self.send "#{name}=", value
@@ -118,6 +120,52 @@ class Package
       end
     end
   end
+
+  def envify!
+    environment.apply!
+
+    environment[:FLAVOR].split(/\s+/).each {|element|
+      matches = element.match(/^([+-])?(.+)$/)
+
+      (matches[1] == '-') ?
+        self.flavor.send("not_#{matches[2]}!") :
+        self.flavor.send("#{matches[2]}!")
+    }
+
+    "#{environment[:FEATURES]} #{environment[:USE]}".split(/\s+/).each {|feature|
+      feature = Feature.parse(feature)
+
+      self.features {
+        next if !self.has?(feature.name)
+
+        if feature.enabled?
+          self.get(feature.name).enable!
+        else
+          self.get(feature.name).disable!
+        end
+      }
+    }
+  end
+
+  def export! (*names)
+    @export.insert(-1, *names)
+    @export.compact!
+    @export.uniq!
+  end
+
+  def exports
+    result = {}
+
+    @export.each {|export|
+      result[export] = @data[export]
+    }
+
+    result
+  end
+
+  def masked?; !!@masked                          end
+  def mask!;   @masked = true if @masked != false end
+  def unmask!; @masked = false                    end
 
   def tags= (*value)
     @data[:tags] = Tags.parse(value.length > 1 ? value : value.first) unless value.empty? || !value.first

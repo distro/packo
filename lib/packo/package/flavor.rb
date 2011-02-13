@@ -17,86 +17,83 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/package/feature'
+
 module Packo; class Package
 
 class Flavor
-  class Element
-    attr_reader :name, :value
-
-    def initialize (name, enabled=false)
-      @name    = name.to_sym
-      @enabled = !!enabled
-    end
-
-    def enabled?;   @enabled         end
-    def disabled?; !@enabled         end
-    def enable!;    @enabled = true  end
-    def disable!;   @enabled = false end
-  end
-
   def self.parse (text)
-    data = {}
+    data = []
 
     text.split(/\s+/).each {|part|
-      if (matches = part.match(/([\+\-])?(.+)/))
-        data[matches[2]] = (matches[1] != '-')
-      end
+      data << Feature.parse(part)
     }
 
     Flavor.new(data)
   end
 
   def initialize (values={})
-    @elements = {}
+    @values = {}
 
-    values.each {|name, value|
-      @elements[name.to_sym] = Element.new(name, value || false)
-    }
-  end
-
-  def method_missing (id, *args, &block)
-    case id.to_s
-      when /^(.+?)\?$/    then (@elements[$1.to_sym] ||= Element.new($1, false)).enabled?
-      when /^not_(.+?)!$/ then (@elements[$1.to_sym] ||= Element.new($1, false)).disable!
-      when /^(.+?)!$/     then (@elements[$1.to_sym] ||= Element.new($1, false)).enable!
-      when /^(.+?)$/      then (@elements[$1.to_sym] ||= Element.new($1, false))
+    if values.is_a?(Array)
+      values.dup.each {|feature|
+        @values[feature.name] = feature
+      }
+    elsif values.is_a?(Hash)
+      values.dup.each {|name, value|
+        @values[name.to_sym] = Feature.new(name, value || false)
+      }
     end
   end
 
   def each
-    @elements.each_value {|e|
-      yield e
+    @values.dup.each_value {|feature|
+      yield feature
     }
   end
 
   def empty?
-    @elements.none? {|(name, element)|
-      element.enabled?
-    }
+    @values.empty?
+  end
+
+  def set (name, value)
+    @values[name.to_sym] = Feature.new(name, value)
+  end
+
+  def get (name)
+    @values[name.to_sym] ||= Feature.new(name, false)
+  end
+
+  def delete (name)
+    @values.delete(name.to_sym)
+  end
+
+  def has? (name)
+    @values.key? name.to_sym
   end
 
   def to_hash
-    Hash[*@elements.map {|(name, element)|
+    Hash[*@values.map {|(name, element)|
       [name, element.value]
     }]
   end
 
   def to_a
-    @elements.map {|(name, element)|
+    @values.map {|(name, element)|
       element
     }
   end
 
   def to_s (type=:normal)
-    elements = @elements.map {|(name, element)|
-      next unless name != :binary && element.enabled?
+    values = @values.map {|(name, value)|
+      next unless name != :binary && value.enabled?
 
       name.to_s
     }.compact
 
     case type
-      when :normal;  elements.join(' ')
-      when :package; elements.join('.')
+      when :normal;  values.join(' ')
+      when :package; values.join('.')
     end
   end
 end

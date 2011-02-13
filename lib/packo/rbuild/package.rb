@@ -45,7 +45,7 @@ class Package < Packo::Package
     Package.new(name, version, slot, revision, &block)
   end
 
-  attr_reader :parent, :environment, :do, :modules, :dependencies, :blockers, :stages, :filesystem
+  attr_reader :parent, :do, :modules, :dependencies, :blockers, :stages, :filesystem
 
   def initialize (name, version=nil, slot=nil, revision=nil, &block)
     super(
@@ -67,9 +67,7 @@ class Package < Packo::Package
       return @@packages[:last] = self
     end
 
-    @export       = []
     @modules      = []
-    @environment  = Environment.new(self)
     @stages       = Stages.new(self)
     @do           = Do.new(self)
     @dependencies = Dependencies.new(self)
@@ -87,29 +85,49 @@ class Package < Packo::Package
       self.instance_exec(self, &@parent.instance_eval('@block'))
     end
 
-    before :pack, :name => :headers do
-      next if flavor.vanilla?
+    flavor {
+      vanilla {
+        description 'Apply only the patches needed to build succesfully the package'
 
-      if !flavor.headers?
-        Find.find(distdir) {|file|
-          if ['include', 'headers'].member?(File.basename(file)) && File.directory?(file)
-            FileUtils.rm_rf(file, :secure => true) rescue nil
+        needs :not, :documentation, :headers, :debug
+      }
+
+      documentation {
+        description 'Add documentation to the package'
+
+        before :pack, :name => :documentation do
+          next if flavor.vanilla?
+
+          if !enabled?
+            Find.find(distdir) {|file|
+              if ['man', 'info', 'doc'].member?(File.basename(file)) && File.directory?(file)
+                FileUtils.rm_rf(file, :secure => true) rescue nil
+              end
+            }
           end
-        }
-      end
-    end
+        end
+      }
 
-    before :pack, :name => :documentation do
-      next if flavor.vanilla?
+      headers {
+        description 'Add headers to the package'
 
-      if !flavor.documentation?
-        Find.find(distdir) {|file|
-          if ['man', 'info', 'doc'].member?(File.basename(file)) && File.directory?(file)
-            FileUtils.rm_rf(file, :secure => true) rescue nil
+        before :pack, :name => :headers do
+          next if flavor.vanilla?
+
+          if !enabled?
+            Find.find(distdir) {|file|
+              if ['include', 'headers'].member?(File.basename(file)) && File.directory?(file)
+                FileUtils.rm_rf(file, :secure => true) rescue nil
+              end
+            }
           end
-        }
-      end
-    end
+        end
+      }
+
+      debug {
+        description 'Make a debug build'
+      }
+    }
 
     self.directory = "#{package.environment[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}".gsub(%r{/*/}, '/')
     self.workdir   = "#{package.directory}/work"
@@ -121,6 +139,31 @@ class Package < Packo::Package
     }
 
     self.envify!
+    self.export! :arch, :kernel, :compiler, :libc
+
+    flavor.dup.each {|element|
+      next unless element.enabled?
+
+      element.needs.dup.each {|need|
+        if tmp = need.match(/^-(.+)$/)
+          if element.get(tmp[1]).enabled?
+            element.disable!
+
+            if System.env[:VERBOSE]
+              require 'packo/cli'
+              CLI.warn "Flavor #{element} can't be enabled with #{tmp[1]}, disabling."
+            end
+          end
+        elsif flavor.get(need).disabled?
+          element.disable!
+
+          if System.env[:VERBOSE]
+            require 'packo/cli'
+            CLI.warn "Flavor #{element} needs #{need}, disabling"
+          end
+        end
+      }
+    }
 
     features.dup.each {|feature|
       next unless feature.enabled?
@@ -164,54 +207,12 @@ class Package < Packo::Package
     FileUtils.rm_rf self.tempdir, :secure => true
   rescue; end
 
-  def envify!
-    environment.apply!
-
-    environment[:FLAVOR].split(/\s+/).each {|element|
-      matches = element.match(/^([+-])?(.+)$/)
-
-      (matches[1] == '-') ?
-        self.flavor.send("not_#{matches[2]}!") :
-        self.flavor.send("#{matches[2]}!")
-    }
-
-    "#{environment[:FEATURES]} #{environment[:USE]}".split(/\s+/).each {|feature|
-      feature = Feature.parse(feature)
-
-      self.features {
-        next if !self.has?(feature.name)
-
-        if feature.enabled?
-          self.get(feature.name).enable!
-        else
-          self.get(feature.name).disable!
-        end
-      }
-    }
-  end
-
   def dependencies_check
     stages.callbacks(:dependencies).do(self)
   end
 
   def blockers_check
     stages.callbacks(:blockers).do(self)
-  end
-
-  def export! (*names)
-    @export.insert(-1, *names)
-    @export.compact!
-    @export.uniq!
-  end
-
-  def exports
-    result = {}
-
-    @export.each {|export|
-      result[export] = @data[export]
-    }
-
-    result
   end
 
   def build

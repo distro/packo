@@ -91,49 +91,63 @@ module Packo
     eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
   end
 
-  def self.loadPackage (path, package)
+  def self.loadPackage (path, package=nil)
     options = {
       :before => 'module ::Packo::RBuild;',
       :after  => ';end'
     }
 
-    if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
-      features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
+    if package
+      if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
+        features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
 
-      if features
-        features.text.split(' ').each {|feature|
-          next if RBuild::Features::Default[feature.to_sym]
+        if features
+          features.text.split(' ').each {|feature|
+            next if RBuild::Features::Default[feature.to_sym]
 
-          (package.environment || Environment.new).profiles.each {|profile|
-            begin
-              Packo.load "#{profile.features}/#{feature}", options
-            rescue LoadError
-            rescue Exception => e
-              CLI.warn "Something went wrong while loading #{feature} feature." if System.env[:VERBOSE]
-              Packo.debug e
-            end
+            (package.environment || Environment.new).profiles.each {|profile|
+              begin
+                Packo.load "#{profile.features}/#{feature}", options
+              rescue LoadError
+              rescue Exception => e
+                CLI.warn "Something went wrong while loading #{feature} feature." if System.env[:VERBOSE]
+                Packo.debug e
+              end
+            }
           }
-        }
+        end
       end
-    end
 
-    begin
-      Packo.load "#{path}/#{package.name}.rbuild", options
+      begin
+        Packo.load "#{path}/#{package.name}.rbuild", options
 
-      if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
-        pkg.filesystem.parse(tmp.last.lstrip)
+        if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
+          pkg.filesystem.parse(tmp.last.lstrip)
+        end
+      rescue Exception => e
+        Packo.debug e
       end
-    rescue Exception => e
-      Packo.debug e
-    end
 
-    Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
+      Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
 
-    if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
-      RBuild::Package.last.filesystem.merge!(pkg.filesystem)
+      if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
+        RBuild::Package.last.filesystem.merge!(pkg.filesystem)
 
-      if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
-        RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
+        if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
+          RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
+        end
+
+        return RBuild::Package.last
+      end
+    else
+      begin
+        Packo.load path, options
+
+        if (pkg = RBuild::Package.last) && (tmp = File.read(path).split(/^__END__$/)).length > 1
+          pkg.filesystem.parse(tmp.last.lstrip)
+        end
+      rescue Exception => e
+        Packo.debug e
       end
 
       return RBuild::Package.last

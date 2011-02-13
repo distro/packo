@@ -189,6 +189,7 @@ class Repository < Thor
 
   desc 'update', 'Update installed repositories'
   map '-u' => :update
+  method_option :force, :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force the update'
   def update
     Models::Repository.all.each {|repository|
       updated = false
@@ -200,7 +201,7 @@ class Repository < Thor
 
       case repository.type
         when :binary
-          if (content = open(uri).read) != File.read(path)
+          if (content = open(uri).read) != File.read(path) || options[:force]
             _delete(:binary, name)
             File.write(path, content)
             _add(:binary, name, uri, path)
@@ -209,7 +210,7 @@ class Repository < Thor
           end
 
         when :source
-          if _update(path)
+          if _update(path) || options[:force]
             _delete(:source, name)
             _add(:source, name, uri, path)
 
@@ -309,24 +310,47 @@ class Repository < Thor
             }
 
           when :source
-            (print "\n"; next) unless package.model.data.features.length > 0
+            length = (package.model.data.flavor + package.model.data.features).map {|f|
+              f.name.length
+            }.max
 
-            print "    #{'Features'.green}:    "
+            if package.model.data.flavor.length > 0
+              print "    #{'Flavor'.green}:      "
 
-            features = package.model.data.features
-            length   = features.map {|feature| feature.name.length}.max
+              flavor = package.model.data.flavor
 
-            features.each {|feature|
-              if feature.enabled
-                print "#{feature.name.white.bold}#{System.env[:NO_COLORS] ? '!' : ''}"
-              else
-                print feature.name.black.bold
-              end
+              flavor.each {|element|
+                if element.enabled
+                  print "#{element.name.white.bold}#{System.env[:NO_COLORS] ? '!' : ''}"
+                else
+                  print element.name.black.bold
+                end
 
-              print "#{' ' * (4 + length - feature.name.length + (System.env[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
+                print "#{' ' * (4 + length - element.name.length + (System.env[:NO_COLORS] && !element.enabled ? 1 : 0))}#{element.description || '...'}"
 
-              print "\n                 "
-            }
+                print "\n                   "
+              }
+
+              print "\r" if package.model.data.features.length > 0
+            end
+
+            if package.model.data.features.length > 0
+              print "    #{'Features'.green}:    "
+
+              features = package.model.data.features
+
+              features.each {|feature|
+                if feature.enabled
+                  print "#{feature.name.white.bold}#{System.env[:NO_COLORS] ? '!' : ''}"
+                else
+                  print feature.name.black.bold
+                end
+
+                print "#{' ' * (4 + length - feature.name.length + (System.env[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
+
+                print "\n                 "
+              }
+            end
         end
 
         print "\n"
@@ -334,8 +358,8 @@ class Repository < Thor
     }
   end
 
-  desc 'show [TYPE]', 'Show installed repositories'
-  def show (type='all')
+  desc 'list [TYPE]', 'List installed repositories'
+  def list (type='all')
     if Packo::Repository::Types.member?(type.to_sym)
       CLI.info "Installed #{type} repositories:"
 
@@ -349,7 +373,7 @@ class Repository < Thor
       puts ''
     elsif type == 'all'
       Packo::Repository::Types.each {|type|
-        show(type)
+        list(type)
       }
     end
   end

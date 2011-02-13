@@ -28,6 +28,8 @@ class Profile
       :tags     => "#{path}/tags",
       :packages => "#{path}/packages",
       :modules  => "#{path}/modules",
+      :mask     => "#{path}/mask",
+      :unmask   => "#{path}/unmask",
     )
   end
 
@@ -100,7 +102,7 @@ class Profile
       end
 
       if File.readable?(packages.to_s)
-        file     = File.read(@paths[:packages])
+        file     = File.read(packages)
         packages = {}
         values   = file.split(/^\s*\[.*?\]\s*$/); values.shift
 
@@ -120,6 +122,39 @@ class Profile
           end
         }
       end
+
+      if File.readable?(mask.to_s)
+        File.read(mask).lines.each {|line|
+          line.strip!
+
+          if line.start_with?('[') && line.end_with?(']')
+            if Packo::Package::Tags::Expression.parse(line[1, line.length - 2]).evaluate(package)
+              package.mask!
+            end
+          else
+            if Packo::Package::Dependency.parse(line).in?(package)
+              package.mask!
+            end
+          end
+        }
+      end
+
+      if File.readable?(unmask.to_s)
+        File.read(unmask).lines.each {|line|
+          line.strip!
+
+          if line.start_with?('[') && line.end_with?(']')
+            if Packo::Package::Tags::Expression.parse(line[1, line.length - 2]).evaluate(package)
+              package.unmask!
+            end
+          else
+            if Packo::Package::Dependency.parse(line).in?(package)
+              package.unmask!
+            end
+          end
+        }
+      end
+
     end
 
     mod.constants.each {|const|

@@ -70,7 +70,7 @@ class Binary < Repository
     Enumerator.new(self, :each_package, data)
   end
 
-  def each_package (data=nil, &block)
+  def each_package (data=nil)
     Nokogiri::XML.parse(data || File.read(self.path)).xpath('//packages/package').each {|e|
       CLI.info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}" if System.env[:VERBOSE]
 
@@ -107,7 +107,7 @@ class Binary < Repository
       }
 
       packages.each {|package|
-        block.call(package)
+        yield package
       }
     }
   end

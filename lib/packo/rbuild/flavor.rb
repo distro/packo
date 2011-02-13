@@ -19,50 +19,49 @@
 
 require 'packo/package/flavor'
 
+require 'packo/rbuild/feature'
+
 module Packo; module RBuild
 
 class Flavor < Packo::Package::Flavor
-  class Element < Packo::Package::Flavor::Element
-    include Stages::Callable
-
-    attr_reader :package
-
-    def initialize (package, name, enabled=false, &block)
-      super(name, enabled)
-
-      @package = package
-
-      self.instance_exec(self, &block) if block
+  Default = Class.new(Hash) {
+    def define (name, &block)
+      (self[name.to_sym] ||= []) << block
     end
-
-    def execute (&block)
-      self.instance_exec(self, &block) if block; self
-    end
-
-    def method_missing (id, *args, &block)
-      @package.send id, *args, &block
-    end
-  end
+  }.new
 
   attr_reader :package
 
   def initialize (package, values={})
-    @package  = package
-    @elements = {}
+    super(values)
 
-    values.each {|name, value|
-      @elements[name.to_sym] = Element.new(package, name, value || false)
-    }
+    @package = package
+
+    yield self if block_given?
   end
 
   def method_missing (id, *args, &block)
     case id.to_s
-      when /^(.+?)\?$/    then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).enabled?
-      when /^not_(.+?)!$/ then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).disable!
-      when /^(.+?)!$/     then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).enable!
-      when /^(.+?)$/      then (@elements[$1.to_sym] ||= Element.new(@package, $1, false)).execute(&block)
+      when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new(@package, $1, false)).enabled?
+      when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).disable!
+      when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).enable!
+      when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).do(&block)
     end
   end
+
+  def set (name, &block)
+    @values[name.to_sym] = Feature.new(@package, name, &block)
+  end
+
+  def get (name)
+    @values[name.to_sym] ||= Feature.new(@package, name, false)
+  end
+
+  def delete (name)
+    @values.delete(name.to_sym)
+  end
 end
+
+
 
 end; end
