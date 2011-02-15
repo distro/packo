@@ -246,6 +246,10 @@ class Base < Thor
 
         :flavor   => manifest.package.flavor,
         :features => manifest.package.features,
+
+        :description => manifest.package.description,
+        :homepage    => manifest.package.homepage,
+        :license     => manifest.package.license,
         
         :manual => manual,
         :type   => type
@@ -263,8 +267,8 @@ class Base < Thor
       begin
         Find.find("#{path}/dist") {|file|
           type = nil
-          path = "#{options[:destination]}/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
-          fake = path[options[:destination].length, path.length] || ''
+          path = (options[:destination] + "/#{file[length, file.length]}").cleanpath.to_s
+          fake = path[options[:destination].cleanpath.to_s.length, path.length] || ''
           meta = nil
 
           if !options[:force] && File.exists?(path) && !File.directory?(path)
@@ -331,7 +335,7 @@ class Base < Thor
       if options[:ignore]
         pkg.destroy
       else
-        pkg.update(:destination => options[:destination])
+        pkg.update(:destination => options[:destination].cleanpath)
       end
     }
   end
@@ -401,7 +405,7 @@ class Base < Thor
           packages.group_by {|package|
             "#{package.features} #{package.flavor}"
           }.each {|name, packages|
-            print "#{packages.first.tags}/#{packages.first.name.bold}"
+            print "#{"#{packages.first.tags}/" unless packages.first.tags.empty?}#{packages.first.name.bold}"
 
             print ' ('
             print packages.map {|package|
@@ -434,60 +438,20 @@ class Base < Thor
   method_option :type,       :type => :string, :aliases => '-t', :desc => 'The repository type (binary, source, virtual)'
   method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific repository'
   def info (expression='')
-    Models.search_installed(expression, options[:repository], options[:type]).map {|package|
-      Models.search("#{package.to_s(:name)}-#{package.version}", (package.repository.name rescue nil), (package.repository.type rescue nil), true).first
-    }.compact.each {|package|
-      print "[#{"source/#{package.repository.name}".black.bold}] "
+    Models.search_installed(expression, options[:repository], options[:type]).each {|package|
       print package.name.bold
       print "-#{package.version.to_s.red}"
+      print " {#{package.revision.yellow.bold}}" if package.revision > 0
       print " (#{package.slot.to_s.blue.bold})" if package.slot
-      print " <#{package.tags.join(' ').magenta}>"
+      print " [#{package.tags.join(' ').magenta}]" if !package.tags.empty?
       print "\n"
 
-      puts "    #{'Description'.green}: #{package.description}"
-      puts "    #{'Homepage'.green}:    #{package.homepage}"
-      puts "    #{'License'.green}:     #{package.license}"
-      puts "    #{'Maintainer'.green}:  #{package.model.maintainer || 'nobody'}"
-
-      case package.repository.type
-        when :binary
-          puts "    #{'Features'.green}:    #{package.features.to_a.select {|f| f.enabled?}.map {|f| f.name}.join(' ')}"
-
-          print "    #{'Builds'.green}:      "
-          package.model.data.builds.each {|build|
-            print 'With '
-
-            if !build.features.empty?
-              print build.features.bold
-            else
-              print 'nothing'
-            end
-
-            print " in #{build.flavor.bold} flavor" if build.flavor
-            print " (SHA1 #{build.digest})".black.bold if build.digest
-            print "\n                 "
-          }
-
-        when :source
-          (print "\n"; next) unless package.model.data.features.length > 0
-
-          print "    #{'Features'.green}:    "
-
-          features = package.model.data.features
-          length   = features.map {|feature| feature.name.length}.max
-
-          features.each {|feature|
-            if feature.enabled?
-              print "#{feature.name.white.bold}#{System.env[:NO_COLORS] ? '!' : ''}"
-            else
-              print feature.name.black.bold
-            end
-
-            print "#{' ' * (4 + length - feature.name.length + (System.env[:NO_COLORS] && !feature.enabled ? 1 : 0))}#{feature.description || '...'}"
-
-            print "\n                 "
-          }
-      end
+      puts "    #{'Description'.green}: #{package.description}"      if package.description
+      puts "    #{'Homepage'.green}:    #{package.homepage}"         if package.homepage
+      puts "    #{'License'.green}:     #{package.license}"          if package.license
+      puts "    #{'Maintainer'.green}:  #{package.model.maintainer}" if package.maintainer
+      puts "    #{'Flavor'.green}:      #{package.flavor}"           if package.flavor
+      puts "    #{'Features'.green}:    #{package.features}"         if package.features
 
       print "\n"
     }

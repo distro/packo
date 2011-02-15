@@ -93,6 +93,8 @@ class Package
 
   attr_reader :model, :environment
 
+  alias env environment
+
   def initialize (data)
     @data         = {}
     @environment  = Environment.new(self)

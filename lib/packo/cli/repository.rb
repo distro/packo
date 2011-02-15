@@ -242,7 +242,7 @@ class Repository < Thor
         packages.group_by {|package|
           "#{package.repository.type}/#{package.repository.name}"
         }.each {|name, packages|
-          print "#{packages.first.tags}/#{packages.first.name.bold}"
+          print "#{"#{packages.first.tags}/" unless packages.first.tags.empty?}#{packages.first.name.bold}"
 
           print ' ('
           print packages.map {|package|
@@ -278,17 +278,18 @@ class Repository < Thor
       packages.sort {|a, b|
         a.version <=> b.version
       }.each {|package|
-        print "[#{"source/#{package.repository.name}".black.bold}] "
+        print "<#{"source/#{package.repository.name}".black.bold}> "
         print package.name.bold
         print "-#{package.version.to_s.red}"
+        print " {#{package.revision.yellow.bold}}" if package.revision > 0
         print " (#{package.slot.blue.bold})" if package.slot
-        print " [#{package.tags.join(' ').magenta}]"
+        print " [#{package.tags.join(' ').magenta}]" if !package.tags.empty?
         print "\n"
 
-        puts "    #{'Description'.green}: #{package.description}"
-        puts "    #{'Homepage'.green}:    #{package.homepage}"
-        puts "    #{'License'.green}:     #{package.license}"
-        puts "    #{'Maintainer'.green}:  #{package.model.maintainer || 'nobody'}"
+        puts "    #{'Description'.green}: #{package.description}"      if package.description
+        puts "    #{'Homepage'.green}:    #{package.homepage}"         if package.homepage
+        puts "    #{'License'.green}:     #{package.license}"          if package.license
+        puts "    #{'Maintainer'.green}:  #{package.model.maintainer}" if package.maintainer
 
         case package.repository.type
           when :binary
@@ -310,7 +311,7 @@ class Repository < Thor
             }
 
           when :source
-            length = (package.model.data.flavor + package.model.data.features).map {|f|
+            length = (package.model.data.flavor.to_a + package.model.data.features.to_a).map {|f|
               f.name.length
             }.max
 

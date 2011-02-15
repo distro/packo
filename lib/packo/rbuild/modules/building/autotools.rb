@@ -260,10 +260,10 @@ class Autotools < Module
   def configure
     @configuration = Configuration.new(self)
 
-    @configuration.set 'prefix',         "#{System.env[:INSTALL_PATH]}/usr"
-    @configuration.set 'sysconfdir',     "#{System.env[:INSTALL_PATH]}/etc"
-    @configuration.set 'sharedstatedir', "#{System.env[:INSTALL_PATH]}/com"
-    @configuration.set 'localstatedir',  "#{System.env[:INSTALL_PATH]}/var"
+    @configuration.set 'prefix',         (System.env[:INSTALL_PATH] + '/usr').cleanpath
+    @configuration.set 'sysconfdir',     (System.env[:INSTALL_PATH] + '/etc').cleanpath
+    @configuration.set 'sharedstatedir', (System.env[:INSTALL_PATH] + '/com').cleanpath
+    @configuration.set 'localstatedir',  (System.env[:INSTALL_PATH] + '/var').cleanpath
 
     @configuration.set 'host',   package.host
     @configuration.set 'build',  package.host

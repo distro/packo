@@ -39,11 +39,11 @@ class Package
   property :slot,        String,  :default => '',                     :unique_index => :a
   property :revision,    Integer, :default => 0
 
-  property :description,  Text, :default => '', :required => false
-  property :homepage,     Text, :default => '', :required => false
-  property :license,      Text, :default => '', :required => false
+  property :description,  Text
+  property :homepage,     Text
+  property :license,      Text
 
-  property :maintainer, String, :required => false
+  property :maintainer, String
 
   after :create do |package|
     case package.repo.type

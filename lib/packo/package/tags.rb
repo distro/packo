@@ -30,7 +30,11 @@ class Tags < Array
 
   def initialize (*tags)
     tags.flatten.compact.each {|tag|
-      self << tag.to_s.downcase
+      self << tag.to_s.strip.downcase
+    }
+
+    reject! {|tag|
+      tag.empty?
     }
   end
 

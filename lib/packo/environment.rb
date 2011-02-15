@@ -17,7 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'tempfile'
 require 'tmpdir'
+require 'pathname'
 
 require 'packo/profile'
 require 'packo/flags'
@@ -229,6 +231,8 @@ class Environment < Hash
     self.each {|key, value|
       if key.to_s.end_with?('FLAGS')
         self[key] = Flags.parse(value.to_s)
+      elsif key.to_s.end_with?('PATH')
+        self[key] = Pathname.new(value.to_s)
       end
     }
   end
@@ -241,7 +245,9 @@ class Environment < Hash
     self.instance_exec(value, &@@callbacks[name.to_sym]) if @@callbacks[name.to_sym]
 
     if name.to_s.end_with?('FLAGS')
-      value = Flags.parse(value)
+      value = Flags.parse(value.to_s)
+    elsif name.to_s.end_with?('PATH')
+      value = Pathname.new(value.to_s)
     end
 
     super(name.to_sym, value)

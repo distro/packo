@@ -45,6 +45,10 @@ class Profile
     @paths.delete_if {|_, path|
       !File.file?(path) || !File.readable?(path)
     }
+
+    @paths.dup.each {|name, path|
+      @paths[name] = Pathname.new(path)
+    }
   end
 
   def method_missing (id, *args)
@@ -56,7 +60,7 @@ class Profile
       if respond_to? "#{id}="
         send "#{id}=", *args
       else
-        @paths[id] = (args.length > 1) ? args : args.first
+        @paths[id] = Pathname.new(args.first)
       end
     end
   end

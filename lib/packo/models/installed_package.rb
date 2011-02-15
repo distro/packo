@@ -37,8 +37,14 @@ class InstalledPackage
   property :slot,        String,  :default => '',                     :unique_index => :a
   property :revision,    Integer, :default => 0
 
-  property :flavor,  Text, :default => ''
-  property :features, Text, :default => ''
+  property :flavor,  Text
+  property :features, Text
+
+  property :description,  Text
+  property :homepage,     Text
+  property :license,      Text
+
+  property :maintainer, String
 
   property :manual, Boolean,                       :default => false
   property :type,   Enum[:both, :runtime, :build], :default => :both

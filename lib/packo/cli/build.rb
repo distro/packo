@@ -36,7 +36,126 @@ class Build < Thor
   method_option :wipe,       :type => :boolean, :default => false,            :aliases => '-w', :desc => 'Wipes the package directory before building it'
   method_option :ask,        :type => :boolean, :default => false,            :aliases => '-a', :desc => 'Prompt the user if he want to continue building or not'
   method_option :repository, :type => :string,                                :aliases => '-r', :desc => 'Set a specific source repository'
+  method_option :execute,    :type => :string,                                :aliases => '-x', :desc => 'Create a package from an executed command instead of from an RBuild'
+  method_option :bump,       :type => :boolean, :default => true,             :aliases => '-b', :desc => 'Bump revision when creating a package from command if package is installed'
+  method_option :inspect,    :type => :boolean, :default => false,            :aliases => '-i', :desc => 'Inspect the list of files that will be included in the package in EDITOR'
   def package (*packages)
+    if command = options[:execute]
+      package = Package.parse(packages.first)
+
+      unless package.name && package.version
+        CLI.fatal 'You have to pass a valid package name and version, like package-0.2'
+        exit 1
+      end
+
+      package = RBuild::Package.define(package.name, package.version) {
+        tags *package.tags
+
+        description "Built in: `#{Dir.pwd}` with `#{command}`"
+        maintainer  ENV['USER']
+      }
+
+      package.avoid RBuild::Behaviors::Default
+
+      package.clean!
+      package.create!
+
+      tmp = Tempfile.new('packo')
+      dir = "#{System.env[:TMP]}/#{Process.pid}"
+
+      tmp.write %{
+        #! /bin/sh
+
+        cd "#{Dir.pwd}"
+
+        #{command}
+
+        exit $?
+      }
+
+      tmp.chmod 0700
+      tmp.close
+
+      Packo.sh 'installwatch', "--logfile=#{package.tempdir}/newfiles.log", "--exclude=#{Dir.pwd}",
+        "--root=#{package.workdir}", '--transl=yes', '--backup=no', tmp.path
+
+      inspect = options[:inspect]
+
+      package.before :pack, :priority => -42 do
+        files = File.new("#{tempdir}/newfiles", 'w')
+
+        files.print File.new("#{tempdir}/newfiles.log", 'r').lines.map {|line| line.strip!
+          whole, type = line.match(/^.*?\t(.*?)\t/).to_a
+
+          case type
+            when 'chmod', 'open'
+              whole, file = line.match(/.*?\t.*?\t(.*?)(\t|$)/).to_a
+
+              next if file.match(%r[^(/dev|#{Regexp.escape(Dir.pwd)}|/tmp)(/|$)])
+
+              file
+
+            when 'symlink'
+              whole, to, file = line.match(/.*?\t.*?\t(.*?)\t(.*?)(\t|$)/).to_a
+
+              "#{file} -> #{to}"
+          end
+        }.compact.uniq.sort.join("\n")
+
+        files.close
+
+        if inspect
+          Packo.sh System.env[:EDITOR] || 'vi', files.path
+        end
+
+        links = []
+
+        File.new("#{tempdir}/newfiles", 'r').lines.each {|line|
+          whole, file, link = line.match(/^(.*?)(?: -> (.*?))?$/).to_a
+
+          FileUtils.mkpath "#{distdir}/#{File.dirname(file)}"
+
+          if link
+            links << [link, file]
+          else
+            FileUtils.cp "#{workdir}/TRANSL/#{file}", "#{distdir}/#{file}"
+          end
+        }
+
+        links.each {|(link, file)|
+          FileUtils.ln_sf link, "#{distdir}/#{file}" rescue nil
+        }
+      end
+
+      package.before :pack! do
+        if inspect
+          Packo.sh System.env[:EDITOR] || 'vi', "#{directory}/manifest.xml"
+        end
+      end
+
+      if options[:bump]
+        require 'packo/models'
+
+        if !Models.search_installed(package.to_s).empty?
+          package.revision = Models.search_installed(package.to_s).first.revision + 1
+        end
+      end
+
+      begin
+        package.build {|stage|
+          CLI.info "Executing #{stage.name}"
+        }
+
+        CLI.info "Succesfully built #{package}"
+      rescue Exception => e
+        CLI.fatal "Failed to build #{package}"
+        CLI.fatal e.message
+        Packo.debug e
+      end
+
+      exit 0
+    end
+
     Environment.new {|env|
       if !env[:ARCH] || !env[:KERNEL] || !env[:LIBC] || !env[:COMPILER]
         CLI.fatal 'You have to set ARCH, KERNEL, LIBC and COMPILER to build packages.'
@@ -113,7 +232,7 @@ class Build < Thor
       if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
         CLI.info "Cleaning #{package} because something changed."
 
-        clean("#{package.to_s(:name)}-#{package.version}")
+        clean("#{path}/#{package.name}-#{package.version}.rbuild")
 
         package.create!
 
@@ -283,6 +402,7 @@ class Build < Thor
 
     print package.name.bold
     print "-#{package.version.to_s.red}"
+    print " {#{package.revision.yellow.bold}}" if package.revision > 0
     print " (#{package.slot.blue.bold})" if package.slot
     print " [#{package.tags.join(' ').magenta}]"
     print "\n"
