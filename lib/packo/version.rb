@@ -17,12 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'versionomy'
-
 module Packo
 
 def self.version
-  Versionomy.parse('0.0.1')
+  '0.0.1'
 end
 
 end
