@@ -41,6 +41,10 @@ class Build < Thor
   method_option :inspect,    :type => :boolean, :default => false,            :aliases => '-i', :desc => 'Inspect the list of files that will be included in the package in EDITOR'
   def package (*packages)
     if command = options[:execute]
+      if System.env[:SANDBOX_ACTIVE] || System.env[:FAKED_MODE]
+        CLI.warn "`packo build -x` may not work properly, try with `packo-build -x` if it fails.\n\n"
+      end
+
       package = Package.parse(packages.first)
 
       unless package.name && package.version

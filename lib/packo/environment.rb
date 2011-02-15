@@ -118,9 +118,15 @@ class Environment < Hash
     ENV["PACKO_#{name}"] = value.to_s rescue ''
   end
 
-  def self.each
+  def self.each (limit=true)
     variables = (@@default.keys + (ENV.map {|(key, value)|
-      key.sub(/^PACKO_/, '').to_sym if key.match(/^PACKO_/)
+      if limit
+        key.sub(/^PACKO_/, '').to_sym if key.start_with?('PACKO_')
+      else
+        key.start_with?('PACKO_') ?
+          key.sub(/^PACKO_/, '').to_sym :
+          key.to_sym
+      end
     }.compact)).uniq
 
     if variables.member?(:FLAVORS)
@@ -216,7 +222,7 @@ class Environment < Hash
         self[key] = value unless self[key]
       }
     else
-      Environment.each {|key, value|
+      Environment.each(false) {|key, value|
         next if value.nil?
 
         # This is an array, not a call to self.[]
