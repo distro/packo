@@ -17,11 +17,25 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; module Behaviors
+module Packo; module RBuild; module Modules; module Building
 
-Default = [
-  Modules::Misc::Fetcher, Modules::Misc::Unpacker,
-  Modules::Building::Patch, Modules::Building::Autotools, Modules::Building::Strip
-]
+class Strip < Module
+  def initialize (package)
+    super(package)
 
-end; end; end
+    package.stages.add :strip, self.method(:strip), :before => :pack
+  end
+
+  def strip
+    package.stages.callbacks(:strip).do {
+      next if package.env[:NO_STRIP]
+
+      Find.find(package.distdir) {|file|
+        Packo.sh 'strip', file, :silent => true rescue nil
+      }
+    }
+  end
+end
+
+end; end; end; end
+

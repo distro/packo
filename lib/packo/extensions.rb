@@ -38,10 +38,10 @@ module Kernel
 end
 
 class File
-  def self.write (path, content, *args)
-    file = File.new(path, 'w', *args)
-    file.write(content)
-    file.close
+  def self.write (path, data, mode = 'wb')
+    open(path, mode) {|f|
+      f.write data
+    }
   end
 end
 

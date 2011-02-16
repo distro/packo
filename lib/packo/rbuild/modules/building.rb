@@ -20,3 +20,4 @@
 require 'packo/rbuild/modules/building/autotools'
 require 'packo/rbuild/modules/building/rake'
 require 'packo/rbuild/modules/building/patch'
+require 'packo/rbuild/modules/building/strip'

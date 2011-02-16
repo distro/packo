@@ -464,18 +464,22 @@ class Base < Thor
   end
 
   def _build (package, env)
-    FileUtils.rm_rf "#{env[:TMP]}/.__packo_build", :secure => true rescue nil
-    FileUtils.mkpath "#{env[:TMP]}/.__packo_build" rescue nil
+    tmp = Dir.pwd
+
+    FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
+    FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
     require 'packo/cli/build'
 
     begin
-      Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-
-      return Dir.glob("#{env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
-    rescue SystemExit
-      raise RuntimeError.new('Failed to build package')
+      System.env.sandbox(env) {
+        Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+      }
+    ensure
+      Dir.chdir tmp
     end
+
+    return Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
   end
 
   def _manifest (package, env)

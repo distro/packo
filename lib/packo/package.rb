@@ -93,12 +93,16 @@ class Package
 
   attr_reader :model, :environment
 
-  alias env environment
+  def environment!; @environmentClean; end
+
+  alias env  environment
+  alias env! environment!
 
   def initialize (data)
-    @data         = {}
-    @environment  = Environment.new(self)
-    @export       = []
+    @data             = {}
+    @environment      = Environment.new(self)
+    @environmentClean = Environment.new(self, true)
+    @export           = []
 
     data.each {|name, value|
       self.send "#{name}=", value

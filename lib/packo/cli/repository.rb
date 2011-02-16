@@ -429,7 +429,78 @@ class Repository < Thor
     }
   end
 
+  desc 'generate REPOSITORY [OPTIONS]', 'Generate a binary repository from sources'
+  method_option :repository, :type => :string,                               :aliases => '-r', :desc => 'Specify a source repository from where to get packages'
+  method_option :output,     :type => :string, :default => System.env[:TMP], :aliases => '-o', :desc => 'Specify output directory'
+  def generate (repository)
+    dom = Nokogiri::XML.parse(File.read(repository)) {|config|
+      config.default_xml.noblanks
+    }
+
+    dom.xpath('//packages/package').each {|e|
+      CLI.info "Generating #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}".bold if System.env[:VERBOSE]
+
+      e.xpath('.//build').each {|build|
+        package = Package.new(
+          :tags     => e['tags'],
+          :name     => e['name'],
+          :version  => build.parent['name'],
+          :slot     => (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
+
+          :repository => options[:repository]
+        )
+
+        package.flavor   = (build.xpath('.//flavor').first.text rescue '')
+        package.features = (build.xpath('.//features').first.text rescue '')
+
+        next if File.exists?("#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}/" +
+          "#{package.name}-#{package.version}#{"%#{package.slot}" if package.slot}" +
+          "#{"+#{package.flavor.to_s(:package)}" if !package.flavor.to_s(:package).empty?}" +
+          "#{"-#{package.features.to_s(:package)}" if !package.features.to_s(:package).empty?}" +
+          '.pko'
+        )
+
+        begin
+          pko = _build(package,
+            :FLAVOR   => package.flavor,
+            :FEATURES => package.features
+          )
+        rescue Exception => e
+          Packo.debug e
+          next
+        end
+
+        build.xpath('.//digest').each {|node| node.remove}
+        build.add_child dom.create_element('digest', Digest::SHA1.hexdigest(File.read(pko)))
+
+        FileUtils.mkpath "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
+        FileUtils.mv pko, "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
+      }
+    }
+
+    File.write(repository, dom.to_xml(:indent => 4))
+  end
+
   private
+
+  def _build (package, env)
+    tmp = Dir.pwd
+
+    FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
+    FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
+
+    require 'packo/cli/build'
+
+    begin
+      System.env.sandbox(env) {
+        Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+      }
+    ensure
+      Dir.chdir tmp
+    end
+
+    return Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+  end
 
   def _add (type, name, uri, path)
     Helpers::Repository.wrap(Models::Repository.create(

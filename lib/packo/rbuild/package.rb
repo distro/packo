@@ -274,8 +274,8 @@ class Package < Packo::Package
     return super(type) if super(type)
 
     case type
-      when :package;    "#{name}-#{version}#{"%#{slot}" if slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s.empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
-      when :everything; "#{super(:whole)} #{self.environment.reject {|n| n == :DEBUG}.to_s }}"
+      when :package;    "#{name}-#{version}#{"%#{slot}" if slot}#{"+#{@flavor.to_s(:package)}" if !@flavor.to_s(:package).empty?}#{"-#{@features.to_s(:package)}" if !@features.to_s(:package).empty?}"
+      when :everything; "#{super(:whole)} #{package.env!.reject {|n| n == :DEBUG}.to_s }}"
       else              "#{super(:whole)}#{"[#{@features.to_s}]" if !@features.to_s.empty?}#{"{#{@flavor.to_s}}" if !@flavor.to_s.empty?}"
     end
   end
