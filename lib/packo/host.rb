@@ -35,8 +35,8 @@ class Host
 
   def self.arch (value=System.env![:ARCH])
     case value
-      when 'core2'; 'x86_64'
-      when 'x86';   'i686'
+      when 'core2', 'k8'; 'x86_64'
+      when 'x86';         'i686'
 
       when 'i386', 'i486', 'i586', 'i686',
            'amd64', 'x86_64'

@@ -95,7 +95,7 @@ class Files < Thor
 
     packages.flatten.compact.each {|package|
       print "[#{package.repository.black.bold}] " if package.repository
-      print "#{package.tags}/"
+      print "#{package.tags}/" unless package.tags.empty?
       print package.name.bold
       print "-#{package.version.to_s.red}"
       print " (#{package.slot.to_s.blue.bold})" if package.slot
@@ -104,7 +104,7 @@ class Files < Thor
       print "\n"
 
       package.model.contents.each {|content|
-        path = "/#{content.path}"
+        path = (Pathname.new(package.model.destination || '/') + content.path[1, content.path.length]).cleanpath.to_s
 
         case content.type
           when :dir
