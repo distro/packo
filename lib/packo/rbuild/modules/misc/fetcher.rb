@@ -18,6 +18,7 @@
 #++
 
 require 'uri'
+require 'digest/sha1'
 
 module Packo; module RBuild; module Modules; module Misc
 
@@ -56,7 +57,8 @@ class Fetcher < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :fetch, self.method(:fetch), :after => :beginning
+    package.stages.add :fetch,  self.method(:fetch),  :after => :beginning
+    package.stages.add :digest, self.method(:digest), :after => :fetch, :strict => true
 
     after :initialize do |result, package|
       package.define_singleton_method :fetch, &Fetcher.method(:fetch)
@@ -64,7 +66,8 @@ class Fetcher < Module
   end
 
   def finalize
-    package.stages.delete :fetch, self.method(:fetch)
+    package.stages.delete :fetch,  self.method(:fetch)
+    package.stages.delete :digest, self.method(:digest)
   end
 
   def fetch
@@ -99,6 +102,30 @@ class Fetcher < Module
     end
 
     package.distfiles = distfiles
+  end
+
+  def digest
+    package.stages.callbacks(:digest).do(package.distfiles) {
+      if package.distfiles.is_a?(Hash)
+        distfiles = package.distfiles.values
+      else
+        distfiles = package.distfiles
+      end
+
+      distfiles.each {|file|
+        original = package.digests.find {|digest|
+          digest.name == File.basename(file)
+        }.digest rescue nil
+
+        next unless original
+
+        digest = Digest::SHA1.hexdigest(File.read(file))
+
+        if digest != original
+          raise ArgumentError.new("#{File.basename(file)} digest is #{digest} but should be #{original}")
+        end
+      }
+    }
   end
 end
 

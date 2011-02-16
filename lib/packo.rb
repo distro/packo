@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'ostruct'
+
 module Packo
   def self.sh (*cmd, &block)
     options = (Hash === cmd.last) ? cmd.pop : {}
@@ -116,6 +118,10 @@ module Packo
             }
           }
         end
+
+        files = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/files/file").map {|file|
+          OpenStruct.new(:name => file['name'], :digest => file.text)
+        }
       end
 
       begin
@@ -136,6 +142,8 @@ module Packo
         if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
           RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
         end
+
+        RBuild::Package.last.digests = files
 
         return RBuild::Package.last
       end

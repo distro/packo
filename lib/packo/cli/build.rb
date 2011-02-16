@@ -308,10 +308,10 @@ class Build < Thor
       Dir.chdir(File.dirname(file))
 
       begin
-        if File.basename(package).match(/.*?-\d/)
-          package = Packo.loadPackage(File.dirname(package), Package.parse(File.basename(package).sub(/\.rbuild$/, '')))
+        if File.basename(file).match(/.*?-\d/)
+          package = Packo.loadPackage(File.dirname(file), Package.parse(File.basename(file).sub(/\.rbuild$/, '')))
         else
-          package = Packo.loadPackage(package)
+          package = Packo.loadPackage(file)
         end
       rescue LoadError
         CLI.fatal 'Failed to load the rbuild'

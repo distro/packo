@@ -262,8 +262,6 @@ class Base < Thor
       length = "#{path}/dist/".length
       old    = path
 
-      contents = Hash[:dir => {}, :obj => {}, :sym => {}]
-
       begin
         Find.find("#{path}/dist") {|file|
           next unless file[length, file.length]
@@ -283,14 +281,31 @@ class Base < Thor
             raise RuntimeError.new 'File collision'
           end
   
-          if File.symlink?(file)
-            contents[type = :sym][path] = true
-            meta                        = File.readlink(file)
-          elsif File.directory?(file)
-            contents[type = :dir][path] = true
+          if File.directory?(file)
+            begin
+              FileUtils.mkpath(path)
+              puts "--- #{path if path != '/'}/"
+            rescue
+              puts "--- #{path if path != '/'}/".red
+            end
+          elsif File.symlink?(file)
+            meta = File.readlink(file)
+
+            begin
+              FileUtils.ln_sf meta, path
+              puts ">>> #{path} -> #{meta}".cyan.bold
+            rescue
+              puts ">>> #{path} -> #{meta}".red
+            end
           elsif File.file?(file)
-            contents[type = :obj][path] = file
-            meta                        = Digest::SHA1.hexdigest(File.read(file))
+            meta = Digest::SHA1.hexdigest(File.read(file))
+
+            begin
+              FileUtils.cp file, path, :preserve => true
+              puts ">>> #{path}".bold
+            rescue
+              puts ">>> #{path}".red
+            end
           else
             next
           end
@@ -303,54 +318,6 @@ class Base < Thor
           content.update(
             :meta => meta
           )
-        }
-
-        contents[:dir].each_key {|path|
-          begin
-            FileUtils.mkpath(path)
-          rescue
-            contents[:dir][path] = false
-          end
-        }
-
-        contents[:obj].each_key {|path|
-          begin
-            FileUtils.cp(contents[:obj][path], path, :preserve => true)
-          rescue
-            contents[:obj][path] = false
-          end
-        }
-
-        contents[:sym].each_key {|file|
-          begin
-            FileUtils.ln_sf(link, file)
-          rescue
-            contents[:sym][path] = false
-          end
-        }
-
-        (contents[:dir].keys + contents[:obj].keys + contents[:sym].keys).sort.each {|path|
-          if contents[:dir].has_key?(path)
-            type = :dir
-          elsif contents[:obj].has_key?(path)
-            type = :obj
-          elsif contents[:sym].has_key?(path)
-            type = :sym
-          end
-
-          if contents[type][path]
-            case type
-              when :dir; puts "--- #{path if path != '/'}/"
-              when :sym; puts ">>> #{path} -> #{meta}".cyan.bold
-              when :obj; puts ">>> #{path}".bold
-            end
-          else
-            case type
-              when :dir; puts "--- #{path if path != '/'}/".red
-              when :sym; puts ">>> #{path} -> #{meta}".red
-              when :obj; puts ">>> #{path}".red
-            end
-          end
         }
 
         pkg.save
