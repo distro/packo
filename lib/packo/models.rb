@@ -124,7 +124,7 @@ module Models
   
     if name && !name.empty?
       repository      = Packo::Repository.parse(name)
-      repository.type = type if Packo::Repository::Types.member?(type.to_sym)
+      repository.type = type if type && Packo::Repository::Types.member?(type.to_sym)
       repository      = Models::Repository.first(repository.to_hash)
   
       if repository

@@ -464,14 +464,14 @@ class Base < Thor
   end
 
   def _build (package, env)
-
     FileUtils.rm_rf "#{env[:TMP]}/.__packo_build", :secure => true rescue nil
     FileUtils.mkpath "#{env[:TMP]}/.__packo_build" rescue nil
 
     require 'packo/cli/build'
 
     begin
-      Packo::CLI::Build.start(['package' "--output='#{env[:TMP]}/.__packo_build'", "--repository='#{package.repository}", package.to_s(:whole)])
+      Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+
       return Dir.glob("#{env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
     rescue SystemExit
       raise RuntimeError.new('Failed to build package')
@@ -479,7 +479,11 @@ class Base < Thor
   end
 
   def _manifest (package, env)
-    `sandbox packo-build --repository='#{package.repository}' manifest #{package.to_s(:whole)}`.strip
+    tmp = Models.search(package.to_s, options[:repository])
+
+    package = Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
+
+    RBuild::Package::Manifest.new(package).to_s
   end
 
   def _has (package, env)
@@ -492,10 +496,10 @@ class Base < Thor
   end
 
   def _filter (package, env)
-    env[:FLAVOR] = env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.join(' ')
+    env[:FLAVOR] = (env[:FLAVOR] || '').split(/\s+/).reject {|f| f == 'binary'}.join(' ')
 
     features       = Models.search(package.to_s(:whole), package.repository.name, package.repository.type).first.features
-    env[:FEATURES] = env[:FEATURES].split(/\s+/).delete_if {|f|
+    env[:FEATURES] = (env[:FEATURES] || '').split(/\s+/).delete_if {|f|
       !features.has?(f)
     }.join(' ')
   end
