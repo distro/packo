@@ -88,19 +88,19 @@ class Host
   end
 
   def arch= (value)
-    @arch = Host.arch(value)
+    @arch = Host.arch(value) rescue 'unknown'
   end
 
   def vendor= (value)
-    @vendor = Host.vendor(value)
+    @vendor = Host.vendor(value) rescue 'unknown'
   end
 
   def kernel= (value)
-    @kernel = Host.kernel(value)
+    @kernel = Host.kernel(value) rescue 'unknown'
   end
 
   def misc= (value)
-    @misc = Host.misc(value)
+    @misc = Host.misc(value) rescue 'unknown'
   end
 
   def == (value)
