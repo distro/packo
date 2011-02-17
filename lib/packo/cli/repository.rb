@@ -465,41 +465,39 @@ class Repository < Thor
             :FLAVOR   => package.flavor,
             :FEATURES => package.features
           )
+
+          build.xpath('.//digest').each {|node| node.remove}
+          build.add_child dom.create_element('digest', Digest::SHA1.hexdigest(File.read(pko)))
+
+          FileUtils.mkpath "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
+          FileUtils.mv pko, "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
         rescue Exception => e
           Packo.debug e
-          next
         end
 
-        build.xpath('.//digest').each {|node| node.remove}
-        build.add_child dom.create_element('digest', Digest::SHA1.hexdigest(File.read(pko)))
-
-        FileUtils.mkpath "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
-        FileUtils.mv pko, "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
+        File.write(repository, dom.to_xml(:indent => 4))
       }
     }
-
-    File.write(repository, dom.to_xml(:indent => 4))
   end
 
   private
 
   def _build (package, env)
-    tmp = Dir.pwd
+    Do.cd {
+      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
+      FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
-    FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
-    FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
+      require 'packo/cli/build'
 
-    require 'packo/cli/build'
+      begin
+        System.env.sandbox(env) {
+          Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+        }
+      rescue
+      end
 
-    begin
-      System.env.sandbox(env) {
-        Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-      }
-    ensure
-      Dir.chdir tmp
-    end
-
-    return Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+      Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+    }
   end
 
   def _add (type, name, uri, path)

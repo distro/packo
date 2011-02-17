@@ -17,49 +17,37 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'ostruct'
+module Packo; module RBuild; module Modules; module Misc; module Fetching
 
-class Object
-  def numeric?
-    true if Float(self) rescue false
+class Git < Module
+  def initialize (package)
+    super(package)
+
+    package.avoid [Fetcher, Unpacker]
+
+    package.stages.add :fetch, self.method(:fetch), :after => :beginning
   end
-end
 
-module Kernel
-  def suppress_warnings
-    tmp, $VERBOSE = $VERBOSE, nil
-
-    result = yield
-
-    $VERBOSE = tmp
-
-    return result
+  def finalize
+    package.stages.delete :fetch, self.method(:fetch)
   end
-end
 
-class File
-  def self.write (path, data, mode=nil)
-    open(path, 'wb') {|f|
-      f.write data
-      f.chmod mode if mode
+  def fetch
+    package.stages.callbacks(:fetch).do {
+      whole, url, branch, commit = package.source.match(%r[^(\w+://.*?)(?::(.*?))?(?:@(.*?))?$]).to_a
+
+      package.clean!
+      package.create!
+
+      options = []
+      options << '--branch' << branch if branch
+      options << '--depth'  << '1'    if !commit
+
+      Packo.sh 'git', 'clone', *options, url, package.workdir
+
+      Do.cd package.workdir
     }
   end
 end
 
-class String
-  def interpolate (on)
-    on.instance_eval("%{#{self}}") rescue self
-  end
-
-  alias __old_equal ===
-
-  def === (value)
-    value.is_a?(Packo::Host) ?
-      value == self :
-      __old_equal(value)
-  end
-end
-
-class OpenStruct
-  alias to_hash marshal_dump
-end
+end; end; end; end; end

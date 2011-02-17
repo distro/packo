@@ -329,9 +329,13 @@ class Build < Thor
         throw :halt
       end
     
-      package.build
+      Do.cd {
+        package.build
+      }
 
-      original = Nokogiri::XML.parse(File.read('digest.xml')) rescue nil
+      original = Nokogiri::XML.parse(File.read('digest.xml')) {|config|
+        config.default_xml.noblanks
+      }
   
       builder = Nokogiri::XML::Builder.new {|xml|
         xml.digest(:version => '1.0') {
@@ -341,7 +345,7 @@ class Build < Thor
             xml.files {
               package.distfiles.each {|file|
                 xml.file({ :name => File.basename(file) }, Digest::SHA1.hexdigest(File.read(file)))
-              }
+              } if package.distfiles
             }
           }
 

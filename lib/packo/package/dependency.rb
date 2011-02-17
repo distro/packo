@@ -55,7 +55,7 @@ class Dependency < Package
   end
 
   def runtime?; [:runtime, :both].member?(@type) end
-  def build?;   [:build, :both].member(@type)    end
+  def build?;   [:build,   :both].member?(@type) end
   def both?;    @type == :both                   end
 
   def in? (package)

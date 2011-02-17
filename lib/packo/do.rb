@@ -19,16 +19,17 @@
 
 require 'fileutils'
 
-module Packo; module RBuild;
+module Packo
 
 class Do
-  def self.cd (path)
+  def self.cd (path=nil)
     if block_given?
       tmp = Dir.pwd
 
-      Dir.chdir(path)
-      yield
+      Dir.chdir(path) if path
+      result = yield
       Dir.chdir(tmp)
+      result
     else
       Dir.chdir(path) rescue false
     end
@@ -211,4 +212,4 @@ class Do
   # TODO: wrappers
 end
 
-end; end
+end

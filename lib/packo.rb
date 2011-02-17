@@ -166,6 +166,7 @@ end
 require 'packo/version'
 require 'packo/extensions'
 require 'packo/system'
+require 'packo/do'
 require 'packo/cli'
 require 'packo/repository'
 require 'packo/package'

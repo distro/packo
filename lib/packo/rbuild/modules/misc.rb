@@ -19,3 +19,4 @@
 
 require 'packo/rbuild/modules/misc/fetcher'
 require 'packo/rbuild/modules/misc/unpacker'
+require 'packo/rbuild/modules/misc/fetching/git'

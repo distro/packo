@@ -50,11 +50,11 @@ class Manifest
       }],
 
       :dependencies => dom.xpath('//dependencies/dependency').map {|dependency|
-        Package::Dependency.parse("#{dependency.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
+        Package::Dependency.parse("#{dependency.text}#{['', '!', '!!'][['both', 'build', 'runtime'].index(dependency['type'])]}")
       },
 
       :blockers => dom.xpath('//blockers/blocker').map {|blocker|
-        Package::Blocker.parse("#{blocker.text}#{['', '!', '!!'][['runtime', 'build', 'both'].index(dependency['type'])]}")
+        Package::Blocker.parse("#{blocker.text}#{['', '!', '!!'][['both', 'build', 'runtime'].index(dependency['type'])]}")
       },
 
       :selector => dom.xpath('//selectors/selector').map {|selector|

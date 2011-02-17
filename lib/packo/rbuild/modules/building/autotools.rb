@@ -166,12 +166,16 @@ class Autotools < Module
 
         @versions = {}
         @enabled  = true
+        @forced   = false
       end
 
       def enabled?;   @enabled         end
       def disabled?; !@enabled         end
       def enable!;    @enabled = true  end
       def disable!;   @enabled = false end
+
+      def forced?; @forced        end
+      def force!;  @forced = true end
 
       def configure (conf)
         package.environment.sandbox {
@@ -278,7 +282,9 @@ class Autotools < Module
         }
       end
 
-      package.autotools.configure(@configuration)
+      if !File.exists?('Makefile') || package.autotools.forced?
+        package.autotools.configure(@configuration)
+      end
     }
   end
 

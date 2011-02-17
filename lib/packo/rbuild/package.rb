@@ -24,7 +24,6 @@ require 'packo/package'
 require 'packo/package/dependencies'
 require 'packo/package/blockers'
 
-require 'packo/rbuild/do'
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
 require 'packo/rbuild/flavor'

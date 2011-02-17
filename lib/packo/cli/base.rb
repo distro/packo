@@ -53,6 +53,8 @@ class Base < Thor
     end
 
     names.each {|name|
+      CLI.info "Installing #{name}"
+
       if File.extname(name).empty?
         packages = nil
   
@@ -97,8 +99,6 @@ class Base < Thor
           end
   
           env = Environment.new(package)
-  
-          _filter(package, env)
   
           if package.repository.type == :binary && !_has(package, env)
             CLI.warn 'The binary package is not available with the features you asked for, trying to build from source'
@@ -464,30 +464,29 @@ class Base < Thor
   end
 
   def _build (package, env)
-    tmp = Dir.pwd
+    Do.cd {
+      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
+      FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
-    FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
-    FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
+      require 'packo/cli/build'
 
-    require 'packo/cli/build'
+      begin
+        System.env.sandbox(env) {
+          Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+        }
+      rescue
+      end
 
-    begin
-      System.env.sandbox(env) {
-        Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-      }
-    ensure
-      Dir.chdir tmp
-    end
-
-    return Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+      Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+    }
   end
 
   def _manifest (package, env)
     tmp = Models.search(package.to_s, options[:repository])
 
-    package = Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
-
-    RBuild::Package::Manifest.new(package).to_s
+    RBuild::Package::Manifest.new(
+      Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
+    ).to_s
   end
 
   def _has (package, env)
@@ -497,15 +496,6 @@ class Base < Thor
         build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
       }
     }
-  end
-
-  def _filter (package, env)
-    env[:FLAVOR] = (env[:FLAVOR] || '').split(/\s+/).reject {|f| f == 'binary'}.join(' ')
-
-    features       = Models.search(package.to_s(:whole), package.repository.name, package.repository.type).first.features
-    env[:FEATURES] = (env[:FEATURES] || '').split(/\s+/).delete_if {|f|
-      !features.has?(f)
-    }.join(' ')
   end
 
   def _digest (package, env)
