@@ -335,7 +335,7 @@ class Build < Thor
 
       original = Nokogiri::XML.parse(File.read('digest.xml')) {|config|
         config.default_xml.noblanks
-      }
+      } rescue nil
   
       builder = Nokogiri::XML::Builder.new {|xml|
         xml.digest(:version => '1.0') {

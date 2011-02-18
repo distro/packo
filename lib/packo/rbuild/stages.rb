@@ -23,8 +23,6 @@ require 'packo/rbuild/stages/callbacks'
 module Packo; module RBuild
 
 class Stages
-  Cycles = 23
-
   module Callable
     def before (name, data=nil, &block)
       self.package.stages.register(:before, name, block, { :binding => self }.merge(data || {}))
@@ -70,37 +68,35 @@ class Stages
   #
   # In short it tries to sort stuff as it wanted to be placed depending on stage's options
   def sort! (strict=false)
-    if @sorted
-      return false
-    end
+    return if @sorted
 
-    if strict
-      stages = @stages.select {|stage|
-        stage.options[:strict]
-      }
-
+    functions = [lambda {|stages|
       stages.each {|stage|
-        if (!stage.options[:before] && !stage.options[:after]) || stage.options[:before] == :end || stage.options[:after] == :beginning
-          next
-        end
+        next if (!stage.options[:before] && !stage.options[:after]) || stage.options[:before] == :end || stage.options[:after] == :beginning
 
         @stages.delete(stage)
 
-        if stage.options[:before]
-          if (index = @stages.find_index {|s| s.name == stage.options[:before]})
-            @stages.insert(index, stage)
-          end
-        elsif stage.options[:after]
-          if (index = @stages.find_index {|s| s.name == stage.options[:after]})
-            @stages.insert(index + 1, stage)
-          end
-        end
-      }
+        index = nil
 
-      stages.each {|stage|
-        if !stage.options[:at]
-          next
+        if stage.options[:before]
+          index = @stages.find_index {|s|
+            s.name == stage.options[:before]
+          }
         end
+        
+        if stage.options[:after]
+          index = @stages.find_index {|s|
+            s.name == stage.options[:after]
+          }
+        end
+
+        @stages.insert(index + 1, stage) if index
+      }
+    },
+
+    lambda {|stages|
+      stages.each {|stage|
+        next if !stage.options[:at]
 
         @stages.delete(stage)
 
@@ -110,56 +106,51 @@ class Stages
           @stages.push stage
         end
       }
+    },
 
+    lambda {|stages|
       stages.each {|stage|
-        if stage.options[:before] != :end && stage.options[:after] != :beginning
-          next
-        end
+        next if stage.options[:before] != :end && stage.options[:after] != :beginning
 
         @stages.delete(stage)
 
         if stage.options[:after] == :beginning
-          index = @stages.reverse.find_index {|s| s.options[:at] == :beginning} || @stages.length + 1
+          index = @stages.reverse.find_index {|s|
+            s.options[:at] == :beginning
+          } || @stages.length
+
           @stages.insert(@stages.length - index, stage)
         elsif stage.options[:before] == :end
-          index = @stages.find_index {|s| s.options[:at] == :end} || @stages.length
-          @stages.insert(index, stage)
+          index = @stages.find_index {|s|
+            s.options[:at] == :end
+          } || 0
+
+          @stages.insert(index - 1, stage)
         end
       }
-    else
-      old, @stages, cycles = @stages, [], 0
+    }]
 
-      while old.length > 0 && cycles < Cycles
-        old.clone.each {|stage|
-          if target = stage.options[:at]
-            if target == :beginning
-              @stages.unshift old.delete(stage)
-            elsif target == :end
-              @stages.push old.delete(stage)
-            end
-          elsif stage.options[:before] && stage.options[:before] != :end
-            if (index = @stages.find_index {|s| s.name == stage.options[:before]})
-              @stages.insert(index, old.delete(stage))
-            end
-          elsif stage.options[:after] && stage.options[:after] != :beginning
-            if (index = @stages.find_index {|s| s.name == stage.options[:after]})
-              @stages.insert(index + 1, old.delete(stage))
-            end
-          else
-            index = @stages.reverse.find_index {|s| s.options[:at] == :beginning} || @stages.length + 1
-            @stages.insert(@stages.length - index + 1, old.delete(stage))
-          end
+    functions.reverse! unless strict
 
-          @stages.compact!
+    functions.each {|function|
+      if strict
+        stages = @stages.select {|stage|
+          stage.options[:strict]
         }
-
-        cycles += 1
+      else
+        stages = @stages.dup
       end
 
-      self.sort!(true)
+      stages = stages.group_by {|stage|
+        stage.options[:priority]
+      }
 
-      old
-    end
+      stages.keys.sort.reverse_each {|key|
+        function.call(stages[key])
+      }
+    }
+
+    self.sort!(true) if !strict
 
     @sorted = true
   end
@@ -168,7 +159,10 @@ class Stages
   def restart!; @stopped = false; end
 
   def each (&block)
+
+    ap @stages
     self.sort!
+    ap @stages
 
     @stages.each {|stage|
       block.call stage

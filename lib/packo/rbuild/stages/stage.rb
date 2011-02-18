@@ -30,6 +30,8 @@ class Stage
     if (@options[:at] || @options[:after] == :beginning || @options[:before] == :ending) && @options[:strict].nil?
       @options[:strict] = true
     end
+
+    @options[:priority] ||= 0
   end
 
   def call (*args)

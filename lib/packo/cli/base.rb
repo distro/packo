@@ -251,7 +251,7 @@ class Base < Thor
         :homepage    => manifest.package.homepage,
         :license     => manifest.package.license,
         
-    :manual => manual,
+        :manual => manual,
         :type   => type
       )
 

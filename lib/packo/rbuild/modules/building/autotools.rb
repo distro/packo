@@ -184,7 +184,7 @@ class Autotools < Module
       end
 
       def autogen
-        self.autoreconf
+        self.autoreconf '-i'
         self.autoheader
         self.automake
       end
@@ -244,7 +244,9 @@ class Autotools < Module
       end
 
       def install (path=nil, *args)
-        package.environment.sandbox {
+        package.environment.sandbox(:DESTDIR => path || package.distdir) {
+          puts ENV['DESTDIR']
+
           self.make "DESTDIR=#{path || package.distdir}", 'install', *args
         }
       end
