@@ -21,15 +21,17 @@ module Packo; module RBuild; module Modules; module Building
 
 class Patch < Module
   def self.do (patch, options={})
+    return unless patch
+
     begin
       if patch.is_a?(FFFS::File) || options[:stream]
         temp = Tempfile.new('patch')
         temp.write patch.to_s
-        temp.close
+        temp.flush
 
         Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'"
 
-        temp.unlink
+        temp.close(true)
       else
         Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
       end

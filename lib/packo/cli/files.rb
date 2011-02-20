@@ -67,11 +67,11 @@ class Files < Thor
         exit! 10
       end
 
-      package.model.contents.each {|content|
+      package.model.contents.each {|content| content.check!
         case content.type
-          when :dir; puts "--- /#{content.path}#{'/' if !content.path.empty?}"
-          when :sym; puts ">>> /#{content.path} -> #{content.meta}".cyan.bold
-          when :obj; puts ">>> /#{content.path}".bold
+          when :dir; puts "--- #{content.path}#{'/' if !content.path.empty?}"
+          when :sym; puts ">>> #{content.path} -> #{content.meta}".cyan.bold
+          when :obj; puts ">>> #{content.path}".bold
         end
       }
     end

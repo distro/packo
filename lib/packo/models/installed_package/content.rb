@@ -31,6 +31,20 @@ class Content
   property :path, Text
 
   property :meta, Object, :required => false
+
+  def check!
+    return if self.type
+
+    if File.directory?(self.path)
+      self.type = :dir
+    elsif File.symlink?(self.path)
+      self.type = :sym
+    elsif File.file?(self.path)
+      self.type = :obj
+    end
+
+    self.save
+  end
 end
 
 end; end; end

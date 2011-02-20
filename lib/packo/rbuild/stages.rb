@@ -159,10 +159,7 @@ class Stages
   def restart!; @stopped = false; end
 
   def each (&block)
-
-    ap @stages
     self.sort!
-    ap @stages
 
     @stages.each {|stage|
       block.call stage

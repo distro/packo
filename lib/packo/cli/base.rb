@@ -282,6 +282,8 @@ class Base < Thor
           end
   
           if File.directory?(file)
+            type = :dir
+
             begin
               FileUtils.mkpath(path)
               puts "--- #{path if path != '/'}/"
@@ -289,6 +291,7 @@ class Base < Thor
               puts "--- #{path if path != '/'}/".red
             end
           elsif File.symlink?(file)
+            type = :sym
             meta = File.readlink(file)
 
             begin
@@ -298,6 +301,7 @@ class Base < Thor
               puts ">>> #{path} -> #{meta}".red
             end
           elsif File.file?(file)
+            type = :obj
             meta = Digest::SHA1.hexdigest(File.read(file))
 
             begin
@@ -353,7 +357,7 @@ class Base < Thor
       end
 
       packages.each {|installed|
-        installed.model.contents.each {|content|
+        installed.model.contents.each {|content| content.check!
           path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
 
           case content.type
