@@ -32,7 +32,7 @@ class Flags < Array
     values.each {|value|
       super(value.to_s.strip)
     }
-  
+
     self
   end
 

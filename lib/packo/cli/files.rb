@@ -120,7 +120,7 @@ class Files < Thor
             else
               puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}".green
             end
-            
+
           when :obj
             if content.meta != (Digest::SHA1.hexdigest(File.read(path)) rescue nil)
               puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path}".red

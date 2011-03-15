@@ -62,7 +62,7 @@ class Package < Packo::Package
 
     if !self.version
       @block = block
-      
+
       return @@packages[:last] = self
     end
 

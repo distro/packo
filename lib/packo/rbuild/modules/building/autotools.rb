@@ -277,7 +277,7 @@ class Autotools < Module
 
     package.stages.callbacks(:configure).do(@configuration) {
       next if package.autotools.disabled?
-      
+
       if !File.exists? @configuration.path
         Do.cd(File.dirname(@configuration.path)) {
           package.autotools.autogen

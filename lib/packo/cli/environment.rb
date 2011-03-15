@@ -30,7 +30,7 @@ class Environment < Thor
   desc 'show', 'Show the current system environment'
   def show
     length = System.env!.map {|(name, value)| name.length}.max
-    
+
     System.env!.each {|(name, value)|
       puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
     }

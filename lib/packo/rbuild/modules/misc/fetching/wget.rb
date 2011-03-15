@@ -23,7 +23,7 @@ class Wget < Module
   def self.fetch (path, to, package={})
     Packo.sh 'wget', '-c', '-O', to, path
   end
-  
+
   def self.url (url, package={})
     Packo.interpolate(url, package)
   end

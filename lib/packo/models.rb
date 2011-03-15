@@ -118,15 +118,15 @@ module Models
       Package.wrap(pkg)
     }
   end
-  
+
   def self.search (expression, name=nil, type=nil, exact=false)
     packages = []
-  
+
     if name && !name.empty?
       repository      = Packo::Repository.parse(name)
       repository.type = type if type && Packo::Repository::Types.member?(type.to_sym)
       repository      = Models::Repository.first(repository.to_hash)
-  
+
       if repository
         packages << repository.search(expression, exact)
       end
@@ -139,7 +139,7 @@ module Models
         end
       }
     end
-  
+
     return packages.flatten.compact.map {|package|
       Package.wrap(package)
     }

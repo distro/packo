@@ -47,7 +47,7 @@ class Definition
 
   def import
     query = ''
-    
+
     query << 'BEGIN;'
 
     query << 'COMMIT;'

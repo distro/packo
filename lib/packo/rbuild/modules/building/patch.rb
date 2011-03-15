@@ -66,7 +66,7 @@ class Patch < Module
   end
 
   private
-    
+
   def _patch (what)
     if what.is_a?(FFFS::Directory)
       what.sort.each {|(name, file)|

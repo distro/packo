@@ -37,12 +37,12 @@ class Select < Thor
   desc 'delete NAME', 'Delete a module from the database'
   def delete (name)
     selector = Models::Selector.first(:name => name)
-    
+
     if !selector
       fatal "#{name} doesn't exist"
       exit! 30
     end
-    
+
     selector.destroy
 
     CLI.info "#{name} deleted"

@@ -83,7 +83,7 @@ class Stages
             s.name == stage.options[:before]
           }
         end
-        
+
         if stage.options[:after]
           index = @stages.find_index {|s|
             s.name == stage.options[:after]

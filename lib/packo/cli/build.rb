@@ -174,25 +174,25 @@ class Build < Thor
         require 'packo/models'
 
         packages = Models.search(package, options[:repository])
-  
+
         names = packages.group_by {|package|
           "#{package.tags}/#{package.name}"
         }.map {|(name, package)| name}.uniq
-  
+
         if names.length == 0
           CLI.fatal "No package matches #{package}"
 
           exit 10
         elsif names.length > 1
           CLI.fatal "More than one package matches: #{package}"
-  
+
           names.each {|name|
             puts "    #{name}"
           }
-          
+
           exit 11
         end
-  
+
         packages.sort {|a, b|
           a.version <=> b.version
         }.last
@@ -328,7 +328,7 @@ class Build < Thor
 
         throw :halt
       end
-    
+
       Do.cd {
         package.build
       }
@@ -336,7 +336,7 @@ class Build < Thor
       original = Nokogiri::XML.parse(File.read('digest.xml')) {|config|
         config.default_xml.noblanks
       } rescue nil
-  
+
       builder = Nokogiri::XML::Builder.new {|xml|
         xml.digest(:version => '1.0') {
           xml.build(:version => package.version, :slot => package.slot) {

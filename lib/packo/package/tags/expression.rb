@@ -48,7 +48,7 @@ class Expression
             name        = nil
           end
         end
-  
+
         if name || logic
           name  << char if name
           logic << char if logic

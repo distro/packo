@@ -26,13 +26,13 @@ class Thor
       list = printable_tasks(true, subcommand)
       Thor::Util.thor_classes_in(self).each do |klass|
         list += klass.printable_tasks(false)
-      end 
+      end
 
       shell.say 'Commands:'
       shell.print_table(list, :ident => 2, :truncate => true)
       shell.say
       class_options_help(shell)
-    end 
+    end
   end
 
   module Base
@@ -42,7 +42,7 @@ class Thor
           raise UndefinedTaskError, "Could not find command #{task.inspect} in #{namespace.inspect} namespace."
         else
           raise UndefinedTaskError, "Could not find command #{task.inspect}."
-        end 
+        end
       end
     end
   end

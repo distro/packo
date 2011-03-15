@@ -30,7 +30,7 @@ class Unpacker < Module
     block = @@formats.find {|regexp, block|
       path.match(regexp)
     }.last rescue nil
-    
+
     if block
       FileUtils.mkpath(to) rescue nil
       block.call(path, to)

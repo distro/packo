@@ -57,7 +57,7 @@ class Environment < Hash
 
   if Process.euid == 0 && ENV['USER'] == 'root'
     @@default.merge!(
-      :CONFIG_PATH  => '/etc/packo', 
+      :CONFIG_PATH  => '/etc/packo',
       :INSTALL_PATH => '/',
 
       :DATABASE => 'sqlite:///var/lib/packo/db',

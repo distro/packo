@@ -232,7 +232,7 @@ class Repository < Thor
   map '--search' => :search, '-Ss' => :search
   method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
   method_option :full,       :type => :boolean, :default => false, :aliases => '-F', :desc => 'Include the repository that owns the package'
-  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type' 
+  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type'
   method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
   def search (expression='')
     Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|
@@ -261,7 +261,7 @@ class Repository < Thor
 
         print ")"
       end
-      
+
       print "\n"
     }
   end
@@ -269,7 +269,7 @@ class Repository < Thor
   desc 'info [EXPRESSION] [OPTIONS]', 'Search packages with the given expression and return detailed informations about them'
   map '--info' => :info, '-I' => :info
   method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
-  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type' 
+  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type'
   method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
   def info (expression='')
     Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|

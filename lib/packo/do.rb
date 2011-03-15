@@ -151,7 +151,7 @@ class Do
       FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), "#{root}/lib/#{File.basename(name || file)}", :verbose => @verbose
     }
   end
-  
+
   def doc (*docs)
     into("/usr/share/doc/#{package.name}-#{package.version}") {
       docs.map {|doc| Dir.glob(doc)}.flatten.each {|(file, name)|
