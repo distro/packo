@@ -57,10 +57,10 @@ class Base < Thor
 
       if File.extname(name).empty?
         packages = nil
-  
+
         if System.env[:FLAVOR].include?('binary')
           packages = Models.search(name, options[:repository], :binary)
-  
+
           if packages.empty?
             CLI.warn "#{name} could not be found in the binary repositories, looking in source repositories"
             packages = nil
@@ -68,38 +68,38 @@ class Base < Thor
             binary = true
           end
         end
-  
+
         begin
           if !packages
             packages = Models.search(name, options[:repository], :source)
-  
+
             binary = false
           end
-  
+
           names = packages.group_by {|package|
             "#{package.tags}/#{package.name}"
           }.map {|(name, package)| name}.uniq
-  
+
           if names.length > 1
             CLI.fatal "More than one package matches: #{name}"
             names.each {|name|
               puts "    #{name}"
             }
-          
+
             exit 10
           end
-  
+
           package = packages.sort {|a, b|
             a.version <=> b.version
           }.last
-  
+
           if !package
             CLI.fatal "#{name} not found"
             exit 11
           end
-  
+
           env = Environment.new(package)
-  
+
           if package.repository.type == :binary && !_has(package, env)
             CLI.warn 'The binary package is not available with the features you asked for, trying to build from source'
             packages = nil
@@ -108,30 +108,30 @@ class Base < Thor
         rescue ArgumentError
           retry
         end
-  
+
         case package.repository.type
           when :binary
             name = "#{package.tags.to_s(true)}/#{package.name}-#{package.version}"
-  
+
             flavor = ''
             env[:FLAVOR].split(/\s+/).reject {|f| f == 'binary'}.each {|f|
               flavor << ".#{f}"
             }
             flavor[0, 1] = ''
-  
+
             features = ''
             env[:FEATURES].split(/\s+/).each {|f|
               features << "-#{f}"
             }
             features[0, 1] = ''
-  
+
             name << "%#{package.slot}"
             name << "+#{flavor}"
             name << "-#{features}"
             name << ".pko"
-  
+
             FileUtils.mkpath(File.dirname("#{env[:TMP]}/#{name}")) rescue nil
-  
+
             begin
               Packo.sh 'wget', '-c', '-O', "#{env[:TMP]}/#{name}", "#{_uri(package.repository)}/#{name}"
             rescue RuntimeError
@@ -139,16 +139,16 @@ class Base < Thor
               CLI.fatal "Failed to download #{name}"
               exit 12
             end
-  
+
             name = "#{env[:TMP]}/#{name}"
-  
+
             if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
               CLI.fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
               exit 13
             end
-  
+
             path = "#{env[:TMP]}/.__packo_unpacked/#{name[env[:TMP].length, name.length]}"
-  
+
           when :source
             manifest = RBuild::Package::Manifest.parse(_manifest(package, env))
 
@@ -159,7 +159,7 @@ class Base < Thor
                   exit 16
                 end
               }
-      
+
               manifest.dependencies.each {|dependency|
                 if dependency.build? && !System.has?(dependency)
                   install(dependency.to_s, dependency.type)
@@ -232,16 +232,16 @@ class Base < Thor
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{System.env[:SELECTORS]}/#{selector.path}", :silent => true
       }
 
-      pkg = Models::InstalledPackage.first_or_create(
+      pkg = Models::InstalledPackage.first_or_new(
         :tags_hashed => manifest.package.tags.hashed,
         :name        => manifest.package.name,
-        :version     => manifest.package.version,
         :slot        => manifest.package.slot
       )
 
-      pkg.update(
+      pkg.attributes = {
         :repo => options[:repository],
 
+        :version  => manifest.package.version,
         :revision => manifest.package.revision,
 
         :flavor   => manifest.package.flavor,
@@ -250,10 +250,12 @@ class Base < Thor
         :description => manifest.package.description,
         :homepage    => manifest.package.homepage,
         :license     => manifest.package.license,
-        
+
         :manual => manual,
         :type   => type
-      )
+      }
+
+      pkg.save
 
       manifest.package.tags.each {|tag|
         pkg.tags.first_or_create(:name => tag.to_s)
@@ -280,7 +282,7 @@ class Base < Thor
 
             raise RuntimeError.new 'File collision'
           end
-  
+
           if File.directory?(file)
             type = :dir
 
@@ -350,7 +352,7 @@ class Base < Thor
   def uninstall (*names)
     names.each {|name|
       packages = Models.search_installed(name)
-      
+
       if packages.empty?
         CLI.fatal "No installed packages match #{name}"
         exit 20
@@ -432,7 +434,7 @@ class Base < Thor
 
         print ")"
       end
-      
+
       print "\n"
     }
   end

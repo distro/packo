@@ -19,4 +19,8 @@
 
 require 'packo/rbuild/modules/misc/fetcher'
 require 'packo/rbuild/modules/misc/unpacker'
+
+
+# Bleeding edge stuff
 require 'packo/rbuild/modules/misc/fetching/git'
+require 'packo/rbuild/modules/misc/fetching/mercurial'
