@@ -17,10 +17,33 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/misc/fetcher'
-require 'packo/rbuild/modules/misc/unpacker'
+module Packo; module RBuild; module Modules; module Misc; module Fetching
 
-# Bleeding edge stuff
-require 'packo/rbuild/modules/misc/fetching/git'
-require 'packo/rbuild/modules/misc/fetching/mercurial'
-require 'packo/rbuild/modules/misc/fetching/subversion'
+class Mercurial < Module
+  def initialize (package)
+    super(package)
+
+    package.avoid [Fetcher, Unpacker]
+
+    package.stages.add :fetch, self.method(:fetch), :after => :beginning
+  end
+
+  def finalize
+    package.stages.delete :fetch, self.method(:fetch)
+  end
+
+  def fetch
+    package.stages.callbacks(:fetch).do {
+      package.clean!
+      package.create!
+
+      options = []
+
+      Packo.sh 'svn', 'checkout', *options, url, package.workdir
+
+      Do.cd package.workdir
+    }
+  end
+end
+
+end; end; end; end; end

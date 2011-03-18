@@ -65,6 +65,8 @@ class PKO < Module
       Package::Manifest.new(package).save('manifest.xml')
 
       package.stages.callbacks(:pack!).do {
+        Do.clean(package.distdir)
+
         PKO.pack(path, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
       }
 

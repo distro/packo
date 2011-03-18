@@ -273,7 +273,10 @@ class Autotools < Module
 
     @configuration.set 'host',   package.host
     @configuration.set 'build',  package.host
-    @configuration.set 'target', package.target
+
+    if package.host != package.target
+      @configuration.set 'target', package.target
+    end
 
     package.stages.callbacks(:configure).do(@configuration) {
       next if package.autotools.disabled?

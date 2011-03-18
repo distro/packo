@@ -128,7 +128,7 @@ class Package < Packo::Package
       }
     }
 
-    self.directory = "#{package.environment[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}".gsub(%r{/*/}, '/')
+    self.directory = Pathname.new("#{package.env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}").cleanpath.to_s
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"

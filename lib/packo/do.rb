@@ -43,6 +43,16 @@ class Do
     FileUtils.touch(path) rescue nil
   end
 
+  def self.cp (*files, to)
+    if files.length == 1
+      Do.dir(File.dirname(to))
+      FileUtils.cp_r(files.first, to)
+    else
+      Do.dir(to)
+      FileUtils.cp_r(files, to)
+    end
+  end
+
   def self.mv (*files, to)
     if files.length == 1
       Do.dir(File.dirname(to))
@@ -62,6 +72,16 @@ class Do
       else
         FileUtils.rm_f(path) rescue nil
       end
+    }
+  end
+
+  def self.clean (*path)
+    path.each {|dir|
+      begin
+        ndel = Dir.glob("#{dir}/**/", File::FNM_DOTMATCH).count do |d|
+          begin; Dir.rmdir d; rescue SystemCallError; end
+        end
+      end while ndel > 0
     }
   end
 

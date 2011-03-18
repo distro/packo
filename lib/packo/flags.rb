@@ -47,9 +47,13 @@ class Flags < Array
   end
 
   def replace (from, to)
-    self.insert(-1, *self.clear.map {|value|
+    tmp, _ = self.clone, self.clear
+
+    self.insert(-1, *tmp.map {|value|
       value.match(from) ? to : value
     })
+
+    self
   end
 
   def to_s

@@ -79,21 +79,13 @@ class Callbacks
 
     catch(:halt) do
       @callbacks[:before].each {|c|
-        begin
-          c.call(*args)
-        rescue Exception => e
-          Packo.debug e
-        end
+        c.call(*args)
       }
 
       result = yield *args if block_given?
 
       @callbacks[:after].each {|c|
-        begin
-          c.call(result, *args)
-        rescue Exception => e
-          Packo.debug e
-        end
+        c.call(result, *args)
       }
 
       result
