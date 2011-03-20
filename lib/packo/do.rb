@@ -44,6 +44,9 @@ class Do
   end
 
   def self.cp (*files, to)
+    files.flatten!
+    files.compact!
+
     if files.length == 1
       Do.dir(File.dirname(to))
       FileUtils.cp_r(files.first, to)
@@ -54,6 +57,9 @@ class Do
   end
 
   def self.mv (*files, to)
+    files.flatten!
+    files.compact!
+
     if files.length == 1
       Do.dir(File.dirname(to))
       FileUtils.mv(files.first, to, :force => true)
@@ -64,6 +70,9 @@ class Do
   end
 
   def self.rm (*path)
+    path.flatten!
+    path.compact!
+
     path.each {|path|
       next unless File.exists?(path)
 

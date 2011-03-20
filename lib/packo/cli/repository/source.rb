@@ -32,7 +32,7 @@ class Source < Packo::Repository::Source
   def populate
     self.packages.each {|package|
       pkg = model.packages.first_or_create(
-        :repo => model,
+        :repository => model,
 
         :tags_hashed => package.tags.hashed,
         :name        => package.name,

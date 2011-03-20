@@ -35,6 +35,11 @@ class Environment < Thor
       puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
     }
   end
+
+  desc 'update', 'Update the environment'
+  def update
+
+  end
 end
 
 end; end
