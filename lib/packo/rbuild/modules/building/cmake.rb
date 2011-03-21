@@ -17,8 +17,22 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/building/autotools'
-require 'packo/rbuild/modules/building/cmake'
-require 'packo/rbuild/modules/building/rake'
-require 'packo/rbuild/modules/building/patch'
-require 'packo/rbuild/modules/building/strip'
+module Packo; module RBuild; module Modules; module Building
+
+class CMake < Module
+  def initialize (package)
+    super(package)
+
+    package.stages.add :generate, self.method(:generate), :before => :configure
+  end
+
+  def finalize
+    package.stages.delete :generate, self.method(:generate)
+  end
+
+  def generate
+    Packo.sh 'cmake', package.cmake || 'CMakeLists.txt'
+  end
+end
+
+end; end; end; end

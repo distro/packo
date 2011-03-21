@@ -89,12 +89,14 @@ class Autotools < Module
       @other[name.to_s]
     end
 
-    def delete (from, name)
-      case from.to_sym
-        when :with;   @with.delete(name.to_s)
-        when :enable; @enable.delete(name.to_s)
-        when :other;  @other.delete(name.to_s)
-      end
+    def delete (from, *names)
+      names.flatten.each {|name|
+        case from.to_sym
+          when :with;   @with.delete(name.to_s)
+          when :enable; @enable.delete(name.to_s)
+          when :other;  @other.delete(name.to_s)
+        end
+      }
     end
 
     def to_s
