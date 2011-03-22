@@ -64,93 +64,54 @@ class Stages
     @sorted = false
   end
 
-  # Ugly incomprensibile shit ahead. It's dangerous to go alone! Take this! <BS>
-  #
-  # In short it tries to sort stuff as it wanted to be placed depending on stage's options
   def sort! (strict=false)
     return if @sorted
 
-    functions = [lambda {|stages|
-      stages.each {|stage|
-        next if (!stage.options[:before] && !stage.options[:after]) || stage.options[:before] == :end || stage.options[:after] == :beginning
-
-        @stages.delete(stage)
-
-        index = nil
-
-        if stage.options[:before]
-          index = @stages.find_index {|s|
-            s.name == stage.options[:before]
-          }
-        end
-
-        if stage.options[:after]
-          index = @stages.find_index {|s|
-            s.name == stage.options[:after]
-          }
-        end
-
-        @stages.insert(index + 1, stage) if index
-      }
-    },
-
-    lambda {|stages|
-      stages.each {|stage|
-        next if !stage.options[:at]
-
-        @stages.delete(stage)
-
-        if stage.options[:at] == :beginning
-          @stages.unshift stage
-        elsif stage.options[:at] == :end
-          @stages.push stage
-        end
-      }
-    },
-
-    lambda {|stages|
-      stages.each {|stage|
-        next if stage.options[:before] != :end && stage.options[:after] != :beginning
-
-        @stages.delete(stage)
-
-        if stage.options[:after] == :beginning
-          index = @stages.reverse.find_index {|s|
-            s.options[:at] == :beginning
-          } || @stages.length
-
-          @stages.insert(@stages.length - index, stage)
-        elsif stage.options[:before] == :end
-          index = @stages.find_index {|s|
-            s.options[:at] == :end
-          } || 0
-
-          @stages.insert(index - 1, stage)
-        end
-      }
-    }]
-
-    functions.reverse! unless strict
-
-    functions.each {|function|
-      if strict
-        stages = @stages.select {|stage|
-          stage.options[:strict]
-        }
-      else
-        stages = @stages.dup
-      end
-
-      stages = stages.group_by {|stage|
-        stage.options[:priority]
-      }
-
-      stages.keys.sort.reverse_each {|key|
-        function.call(stages[key])
+    funcs = {
+      atom:   lambda { { stricts: [], normals: [] } },
+      leaf:   lambda { { after: funcs[:atom].call, before: funcs[:atom].call, at: funcs[:atom].call, stage: nil } },
+      type:   lambda {|stage| stage.options[:strict] ? :stricts : :normals },
+      plain:  lambda {|pi| pi.sort {|a, b|
+        pr = (a[:stage].options[:priority] || 0) <=> (b[:stage].options[:priority] || 0)
+        pr.zero? ? a[:stage].name.to_s.downcase <=> b[:stage].name.to_s.downcase : pr
+      }.map {|l| funcs[:flat].call(l) }.flatten },
+      flat:   lambda {|leaf|
+        funcs[:plain].call(leaf[:after][:normals]) + funcs[:plain].call(leaf[:after][:stricts]) +
+          (leaf[:stage] ? [leaf[:stage]] : (funcs[:plain].call(leaf[:at][:stricts]) + funcs[:plain].call(leaf[:at][:normals]))) +
+          funcs[:plain].call(leaf[:before][:stricts]) + funcs[:plain].call(leaf[:before][:normals])
       }
     }
 
-    self.sort!(true) if !strict
+    tree = { beginning: funcs[:leaf].call, end: funcs[:leaf].call }
+    remained = @stages.dup
+    prev_rem = @stages.size
+
+    begin
+      prev_rem = remained.size
+
+      remained.dup.each {|stage|
+        place = if tree[stage.options[:after]]
+          [stage.options[:after], :before, funcs[:type].call(stage)]
+        elsif tree[stage.options[:before]]
+          [stage.options[:before], :after, funcs[:type].call(stage)]
+        elsif [:beginning, :end].include?(stage.options[:at])
+          [stage.options[:at], :at, funcs[:type].call(stage)]
+        else nil
+        end
+
+        next unless place
+
+        remained.delete(stage)
+
+        leaf = funcs[:leaf].call
+        leaf[:stage] = stage
+        tree[place[0]][place[1]][place[2]] << leaf
+        tree[stage.name.to_sym] = leaf
+      }
+    end while prev_rem != remained.size
+
+    tree[:beginning][:after] = tree[:end][:before] = funcs[:atom].call
+    @stages = funcs[:flat].call(tree[:beginning]) + funcs[:flat].call(tree[:end])
 
     @sorted = true
   end
