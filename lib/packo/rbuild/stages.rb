@@ -64,18 +64,40 @@ class Stages
     @sorted = false
   end
 
+  # Ugly incomprensibile shit ahead. It's dangerous to go alone! Take this! <BS>
+  #
+  # In short it tries to sort stuff as it wanted to be placed depending on stage's options  
   def sort! (strict=false)
     return if @sorted
 
     funcs = {
-      atom:   lambda { { stricts: [], normals: [] } },
-      leaf:   lambda { { after: funcs[:atom].call, before: funcs[:atom].call, at: funcs[:atom].call, stage: nil } },
-      type:   lambda {|stage| stage.options[:strict] ? :stricts : :normals },
-      plain:  lambda {|pi| pi.sort {|a, b|
-        pr = (a[:stage].options[:priority] || 0) <=> (b[:stage].options[:priority] || 0)
-        pr.zero? ? a[:stage].name.to_s.downcase <=> b[:stage].name.to_s.downcase : pr
-      }.map {|l| funcs[:flat].call(l) }.flatten },
-      flat:   lambda {|leaf|
+      atom: lambda {
+        { stricts: [], normals: [] }
+      },
+
+      leaf: lambda {
+        Hash[
+          after:  funcs[:atom].call,
+          before: funcs[:atom].call,
+          at:     funcs[:atom].call,
+          stage:  nil
+        ]
+      },
+
+      type: lambda {|stage|
+        stage.options[:strict] ? :stricts : :normals
+      },
+
+      plain: lambda {|pi|
+        pi.sort {|a, b|
+          pr = (a[:stage].options[:priority] || 0) <=> (b[:stage].options[:priority] || 0)
+          pr.zero? ? a[:stage].name.to_s.downcase <=> b[:stage].name.to_s.downcase : pr
+        }.map {|l|
+          funcs[:flat].call(l)
+        }.flatten
+      },
+
+      flat: lambda {|leaf|
         funcs[:plain].call(leaf[:after][:normals]) + funcs[:plain].call(leaf[:after][:stricts]) +
           (leaf[:stage] ? [leaf[:stage]] : (funcs[:plain].call(leaf[:at][:stricts]) + funcs[:plain].call(leaf[:at][:normals]))) +
           funcs[:plain].call(leaf[:before][:stricts]) + funcs[:plain].call(leaf[:before][:normals])
@@ -83,6 +105,7 @@ class Stages
     }
 
     tree = { beginning: funcs[:leaf].call, end: funcs[:leaf].call }
+
     remained = @stages.dup
     prev_rem = @stages.size
 
@@ -90,29 +113,32 @@ class Stages
       prev_rem = remained.size
 
       remained.dup.each {|stage|
-        place = if tree[stage.options[:after]]
+        place = (if tree[stage.options[:after]]
           [stage.options[:after], :before, funcs[:type].call(stage)]
         elsif tree[stage.options[:before]]
           [stage.options[:before], :after, funcs[:type].call(stage)]
         elsif [:beginning, :end].include?(stage.options[:at])
           [stage.options[:at], :at, funcs[:type].call(stage)]
-        else nil
-        end
+        else
+          nil
+        end)
 
         next unless place
 
         remained.delete(stage)
 
-        leaf = funcs[:leaf].call
+        leaf         = funcs[:leaf].call
         leaf[:stage] = stage
+
         tree[place[0]][place[1]][place[2]] << leaf
+
         tree[stage.name.to_sym] = leaf
       }
     end while prev_rem != remained.size
 
     tree[:beginning][:after] = tree[:end][:before] = funcs[:atom].call
-    @stages = funcs[:flat].call(tree[:beginning]) + funcs[:flat].call(tree[:end])
 
+    @stages = funcs[:flat].call(tree[:beginning]) + funcs[:flat].call(tree[:end])
     @sorted = true
   end
 
