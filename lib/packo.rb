@@ -90,13 +90,13 @@ module Packo
       raise LoadError.new("no such file to load -- #{path}")
     end
 
-    eval("#{options[:before]}#{File.read(path, :encoding => 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
+    eval("#{options[:before]}#{File.read(path, encoding: 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
   end
 
   def self.loadPackage (path, package=nil)
     options = {
-      :before => 'module ::Packo::RBuild;',
-      :after  => ';end'
+      before: 'module ::Packo::RBuild;',
+      after:  ';end'
     }
 
     if package
@@ -120,7 +120,7 @@ module Packo
         end
 
         files = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/files/file").map {|file|
-          OpenStruct.new(:name => file['name'], :digest => file.text)
+          OpenStruct.new(name: file['name'], digest: file.text)
         }
       end
 

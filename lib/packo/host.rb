@@ -26,10 +26,10 @@ class Host
     matches = text.match(/^([^-]+)(-([^-]+))?-([^-]+)(-([^-]+))?$/) or return
 
     Host.new(
-      :ARCH   => matches[1],
-      :VENDOR => matches[3],
-      :KERNEL => matches[4],
-      :MISC   => matches[6]
+      ARCH:   matches[1],
+      VENDOR: matches[3],
+      KERNEL: matches[4],
+      MISC:   matches[6]
     ) rescue nil
   end
 

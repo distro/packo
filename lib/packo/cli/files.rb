@@ -25,7 +25,7 @@ module Packo; module CLI
 class Files < Thor
   include Thor::Actions
 
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
+  class_option :help, type: :boolean, desc: 'Show help usage'
 
   desc 'package PACKAGE', 'Get a file list of a given package'
   def package (name)
@@ -85,7 +85,7 @@ class Files < Thor
     path    = Pathname.new(file).realpath.to_s
     path[0] = ''
 
-    if content = Models::InstalledPackage::Content.first(:path => path)
+    if content = Models:InstalledPackage::Content.first(:path: path)
       puts Package.wrap(content.installed_package).to_s
     else
       exit 1

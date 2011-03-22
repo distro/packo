@@ -25,18 +25,18 @@ module Packo; module CLI
 class Select < Thor
   include Thor::Actions
 
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
+  class_option :help, type: :boolean, desc: 'Show help usage'
 
   desc 'add NAME DESCRIPTION PATH', 'Add a module to the database'
   def add (name, description, path)
-    Models::Selector.first_or_create(:name => name).update(:description => description, :path => path)
+    Models:Selector.first_or_create(:name: name).update(description: description, path: path)
 
     CLI.info "#{name} added"
   end
 
   desc 'delete NAME', 'Delete a module from the database'
   def delete (name)
-    selector = Models::Selector.first(:name => name)
+    selector = Models:Selector.first(:name: name)
 
     if !selector
       fatal "#{name} doesn't exist"

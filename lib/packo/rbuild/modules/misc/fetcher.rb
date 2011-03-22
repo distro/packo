@@ -49,16 +49,16 @@ class Fetcher < Module
     end
 
     Packo.sh System.env[:FETCHER].interpolate(OpenStruct.new(
-      :source => Fetcher.url(url, self),
-      :output => to
-    )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), :silent => !System.env[:VERBOSE]
+      source: Fetcher.url(url, self),
+      output: to
+    )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), silent: !System.env[:VERBOSE]
   end
 
   def initialize (package)
     super(package)
 
-    package.stages.add :fetch,  self.method(:fetch),  :after => :beginning
-    package.stages.add :digest, self.method(:digest), :after => :fetch, :strict => true
+    package.stages.add :fetch,  self.method(:fetch),  after: :beginning
+    package.stages.add :digest, self.method(:digest), after: :fetch, strict: true
 
     after :initialize do |result, package|
       package.define_singleton_method :fetch, &Fetcher.method(:fetch)

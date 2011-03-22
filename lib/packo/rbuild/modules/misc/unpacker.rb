@@ -43,7 +43,7 @@ class Unpacker < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :unpack, self.method(:unpack), :after => :fetch, :strict => true
+    package.stages.add :unpack, self.method(:unpack), after: :fetch, strict: true
 
     before :initialize do |package|
       package.define_singleton_method :unpack, &Unpacker.method(:do)

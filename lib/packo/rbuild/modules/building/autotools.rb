@@ -129,9 +129,9 @@ class Autotools < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :configure, self.method(:configure), :after => :fetch
-    package.stages.add :compile,   self.method(:compile),   :after => :configure
-    package.stages.add :install,   self.method(:install),   :after => :compile
+    package.stages.add :configure, self.method(:configure), after: :fetch
+    package.stages.add :compile,   self.method(:compile),   after: :configure
+    package.stages.add :install,   self.method(:install),   after: :compile
 
     if package.type == 'library'
       package.filesystem.post << FFFS::File.new('ld-config-update.sh', %{
@@ -246,7 +246,7 @@ class Autotools < Module
       end
 
       def install (path=nil, *args)
-        package.environment.sandbox(:DESTDIR => path || package.distdir) {
+        package.environment.sandbox(DESTDIR: path || package.distdir) {
           puts ENV['DESTDIR']
 
           self.make "DESTDIR=#{path || package.distdir}", 'install', *args

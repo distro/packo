@@ -62,10 +62,10 @@ class Do
 
     if files.length == 1
       Do.dir(File.dirname(to))
-      FileUtils.mv(files.first, to, :force => true)
+      FileUtils.mv(files.first, to, force: true)
     else
       Do.dir(to)
-      FileUtils.mv(files, to, :force => true)
+      FileUtils.mv(files, to, force: true)
     end
   end
 
@@ -144,22 +144,22 @@ class Do
 
   def ins (*files)
     files.map {|file| Dir.glob(file)}.flatten.each {|file|
-      FileUtils.cp_r file, "#{root}/#{File.basename(file)}", :preserve => true, :verbose => @verbose
-      FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(file)}", :verbose => @verbose
+      FileUtils.cp_r file, "#{root}/#{File.basename(file)}", preserve: true, verbose: @verbose
+      FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(file)}", verbose: @verbose
     }
   end
 
   def dir (path)
-    FileUtils.mkpath "#{root}/#{path}", :verbose => @verbose
-    FileUtils.chmod @opts || 0755, "#{root}/#{path}", :verbose => @verbose
+    FileUtils.mkpath "#{root}/#{path}", verbose: @verbose
+    FileUtils.chmod @opts || 0755, "#{root}/#{path}", verbose: @verbose
   end
 
   def bin (*bins)
     FileUtils.mkpath "#{root}/bin"
 
     bins.map {|bin| Dir.glob(bin)}.flatten.each {|(file, name)|
-      FileUtils.cp_r file, "#{root}/bin/#{File.basename(name || file)}", :preserve => true, :verbose => @verbose
-      FileUtils.chmod @opts || 0755, "#{root}/bin/#{File.basename(name || file)}", :verbose => @verbose
+      FileUtils.cp_r file, "#{root}/bin/#{File.basename(name || file)}", preserve: true, verbose: @verbose
+      FileUtils.chmod @opts || 0755, "#{root}/bin/#{File.basename(name || file)}", verbose: @verbose
     }
   end
 
@@ -167,8 +167,8 @@ class Do
     FileUtils.mkpath "#{root}/sbin"
 
     sbins.map {|sbin| Dir.glob(sbin)}.flatten.each {|(file, name)|
-      FileUtils.cp_r file, "#{root}/sbin/#{File.basename(name || file)}", :preserve => true, :verbose => @verbose
-      FileUtils.chmod @opts || 0755, "#{root}/sbin/#{File.basename(name || file)}", :verbose => @verbose
+      FileUtils.cp_r file, "#{root}/sbin/#{File.basename(name || file)}", preserve: true, verbose: @verbose
+      FileUtils.chmod @opts || 0755, "#{root}/sbin/#{File.basename(name || file)}", verbose: @verbose
     }
   end
 
@@ -176,16 +176,16 @@ class Do
      FileUtils.mkpath "#{root}/lib"
 
     libs.map {|lib| Dir.glob(lib)}.flatten.each {|(file, name)|
-      FileUtils.cp_r file, "#{root}/lib/#{File.basename(name || file)}", :preserve => true, :verbose => @verbose
-      FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), "#{root}/lib/#{File.basename(name || file)}", :verbose => @verbose
+      FileUtils.cp_r file, "#{root}/lib/#{File.basename(name || file)}", preserve: true, verbose: @verbose
+      FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), "#{root}/lib/#{File.basename(name || file)}", verbose: @verbose
     }
   end
 
   def doc (*docs)
     into("/usr/share/doc/#{package.name}-#{package.version}") {
       docs.map {|doc| Dir.glob(doc)}.flatten.each {|(file, name)|
-        FileUtils.cp_r file, "#{root}/#{File.basename(name || file)}", :preserve => true, :verbose => @verbose
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(name || file)}", :verbose => @verbose
+        FileUtils.cp_r file, "#{root}/#{File.basename(name || file)}", preserve: true, verbose: @verbose
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(name || file)}", verbose: @verbose
       }
     }
   end
@@ -193,8 +193,8 @@ class Do
   def html (*htmls)
     into("/usr/share/doc/#{package.name}-#{package.version}/html") {
       htmls.map {|html| Dir.glob(html)}.flatten.each {|(file, name)|
-        FileUtils.cp_r file, "#{root}/#{File.basename(name || file)}", :preserve => true, :verbose => @verbose
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(name || file)}", :verbose => @verbose
+        FileUtils.cp_r file, "#{root}/#{File.basename(name || file)}", preserve: true, verbose: @verbose
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(name || file)}", verbose: @verbose
       }
     }
   end
@@ -202,8 +202,8 @@ class Do
   def man (*mans)
     mans.map {|man| Dir.glob(man)}.flatten.each {|man|
       into("/usr/share/man/man#{man[-1]}") {
-        FileUtils.cp_r man, "#{root}/#{File.basename(man)}", :preserve => true, :verbose => @verbose
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(man)}", :verbose => @verbose
+        FileUtils.cp_r man, "#{root}/#{File.basename(man)}", preserve: true, verbose: @verbose
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(man)}", verbose: @verbose
       }
     }
   end
@@ -211,29 +211,29 @@ class Do
   def info (*infos)
     infos.map {|info| Dir.glob(info)}.flatten.each {|info|
       into("/usr/share/info/#{info[-1]}") {
-        FileUtils.cp_r info, "#{root}/#{File.basename(info)}", :preserve => true, :verbose => @verbose
-        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => !@verbose rescue nil
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}", :verbose => @verbose
+        FileUtils.cp_r info, "#{root}/#{File.basename(info)}", preserve: true, verbose: @verbose
+        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", silent: !@verbose rescue nil
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}", verbose: @verbose
       }
     }
   end
 
   def sym (link, to)
     FileUtils.mkpath "#{root}/#{File.dirname(to)}"
-    FileUtils.ln_sf link, "#{root}/#{to}", :verbose => @verbose
+    FileUtils.ln_sf link, "#{root}/#{to}", verbose: @verbose
   end
 
   def hard (link, to)
     FileUtils.mkpath "#{root}/#{File.dirname(to)}"
-    FileUtils.ln_f link, "#{root}/#{to}", :verbose => @verbose
+    FileUtils.ln_f link, "#{root}/#{to}", verbose: @verbose
   end
 
   def own (user, group, *files)
     infos.map {|info| Dir.glob(info)}.flatten.each {|info|
       into("/usr/share/info/#{info[-1]}") {
-        FileUtils.cp_r info, "#{root}/#{File.basename(info)}", :preserve => true, :verbose => @verbose
-        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", :silent => !@verbose rescue nil
-        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}", :verbose => @verbose
+        FileUtils.cp_r info, "#{root}/#{File.basename(info)}", preserve: true, verbose: @verbose
+        Packo.sh 'gzip', '-9', "#{root}/#{File.basename(info)}", silent: !@verbose rescue nil
+        FileUtils.chmod @opts || 0644, "#{root}/#{File.basename(info)}", verbose: @verbose
       }
     }
   end

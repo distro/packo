@@ -47,7 +47,7 @@ class Binary < Repository
   def self.parse (data)
     dom = Nokogiri::XML.parse(data)
 
-    repo = Binary.new(:type => dom.root['type'].to_sym, :name => dom.root['name'])
+    repo = Binary.new(type: dom.root['type'].to_sym, name: dom.root['name'])
     repo.generate(data)
     repo
   end
@@ -72,25 +72,25 @@ class Binary < Repository
 
   def each_package (data=nil)
     Nokogiri::XML.parse(data || File.read(self.path)).xpath('//packages/package').each {|e|
-      CLI.info "Parsing #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}" if System.env[:VERBOSE]
+      CLI.info "Parsing #{Packo::Package.new(tags: e['tags'].split(/\s+/), name: e['name'])}" if System.env[:VERBOSE]
 
       packages = []
 
       e.xpath('.//build').each {|build|
         package = Package.new(
-          :tags     => e['tags'],
-          :name     => e['name'],
-          :version  => build.parent['name'],
-          :slot     => (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
-          :revision => build.parent['revision'],
+          tags:     e['tags'],
+          name:     e['name'],
+          version:  build.parent['name'],
+          slot:     (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
+          revision: build.parent['revision'],
 
-          :features => build.parent['features'],
+          features: build.parent['features'],
 
-          :description => e.xpath('.//description').first.text,
-          :homepage    => e.xpath('.//homepage').first.text,
-          :license     => e.xpath('.//license').first.text,
+          description: e.xpath('.//description').first.text,
+          homepage:    e.xpath('.//homepage').first.text,
+          license:     e.xpath('.//license').first.text,
 
-          :maintainer => e['maintainer']
+          maintainer: e['maintainer']
         )
 
         if packages.member?(package)
@@ -100,9 +100,9 @@ class Binary < Repository
         end
 
         package.builds << Package::Build.new(
-          :flavor   => (build.xpath('.//flavor').first.text rescue ''),
-          :features => (build.xpath('.//features').first.text rescue ''),
-          :digest   => build['digest']
+          flavor:   (build.xpath('.//flavor').first.text rescue ''),
+          features: (build.xpath('.//features').first.text rescue ''),
+          digest:   build['digest']
         )
       }
 

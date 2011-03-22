@@ -30,7 +30,7 @@ class Content
 
   property :path, Text
 
-  property :meta, Object, :required => false
+  property :meta, Object, required: false
 
   def check!
     return if self.type

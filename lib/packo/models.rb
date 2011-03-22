@@ -133,7 +133,7 @@ module Models
     else
       Packo::Repository::Types.each {|t|
         if type.nil? || type == 'all' || type == t
-          Models::Repository.all(:type => t).each {|repository|
+          Models:Repository.all(:type: t).each {|repository|
             packages << repository.search(expression, exact)
           }
         end

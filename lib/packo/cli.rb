@@ -29,7 +29,7 @@ class Thor
       end
 
       shell.say 'Commands:'
-      shell.print_table(list, :ident => 2, :truncate => true)
+      shell.print_table(list, ident: 2, truncate: true)
       shell.say
       class_options_help(shell)
     end
