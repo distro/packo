@@ -438,7 +438,11 @@ class Repository < Thor
     }
 
     dom.xpath('//packages/package').each {|e|
+<<<<<<< HEAD
       CLI.info "Generating #{Packo:Package.new(tags: e['tags'].split(/\s+/), name: e['name'])}".bold if System.env[:VERBOSE]
+=======
+      CLI.info "Generating #{Packo::Package.new(tags: e['tags'].split(/\s+/), name: e['name'])}".bold if System.env[:VERBOSE]
+>>>>>>> 540cd6d64199915c4231020a92b22f196763beb6
 
       e.xpath('.//build').each {|build|
         package = Package.new(
