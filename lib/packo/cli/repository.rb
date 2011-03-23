@@ -97,7 +97,7 @@ class Repository < Thor
 
       path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
 
-      if Models::Repository.first(:type: type, name: name)
+      if Models::Repository.first(type: type, name: name)
         CLI.fatal "#{type}/#{name} already exists, delete it first"
         exit 10
       end
@@ -364,7 +364,7 @@ class Repository < Thor
     if Packo::Repository::Types.member?(type.to_sym)
       CLI.info "Installed #{type} repositories:"
 
-      repositories = Models::Repository.all(:type: type)
+      repositories = Models::Repository.all(type: type)
       length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
 
       repositories.each {|repository|
@@ -405,7 +405,7 @@ class Repository < Thor
       repositories << Models::Repository.all
     else
       names.each {|name|
-        repositories << Models::Repository.all(:name: name)
+        repositories << Models::Repository.all(name: name)
       }
     end
 
@@ -438,7 +438,7 @@ class Repository < Thor
     }
 
     dom.xpath('//packages/package').each {|e|
-      CLI.info "Generating #{Packo:Package.new(:tags: e['tags'].split(/\s+/), name: e['name'])}".bold if System.env[:VERBOSE]
+      CLI.info "Generating #{Packo:Package.new(tags: e['tags'].split(/\s+/), name: e['name'])}".bold if System.env[:VERBOSE]
 
       e.xpath('.//build').each {|build|
         package = Package.new(
@@ -511,7 +511,7 @@ class Repository < Thor
   end
 
   def _delete (type, name)
-    Models::Repository.first(:name: name, type: type).destroy rescue nil
+    Models::Repository.first(name: name, type: type).destroy rescue nil
   end
 
   def _checkout (uri, path)
