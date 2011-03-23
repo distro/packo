@@ -85,7 +85,7 @@ class Files < Thor
     path    = Pathname.new(file).realpath.to_s
     path[0] = ''
 
-    if content = Models:InstalledPackage::Content.first(:path: path)
+    if content = Models::InstalledPackage::Content.first(:path: path)
       puts Package.wrap(content.installed_package).to_s
     else
       exit 1
