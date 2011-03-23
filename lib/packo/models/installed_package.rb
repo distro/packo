@@ -29,13 +29,13 @@ class InstalledPackage
   property :id, Serial
 
   property :repo, String
-  has n,   :tags, :through => Resource, :constraint => :destroy
+  has n,   :tags, through: Resource, constraint: :destroy
 
-  property :tags_hashed, String,  :length => 40,   :required => true, :unique_index => :a
-  property :name,        String,  :length => 255,  :required => true, :unique_index => :a
-  property :version,     Version,                  :required => true
-  property :slot,        String,  :default => '',                     :unique_index => :a
-  property :revision,    Integer, :default => 0
+  property :tags_hashed, String,  length: 40,   required: true, unique_index: :a
+  property :name,        String,  length: 255,  required: true, unique_index: :a
+  property :version,     Version,                  required: true
+  property :slot,        String,  default: '',                     unique_index: :a
+  property :revision,    Integer, default: 0
 
   property :flavor,  Text
   property :features, Text
@@ -46,15 +46,15 @@ class InstalledPackage
 
   property :maintainer, String
 
-  property :manual, Boolean,                       :default => false
-  property :type,   Enum[:both, :runtime, :build], :default => :both
+  property :manual, Boolean,                       default: false
+  property :type,   Enum[:both, :runtime, :build], default: :both
 
   property :destination, Text
 
   property :created_at, DateTime
 
-  has n, :dependencies, :constraint => :destroy
-  has n, :contents,     :constraint => :destroy
+  has n, :dependencies, constraint: :destroy
+  has n, :contents,     constraint: :destroy
 
   def self.search (expression, exact=false, repository=nil)
     if expression.start_with?('[') && expression.end_with?(']')
@@ -83,7 +83,7 @@ class InstalledPackage
 
       package = Packo::Package.parse(expression)
 
-      conditions = { :order => [:name.asc] }
+      conditions = { order: [:name.asc] }
 
       if exact
         conditions[:name]    = package.name    if package.name

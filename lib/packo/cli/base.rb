@@ -27,17 +27,17 @@ module Packo; module CLI
 class Base < Thor
   include Thor::Actions
 
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
+  class_option :help, type: :boolean, desc: 'Show help usage'
 
   desc 'install PACKAGE... [OPTIONS]', 'Install packages'
   map '-i' => :install, '--install' => :install
-  method_option :destination, :type => :string,  :default => System.env[:INSTALL_PATH], :aliases => '-d', :desc => 'Set the destination where to install the package'
-  method_option :inherit,     :type => :boolean, :default => false,                     :aliases => '-I', :desc => 'Apply the passed flags to the eventual dependencies'
-  method_option :force,       :type => :boolean, :default => false,                     :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
-  method_option :ignore,      :type => :boolean, :default => false,                     :aliases => '-x', :desc => 'Ignore the installation and do not add the package to the database'
-  method_option :nodeps,      :type => :boolean, :default => false,                     :aliases => '-N', :desc => 'Ignore blockers and dependencies'
-  method_option :depsonly,    :type => :boolean, :default => false,                     :aliases => '-D', :desc => 'Install only dependencies'
-  method_option :repository,  :type => :string,                                         :aliases => '-r', :desc => 'Set a specific repository'
+  method_option :destination, type: :string,  default: System.env[:INSTALL_PATH], aliases: '-d', desc: 'Set the destination where to install the package'
+  method_option :inherit,     type: :boolean, default: false,                     aliases: '-I', desc: 'Apply the passed flags to the eventual dependencies'
+  method_option :force,       type: :boolean, default: false,                     aliases: '-f', desc: 'Force installation when something minor goes wrong'
+  method_option :ignore,      type: :boolean, default: false,                     aliases: '-x', desc: 'Ignore the installation and do not add the package to the database'
+  method_option :nodeps,      type: :boolean, default: false,                     aliases: '-N', desc: 'Ignore blockers and dependencies'
+  method_option :depsonly,    type: :boolean, default: false,                     aliases: '-D', desc: 'Install only dependencies'
+  method_option :repository,  type: :string,                                         aliases: '-r', desc: 'Set a specific repository'
   def install (*names)
     type = names.last.is_a?(Symbol) ? names.pop : :both
 
@@ -184,7 +184,7 @@ class Base < Thor
         path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
       end
 
-      FileUtils.rm_rf path, :secure => true
+      FileUtils.rm_rf path, secure: true
 
       case File.extname(name)
         when '.pko'
@@ -228,37 +228,37 @@ class Base < Thor
 
       manifest.selectors.each {|selector|
         FileUtils.mkpath System.env[:SELECTORS]
-        FileUtils.cp_r "#{path}/selectors/#{selector.path}", System.env[:SELECTORS], :preserve => true, :remove_destination => true
-        Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{System.env[:SELECTORS]}/#{selector.path}", :silent => true
+        FileUtils.cp_r "#{path}/selectors/#{selector.path}", System.env[:SELECTORS], preserve: true, remove_destination: true
+        Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{System.env[:SELECTORS]}/#{selector.path}", silent: true
       }
 
       pkg = Models::InstalledPackage.first_or_new(
-        :tags_hashed => manifest.package.tags.hashed,
-        :name        => manifest.package.name,
-        :slot        => manifest.package.slot
+        tags_hashed: manifest.package.tags.hashed,
+        name:        manifest.package.name,
+        slot:        manifest.package.slot
       )
 
       pkg.attributes = {
-        :repo => options[:repository],
+        repo: options[:repository],
 
-        :version  => manifest.package.version,
-        :revision => manifest.package.revision,
+        version:  manifest.package.version,
+        revision: manifest.package.revision,
 
-        :flavor   => manifest.package.flavor,
-        :features => manifest.package.features,
+        flavor:   manifest.package.flavor,
+        features: manifest.package.features,
 
-        :description => manifest.package.description,
-        :homepage    => manifest.package.homepage,
-        :license     => manifest.package.license,
+        description: manifest.package.description,
+        homepage:    manifest.package.homepage,
+        license:     manifest.package.license,
 
-        :manual => manual,
-        :type   => type
+        manual: manual,
+        type:   type
       }
 
       pkg.save
 
       manifest.package.tags.each {|tag|
-        pkg.tags.first_or_create(:name => tag.to_s)
+        pkg.tags.first_or_create(name: tag.to_s)
       }
 
       length = "#{path}/dist/".length
@@ -307,7 +307,7 @@ class Base < Thor
             meta = Digest::SHA1.hexdigest(File.read(file))
 
             begin
-              FileUtils.cp file, path, :preserve => true
+              FileUtils.cp file, path, preserve: true
               puts ">>> #{path}".bold
             rescue
               puts ">>> #{path}".red
@@ -317,12 +317,12 @@ class Base < Thor
           end
 
           content = pkg.contents.first_or_create(
-            :type => type,
-            :path => fake
+            type: type,
+            path: fake
           )
 
           content.update(
-            :meta => meta
+            meta: meta
           )
         }
 
@@ -341,14 +341,14 @@ class Base < Thor
       if options[:ignore]
         pkg.destroy
       else
-        pkg.update(:destination => options[:destination].cleanpath)
+        pkg.update(destination: options[:destination].cleanpath)
       end
     }
   end
 
   desc 'uninstall PACKAGE... [OPTIONS]', 'Uninstall packages'
   map '-C' => :uninstall, '-R' => :uninstall, 'remove' => :uninstall
-  method_option :force, :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force installation when something minor goes wrong'
+  method_option :force, type: :boolean, default: false, aliases: '-f', desc: 'Force installation when something minor goes wrong'
   def uninstall (*names)
     names.each {|name|
       packages = Models.search_installed(name)
@@ -384,7 +384,7 @@ class Base < Thor
           end
         }
 
-        installed.model.contents.all(:type => :dir, :order => [:path.desc]).each {|content|
+        installed.model.contents.all(type: :dir, order: [:path.desc]).each {|content|
           path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
 
           Dir.delete(path) rescue nil
@@ -397,9 +397,9 @@ class Base < Thor
 
   desc 'search [EXPRESSION] [OPTIONS]', 'Search through installed packages'
   map '--search' => :search, '-Ss' => :search
-  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type (binary, source, virtual)'
-  method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
-  method_option :full,       :type => :boolean, :default => false, :aliases => '-F', :desc => 'Include the repository that owns the package, features and flavor'
+  method_option :type,       type: :string,                     aliases: '-t', desc: 'The repository type (binary, source, virtual)'
+  method_option :repository, type: :string,                     aliases: '-r', desc: 'Set a specific repository'
+  method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package, features and flavor'
   def search (expression='')
     Models.search_installed(expression, options[:repository], options[:type]).group_by {|package|
       "#{package.tags}/#{package.name}"
@@ -441,8 +441,8 @@ class Base < Thor
 
   desc 'info [EXPRESSION] [OPTIONS]', 'Search through installed packages and returns detailed informations about them'
   map '--info' => :info
-  method_option :type,       :type => :string, :aliases => '-t', :desc => 'The repository type (binary, source, virtual)'
-  method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific repository'
+  method_option :type,       type: :string, aliases: '-t', desc: 'The repository type (binary, source, virtual)'
+  method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific repository'
   def info (expression='')
     Models.search_installed(expression, options[:repository], options[:type]).each {|package|
       print package.name.bold
@@ -471,7 +471,7 @@ class Base < Thor
 
   def _build (package, env)
     Do.cd {
-      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
+      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
       FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
       require 'packo/cli/build'
@@ -514,7 +514,7 @@ class Base < Thor
   end
 
   def _exists? (path)
-    Models::InstalledPackage::Content.first(:path => path, :type.not => :dir).package rescue false
+    Models::InstalledPackage::Content.first(path: path, type.not: :dir).package rescue false
   end
 end
 

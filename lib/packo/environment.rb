@@ -28,57 +28,57 @@ module Packo
 
 class Environment < Hash
   @@default = {
-    :ARCH     => nil,
-    :KERNEL   => nil,
-    :LIBC     => nil,
-    :COMPILER => nil,
+    ARCH:     nil,
+    KERNEL:   nil,
+    LIBC:     nil,
+    COMPILER: nil,
 
-    :CFLAGS    => '-Os -pipe',
-    :CXXFLAGS  => '-Os -pipe',
-    :CPPFLAGS  => '',
-    :LDFLAGS   => '-Wl,-O1 -Wl,--as-needed',
-    :MAKE_JOBS => 1,
+    CFLAGS:    '-Os -pipe',
+    CXXFLAGS:  '-Os -pipe',
+    CPPFLAGS:  '',
+    LDFLAGS:   '-Wl,-O1 -Wl,--as-needed',
+    MAKE_JOBS: 1,
 
-    :FLAVOR   => 'vanilla',
-    :FEATURES => '',
-    :USE      => '',
+    FLAVOR:   'vanilla',
+    FEATURES: '',
+    USE:      '',
 
-    :PROFILES => '',
+    PROFILES: '',
 
-    :FETCHER => 'wget -c -O "#{output}" "#{source}"',
+    FETCHER: 'wget -c -O "#{output}" "#{source}"',
 
-    :NO_COLORS => false,
-    :DEBUG     => nil,
-    :VERBOSE   => false,
-    :SECURE    => true,
+    NO_COLORS: false,
+    DEBUG:     nil,
+    VERBOSE:   false,
+    SECURE:    true,
 
-    :TMP => "#{Dir.tmpdir}/packo-#{ENV['USER'] || Process.euid}"
+    TMP: "#{Dir.tmpdir}/packo-#{ENV['USER'] || Process.euid}"
   }
 
   if Process.euid == 0 && ENV['USER'] == 'root'
     @@default.merge!(
-      :CONFIG_PATH  => '/etc/packo',
-      :INSTALL_PATH => '/',
+      CONFIG_PATH:  '/etc/packo',
+      INSTALL_PATH: '/',
 
-      :DATABASE => 'sqlite:///var/lib/packo/db',
+      DATABASE: 'sqlite:///var/lib/packo/db',
 
-      :REPOSITORIES => '/var/lib/packo/repositories',
-      :SELECTORS    => '/var/lib/packo/selectors',
+      REPOSITORIES: '/var/lib/packo/repositories',
+      SELECTORS:    '/var/lib/packo/selectors',
     )
   else
     @@default.merge!(
-      :CONFIG_PATH  => "#{ENV['HOME']}/.packo",
-      :INSTALL_PATH => "#{ENV['HOME']}/.packo/disk",
+      CONFIG_PATH:  "#{ENV['HOME']}/.packo",
+      INSTALL_PATH: "#{ENV['HOME']}/.packo/disk",
 
-      :DATABASE => "sqlite://#{ENV['HOME']}/.packo/db",
+      DATABASE: "sqlite://#{ENV['HOME']}/.packo/db",
 
-      :REPOSITORIES => "#{ENV['HOME']}/.packo/repositories",
-      :SELECTORS    => "#{ENV['HOME']}/.packo/selectors",
+      REPOSITORIES: "#{ENV['HOME']}/.packo/repositories",
+      SELECTORS:    "#{ENV['HOME']}/.packo/selectors",
     )
   end
 
   @@callbacks = {
-    :COMPILER => lambda {|value|
+    COMPILER: lambda {|value|
       self[:CPP]    = 'cpp'
       self[:AS]     = 'as'
       self[:AR]     = 'ar'
@@ -261,7 +261,7 @@ class Environment < Hash
 
   def sandbox (changes={}, &block)
     Environment.sandbox(self.merge({
-      :ARCH => Host.new(self).arch
+      ARCH: Host.new(self).arch
     }.merge(changes)), &block)
   end
 end

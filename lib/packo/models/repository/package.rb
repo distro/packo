@@ -30,14 +30,14 @@ class Package
   property :id, Serial
 
   belongs_to :repo, 'Repository'
-  has n,     :tags, :through => Resource, :constraint => :destroy
+  has n,     :tags, through: Resource, constraint: :destroy
 
-  property :repository_id, Integer,                                     :unique_index => :a
-  property :tags_hashed,   String,  :length => 40,   :required => true, :unique_index => :a
-  property :name,          String,  :length => 255,  :required => true, :unique_index => :a
-  property :version,       Version,                  :required => true, :unique_index => :a
-  property :slot,          String,  :default => '',                     :unique_index => :a
-  property :revision,      Integer, :default => 0
+  property :repository_id, Integer,                                     unique_index: :a
+  property :tags_hashed,   String,  length: 40,   required: true, unique_index: :a
+  property :name,          String,  length: 255,  required: true, unique_index: :a
+  property :version,       Version,                  required: true, unique_index: :a
+  property :slot,          String,  default: '',                     unique_index: :a
+  property :revision,      Integer, default: 0
 
   property :description,  Text
   property :homepage,     Text
@@ -47,9 +47,9 @@ class Package
 
   after :create do |package|
     case package.repo.type
-      when :binary;  Binary.create(:package => package)
-      when :source;  Source.create(:package => package)
-      when :virtual; Virtual.create(:package => package)
+      when :binary;  Binary.create(package: package)
+      when :source;  Source.create(package: package)
+      when :virtual; Virtual.create(package: package)
     end
   end
 
@@ -63,9 +63,9 @@ class Package
 
   def data
     case repo.type
-      when :binary;  Binary.first_or_create(:package => self)
-      when :source;  Source.first_or_create(:package => self)
-      when :virtual; Virtual.first_or_create(:package => self)
+      when :binary;  Binary.first_or_create(package: self)
+      when :source;  Source.first_or_create(package: self)
+      when :virtual; Virtual.first_or_create(package: self)
     end
   end
 end

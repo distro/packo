@@ -26,11 +26,11 @@ class Flavor
 
   property :id, Serial
 
-  property :source_package_id, Integer, :unique_index => :a
-  property :name,              String,  :unique_index => :a
+  property :source_package_id, Integer, unique_index: :a
+  property :name,              String,  unique_index: :a
 
-  property :description, Text,    :default => ''
-  property :enabled,     Boolean, :default => false
+  property :description, Text,    default: ''
+  property :enabled,     Boolean, default: false
 end
 
 end; end; end; end; end

@@ -21,19 +21,19 @@ module Packo; module RBuild; module Modules; module Packaging
 
 class PKO < Module
   def self.pack (name, *files)
-    Packo.sh 'tar', 'cJf', name, *files, '--preserve', :silent => true
+    Packo.sh 'tar', 'cJf', name, *files, '--preserve', silent: true
   end
 
   def self.unpack (name, to)
     FileUtils.mkpath(to) rescue nil
 
-    Packo.sh 'tar', 'xJf', name, '-C', to, '--preserve', :silent => true
+    Packo.sh 'tar', 'xJf', name, '-C', to, '--preserve', silent: true
   end
 
   def initialize (package)
     super(package)
 
-    package.stages.add :pack, self.method(:pack), :at => :end, :strict => true
+    package.stages.add :pack, self.method(:pack), at: :end, strict: true
   end
 
   def finalize

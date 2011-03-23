@@ -26,46 +26,46 @@ class Source < Packo::Repository::Source
   include Helpers::Repository
 
   def initialize (model)
-    super(model.to_hash.merge(:model => model))
+    super(model.to_hash.merge(model: model))
   end
 
   def populate
     self.packages.each {|package|
       pkg = model.packages.first_or_create(
-        :repo => model,
+        repo: model,
 
-        :tags_hashed => package.tags.hashed,
-        :name        => package.name,
-        :version     => package.version,
-        :slot        => package.slot,
-        :revision    => package.revision
+        tags_hashed: package.tags.hashed,
+        name:        package.name,
+        version:     package.version,
+        slot:        package.slot,
+        revision:    package.revision
       )
 
       pkg.update(
-        :description => package.description,
-        :homepage    => [package.homepage].flatten.join(' '),
-        :license     => [package.license].flatten.join(' '),
+        description: package.description,
+        homepage:    [package.homepage].flatten.join(' '),
+        license:     [package.license].flatten.join(' '),
 
-        :maintainer => package.maintainer
+        maintainer: package.maintainer
       )
 
       package.tags.each {|tag|
-        pkg.tags << Tag.first_or_create(:name => tag.to_s)
+        pkg.tags << Tag.first_or_create(name: tag.to_s)
       }
 
       pkg.data.update(
-        :path => File.dirname(package.path)
+        path: File.dirname(package.path)
       )
 
       package.features.each {|f|
         feature = pkg.data.features.first_or_create(
-          :source => pkg.data,
-          :name   => f.name
+          source: pkg.data,
+          name:   f.name
         )
 
         feature.update(
-          :description => f.description,
-          :enabled     => f.enabled?
+          description: f.description,
+          enabled:     f.enabled?
         )
       }
 
@@ -73,13 +73,13 @@ class Source < Packo::Repository::Source
         next if [:vanilla, :documentation, :headers, :debug].member?(f.name)
 
         flavor = pkg.data.flavor.first_or_create(
-          :source => pkg.data,
-          :name   => f.name
+          source: pkg.data,
+          name:   f.name
         )
 
         flavor.update(
-          :description => f.description,
-          :enabled     => f.enabled?
+          description: f.description,
+          enabled:     f.enabled?
         )
       }
 

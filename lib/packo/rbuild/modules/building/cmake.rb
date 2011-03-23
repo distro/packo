@@ -23,7 +23,7 @@ class CMake < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :generate, self.method(:generate), :before => :configure
+    package.stages.add :generate, self.method(:generate), before: :configure
   end
 
   def finalize

@@ -25,11 +25,11 @@ module Packo; module RBuild
 class Stages
   module Callable
     def before (name, data=nil, &block)
-      self.package.stages.register(:before, name, block, { :binding => self }.merge(data || {}))
+      self.package.stages.register(:before, name, block, { binding: self }.merge(data || {}))
     end
 
     def after (name, data=nil, &block)
-      self.package.stages.register(:after, name, block, { :binding => self }.merge(data || {}))
+      self.package.stages.register(:after, name, block, { binding: self }.merge(data || {}))
     end
 
     def avoid (chain, name, known=nil)
