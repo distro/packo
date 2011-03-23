@@ -54,37 +54,37 @@ class Package
   def self.wrap (model)
     case model
       when Models::Repository::Package; Package.new(
-        tags:     model.tags.map {|t| t.name},
-        name:     model.name,
-        version:  model.version,
-        slot:     model.slot,
-        revision: model.revision,
+        :tags     => model.tags.map {|t| t.name},
+        :name     => model.name,
+        :version  => model.version,
+        :slot     => model.slot,
+        :revision => model.revision,
 
-        features: (case model.repo.type
+        :features => (case model.repo.type
           when :binary; model.data.features
           when :source; model.data.features.map {|f| f.name}.join(' ')
         end),
 
-        description: model.description,
-        homepage:    model.homepage,
-        license:     model.license,
+        :description => model.description,
+        :homepage    => model.homepage,
+        :license     => model.license,
 
-        repository: Repository.wrap(model.repo),
-        model:      model
+        :repository => Repository.wrap(model.repo),
+        :model      => model
       )
 
       when Models::InstalledPackage; Package.new(
-        tags:     model.tags.map {|t| t.name},
-        name:     model.name,
-        version:  model.version,
-        slot:     model.slot,
-        revision: model.revision,
+        :tags     => model.tags.map {|t| t.name},
+        :name     => model.name,
+        :version  => model.version,
+        :slot     => model.slot,
+        :revision => model.revision,
 
-        flavor:   model.flavor,
-        features: model.features,
+        :flavor   => model.flavor,
+        :features => model.features,
 
-        repository: model.repo ? Repository.parse(model.repo) : nil,
-        model:      model
+        :repository => model.repo ? Repository.parse(model.repo) : nil,
+        :model      => model
       )
 
       else; raise "I do not know #{model.class}."

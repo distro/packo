@@ -26,11 +26,11 @@ class Database < Thor
   include Thor::Actions
   include Database::Helpers
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'export TYPE [DATA...] [OPTIONS]', 'Export a database'
   map '-e' => :export
-  method_option :output, type: :string, aliases: '-o', desc: 'Output to a file instead of stdout'
+  method_option :output, :type => :string, :aliases => '-o', :desc => 'Output to a file instead of stdout'
   def export (type, *data)
     exported = Definition.new(type, *data).export
 

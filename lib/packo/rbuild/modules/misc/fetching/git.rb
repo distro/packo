@@ -25,7 +25,7 @@ class Git < Module
 
     package.avoid [Fetcher, Unpacker]
 
-    package.stages.add :fetch, self.method(:fetch), after: :beginning
+    package.stages.add :fetch, self.method(:fetch), :after => :beginning
   end
 
   def finalize

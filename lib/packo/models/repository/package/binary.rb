@@ -24,11 +24,11 @@ module Packo; module Models; class Repository; class Package
 class Binary
   include DataMapper::Resource
 
-  belongs_to :package, key: true
+  belongs_to :package, :key => true
 
-  property :features, Text, default: ''
+  property :features, Text, :default => ''
 
-  has n, :builds, constraint: :destroy
+  has n, :builds, :constraint => :destroy
 end
 
 end; end; end; end

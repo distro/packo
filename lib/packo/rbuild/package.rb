@@ -48,10 +48,10 @@ class Package < Packo::Package
 
   def initialize (name, version=nil, slot=nil, revision=nil, &block)
     super(
-      name:     name,
-      version:  version,
-      slot:     slot,
-      revision: revision
+      :name     => name,
+      :version  => version,
+      :slot     => slot,
+      :revision => revision
     )
 
     @filesystem = FFFS::FileSystem.new
@@ -74,8 +74,8 @@ class Package < Packo::Package
     @features     = Features.new(self)
     @flavor       = Flavor.new(self)
 
-    @stages.add :dependencies, self.method(:dependencies_check), at: :beginning
-    @stages.add :blockers,     self.method(:blockers_check),     at: :beginning
+    @stages.add :dependencies, self.method(:dependencies_check), :at => :beginning
+    @stages.add :blockers,     self.method(:blockers_check),     :at => :beginning
 
     behavior Behaviors::Default
     use      Modules::Packaging::PKO
@@ -94,13 +94,13 @@ class Package < Packo::Package
       documentation {
         description 'Add documentation to the package'
 
-        before :pack, name: :documentation do
+        before :pack, :name => :documentation do
           next if flavor.vanilla?
 
           if !enabled?
             Find.find(distdir) {|file|
               if ['man', 'info', 'doc'].member?(File.basename(file)) && File.directory?(file)
-                FileUtils.rm_rf(file, secure: true) rescue nil
+                FileUtils.rm_rf(file, :secure => true) rescue nil
               end
             }
           end
@@ -110,13 +110,13 @@ class Package < Packo::Package
       headers {
         description 'Add headers to the package'
 
-        before :pack, name: :headers do
+        before :pack, :name => :headers do
           next if flavor.vanilla?
 
           if !enabled?
             Find.find(distdir) {|file|
               if ['include', 'headers'].member?(File.basename(file)) && File.directory?(file)
-                FileUtils.rm_rf(file, secure: true) rescue nil
+                FileUtils.rm_rf(file, :secure => true) rescue nil
               end
             }
           end
@@ -201,9 +201,9 @@ class Package < Packo::Package
   rescue; end
 
   def clean!
-    FileUtils.rm_rf self.workdir, secure: true
-    FileUtils.rm_rf self.distdir, secure: true
-    FileUtils.rm_rf self.tempdir, secure: true
+    FileUtils.rm_rf self.workdir, :secure => true
+    FileUtils.rm_rf self.distdir, :secure => true
+    FileUtils.rm_rf self.tempdir, :secure => true
   rescue; end
 
   def dependencies_check
@@ -232,8 +232,8 @@ class Package < Packo::Package
 
   def build?
     Hash[
-      start: @build_start_at,
-      end:   @build_end_at
+      :start => @build_start_at,
+      :end   => @build_end_at
     ] if @build_start_at
   end
 

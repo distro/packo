@@ -24,12 +24,12 @@ class Profile
     return unless File.directory?(path)
 
     Profile.new(
-      config:   "#{path}/config",
-      tags:     "#{path}/tags",
-      packages: "#{path}/packages",
-      modules:  "#{path}/modules",
-      mask:     "#{path}/mask",
-      unmask:   "#{path}/unmask",
+      :config   => "#{path}/config",
+      :tags     => "#{path}/tags",
+      :packages => "#{path}/packages",
+      :modules  => "#{path}/modules",
+      :mask     => "#{path}/mask",
+      :unmask   => "#{path}/unmask",
     )
   end
 

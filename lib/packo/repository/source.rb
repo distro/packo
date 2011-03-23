@@ -46,8 +46,8 @@ class Source < Repository
           CLI.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
 
           pkg = Packo::Package.new(
-            name:    File.basename(what),
-            version: version.match(/-(\d.*?)\.rbuild$/)[1]
+            :name    => File.basename(what),
+            :version => version.match(/-(\d.*?)\.rbuild$/)[1]
           )
 
           begin

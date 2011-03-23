@@ -48,12 +48,12 @@ class Callbacks
 
   def initialize (name)
     @name      = name
-    @callbacks = Hash[before: [], after: []]
+    @callbacks = Hash[:before => [], :after => []]
     @position  = 0
   end
 
   def register (chain, callback, data)
-    @callbacks[Chains.member?(chain) ? chain : :before] << Callback.new(callback, { position: @position += 1 }.merge(data))
+    @callbacks[Chains.member?(chain) ? chain : :before] << Callback.new(callback, { :position => @position += 1 }.merge(data))
   end
 
   def unregister (chain, name=nil)

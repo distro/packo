@@ -34,20 +34,20 @@ class Repository
     end
 
     Repository.new(
-      type: type,
-      name: name
+      :type => type,
+      :name => name
     )
   end
 
   def self.wrap (model)
     Repository.new(
-      type: model.type,
-      name: model.name,
+      :type => model.type,
+      :name => model.name,
 
-      uri:  model.uri,
-      path: model.path,
+      :uri  => model.uri,
+      :path => model.path,
 
-      model: model
+      :model => model
     )
   end
 

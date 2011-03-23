@@ -26,14 +26,14 @@ class Dependency
 
   property :id, Serial
 
-  property :tags,     Text,                   unique_index: :a
-  property :name,     String,                 unique_index: :a
-  property :version,  String,                 unique_index: :a
-  property :slot,     String,  default: ''
-  property :revision, Integer, default: 0
+  property :tags,     Text,                   :unique_index => :a
+  property :name,     String,                 :unique_index => :a
+  property :version,  String,                 :unique_index => :a
+  property :slot,     String,  :default => ''
+  property :revision, Integer, :default => 0
 
-  property :flavor,   Text, default: ''
-  property :features, Text, default: ''
+  property :flavor,   Text, :default => ''
+  property :features, Text, :default => ''
 end
 
 end; end; end

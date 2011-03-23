@@ -25,7 +25,7 @@ module Packo; module CLI
 class Profile < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 end
 
 end; end

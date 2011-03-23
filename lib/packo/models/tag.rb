@@ -24,7 +24,7 @@ class Tag
 
   property :id, Serial
 
-  property :name, Text, required: true
+  property :name, Text, :required => true
 end
 
 end; end

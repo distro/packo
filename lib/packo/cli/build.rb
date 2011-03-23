@@ -29,16 +29,16 @@ module Packo; module CLI
 class Build < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'package PACKAGE... [OPTIONS]', 'Create packages of the matching names'
-  method_option :output,     type: :string,  default: System.env[:TMP], aliases: '-o', desc: 'The directory where to save packages'
-  method_option :wipe,       type: :boolean, default: false,            aliases: '-w', desc: 'Wipes the package directory before building it'
-  method_option :ask,        type: :boolean, default: false,            aliases: '-a', desc: 'Prompt the user if he want to continue building or not'
-  method_option :repository, type: :string,                                aliases: '-r', desc: 'Set a specific source repository'
-  method_option :execute,    type: :string,                                aliases: '-x', desc: 'Create a package from an executed command instead of from an RBuild'
-  method_option :bump,       type: :boolean, default: true,             aliases: '-b', desc: 'Bump revision when creating a package from command if package is installed'
-  method_option :inspect,    type: :boolean, default: false,            aliases: '-i', desc: 'Inspect the list of files that will be included in the package in EDITOR'
+  method_option :output,     :type => :string,  :default => System.env[:TMP], :aliases => '-o', :desc => 'The directory where to save packages'
+  method_option :wipe,       :type => :boolean, :default => false,            :aliases => '-w', :desc => 'Wipes the package directory before building it'
+  method_option :ask,        :type => :boolean, :default => false,            :aliases => '-a', :desc => 'Prompt the user if he want to continue building or not'
+  method_option :repository, :type => :string,                                :aliases => '-r', :desc => 'Set a specific source repository'
+  method_option :execute,    :type => :string,                                :aliases => '-x', :desc => 'Create a package from an executed command instead of from an RBuild'
+  method_option :bump,       :type => :boolean, :default => true,             :aliases => '-b', :desc => 'Bump revision when creating a package from command if package is installed'
+  method_option :inspect,    :type => :boolean, :default => false,            :aliases => '-i', :desc => 'Inspect the list of files that will be included in the package in EDITOR'
   def package (*packages)
     if command = options[:execute]
       if System.env[:SANDBOX_ACTIVE] || System.env[:FAKED_MODE]
@@ -85,7 +85,7 @@ class Build < Thor
 
       inspect = options[:inspect]
 
-      package.before :pack, priority: -42 do
+      package.before :pack, :priority => -42 do
         files = File.new("#{tempdir}/newfiles", 'w')
 
         files.print File.new("#{tempdir}/newfiles.log", 'r').lines.map {|line| line.strip!
@@ -230,7 +230,7 @@ class Build < Thor
       output = File.realpath(options[:output])
 
       package.after :pack do |path|
-        FileUtils.cp path, output, preserve: true
+        FileUtils.cp path, output, :preserve => true
       end
 
       if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
@@ -260,7 +260,7 @@ class Build < Thor
   end
 
   desc 'clean PACKAGE... [OPTIONS]', 'Clean packages'
-  method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific source repository'
+  method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
   def clean (*packages)
     packages.map {|package|
       if package.end_with?('.rbuild')
@@ -338,13 +338,13 @@ class Build < Thor
       } rescue nil
 
       builder = Nokogiri::XML::Builder.new {|xml|
-        xml.digest(version: '1.0') {
-          xml.build(version: package.version, slot: package.slot) {
+        xml.digest(:version => '1.0') {
+          xml.build(:version => package.version, :slot => package.slot) {
             xml.features package.features.to_a.map {|f| f.name}.join(' ')
 
             xml.files {
               package.distfiles.each {|file|
-                xml.file({ name: File.basename(file) }, Digest::SHA1.hexdigest(File.read(file)))
+                xml.file({ :name => File.basename(file) }, Digest::SHA1.hexdigest(File.read(file)))
               } if package.distfiles
             }
           }
@@ -359,14 +359,14 @@ class Build < Thor
         }
       }
 
-      File.write('digest.xml', builder.to_xml(indent: 4))
+      File.write('digest.xml', builder.to_xml(:indent => 4))
     }
   rescue Errno::EACCES
     CLI.fatal 'Try to use packo-build instead.'
   end
 
   desc 'manifest PACKAGE [OPTIONS]', 'Output the manifest of the given package'
-  method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific source repository'
+  method_option :repository, :type => :string, :aliases => '-r', :desc => 'Set a specific source repository'
   def manifest (package)
     if package.end_with?('.rbuild')
       if File.basename(package).match(/.*?-\d/)

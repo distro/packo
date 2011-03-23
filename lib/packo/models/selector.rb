@@ -24,11 +24,11 @@ class Selector
 
   property :id, Serial
 
-  property :name,        String, unique: true
-  property :description, Text, default: ''
-  property :path,        Text, default: ''
+  property :name,        String, :unique => true
+  property :description, Text, :default => ''
+  property :path,        Text, :default => ''
 
-  property :data, Object, required: false
+  property :data, Object, :required => false
 end
 
 end; end

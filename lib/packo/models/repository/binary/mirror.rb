@@ -28,8 +28,8 @@ class Mirror
 
   property :id, Serial
 
-  property :binary_id, Integer, unique_index: :a
-  property :uri,       URI,     unique_index: :a
+  property :binary_id, Integer, :unique_index => :a
+  property :uri,       URI,     :unique_index => :a
 end
 
 end; end; end; end

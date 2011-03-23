@@ -22,9 +22,9 @@ module Packo; module Models; class Repository; class Package
 class Virtual
   include DataMapper::Resource
 
-  belongs_to :package, key: true
+  belongs_to :package, :key => true
 
-  property :package_id, Integer, key: true
+  property :package_id, Integer, :key => true
 
   property :content, Object
 end

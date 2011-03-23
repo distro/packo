@@ -23,8 +23,8 @@ class Rake < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :compile, self.method(:compile), after: :fetch
-    package.stages.add :install, self.method(:install), after: :compile
+    package.stages.add :compile, self.method(:compile), :after => :fetch
+    package.stages.add :install, self.method(:install), :after => :compile
 
     package.before :build do
       package.environment[:RUBYOPT] = ''

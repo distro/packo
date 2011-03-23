@@ -33,7 +33,7 @@ class Repository < Thor
 
   @@scm = ['git']
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'add URI...', 'Add repositories'
   map '-a' => :add
@@ -80,7 +80,7 @@ class Repository < Thor
       elsif @@scm.member?(uri.scheme)
         kind = :scm
 
-        FileUtils.rm_rf("#{System.env[:TMP]}/.__repo", secure: true)
+        FileUtils.rm_rf("#{System.env[:TMP]}/.__repo", :secure => true)
 
         _checkout(uri, "#{System.env[:TMP]}/.__repo")
 
@@ -97,7 +97,7 @@ class Repository < Thor
 
       path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
 
-      if Models:Repository.first(:type: type, name: name)
+      if Models::Repository.first(:type => type, :name => name)
         CLI.fatal "#{type}/#{name} already exists, delete it first"
         exit 10
       end
@@ -113,7 +113,7 @@ class Repository < Thor
           ).read)
 
         when :source
-          FileUtils.rm_rf path, secure: true rescue nil
+          FileUtils.rm_rf path, :secure => true rescue nil
           FileUtils.mkpath path rescue nil
 
           case kind
@@ -121,7 +121,7 @@ class Repository < Thor
               _checkout(dom.xpath('//address').first.text, path)
 
             when :scm
-              FileUtils.cp_r "#{System.env[:TMP]}/.__repo/.", path, preserve: true
+              FileUtils.cp_r "#{System.env[:TMP]}/.__repo/.", path, :preserve => true
 
             else
               _checkout(uri.to_s, path)
@@ -161,7 +161,7 @@ class Repository < Thor
         exit 20
       end
 
-      conditions        = Hash[name: repository.name]
+      conditions        = Hash[:name => repository.name]
       conditions[:type] = repository.type if repository.type
 
       repositories = Models::Repository.all(conditions)
@@ -175,7 +175,7 @@ class Repository < Thor
 
       begin
         repositories.each {|repository|
-          FileUtils.rm_rf repository.path, secure: true
+          FileUtils.rm_rf repository.path, :secure => true
 
           _delete(repository.type, repository.name)
         }
@@ -189,7 +189,7 @@ class Repository < Thor
 
   desc 'update', 'Update installed repositories'
   map '-u' => :update
-  method_option :force, type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
+  method_option :force, :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force the update'
   def update
     Models::Repository.all.each {|repository|
       updated = false
@@ -230,10 +230,10 @@ class Repository < Thor
 
   desc 'search [EXPRESSION] [OPTIONS]', 'Search packages with the given expression'
   map '--search' => :search, '-Ss' => :search
-  method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
-  method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package'
-  method_option :type,       type: :string,                     aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                     aliases: '-r', desc: 'Set a specific repository'
+  method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
+  method_option :full,       :type => :boolean, :default => false, :aliases => '-F', :desc => 'Include the repository that owns the package'
+  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type'
+  method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
   def search (expression='')
     Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|
       "#{package.tags}/#{package.name}"
@@ -268,9 +268,9 @@ class Repository < Thor
 
   desc 'info [EXPRESSION] [OPTIONS]', 'Search packages with the given expression and return detailed informations about them'
   map '--info' => :info, '-I' => :info
-  method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
-  method_option :type,       type: :string,                     aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                     aliases: '-r', desc: 'Set a specific repository'
+  method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
+  method_option :type,       :type => :string,                     :aliases => '-t', :desc => 'The repository type'
+  method_option :repository, :type => :string,                     :aliases => '-r', :desc => 'Set a specific repository'
   def info (expression='')
     Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|
       package.name
@@ -364,7 +364,7 @@ class Repository < Thor
     if Packo::Repository::Types.member?(type.to_sym)
       CLI.info "Installed #{type} repositories:"
 
-      repositories = Models:Repository.all(:type: type)
+      repositories = Models::Repository.all(:type => type)
       length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
 
       repositories.each {|repository|
@@ -405,7 +405,7 @@ class Repository < Thor
       repositories << Models::Repository.all
     else
       names.each {|name|
-        repositories << Models:Repository.all(:name: name)
+        repositories << Models::Repository.all(:name => name)
       }
     end
 
@@ -430,24 +430,24 @@ class Repository < Thor
   end
 
   desc 'generate REPOSITORY [OPTIONS]', 'Generate a binary repository from sources'
-  method_option :repository, type: :string,                               aliases: '-r', desc: 'Specify a source repository from where to get packages'
-  method_option :output,     type: :string, default: System.env[:TMP], aliases: '-o', desc: 'Specify output directory'
+  method_option :repository, :type => :string,                               :aliases => '-r', :desc => 'Specify a source repository from where to get packages'
+  method_option :output,     :type => :string, :default => System.env[:TMP], :aliases => '-o', :desc => 'Specify output directory'
   def generate (repository)
     dom = Nokogiri::XML.parse(File.read(repository)) {|config|
       config.default_xml.noblanks
     }
 
     dom.xpath('//packages/package').each {|e|
-      CLI.info "Generating #{Packo:Package.new(:tags: e['tags'].split(/\s+/), name: e['name'])}".bold if System.env[:VERBOSE]
+      CLI.info "Generating #{Packo::Package.new(:tags => e['tags'].split(/\s+/), :name => e['name'])}".bold if System.env[:VERBOSE]
 
       e.xpath('.//build').each {|build|
         package = Package.new(
-          tags:     e['tags'],
-          name:     e['name'],
-          version:  build.parent['name'],
-          slot:     (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
+          :tags     => e['tags'],
+          :name     => e['name'],
+          :version  => build.parent['name'],
+          :slot     => (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
 
-          repository: options[:repository]
+          :repository => options[:repository]
         )
 
         package.flavor   = (build.xpath('.//flavor').first.text rescue '')
@@ -462,8 +462,8 @@ class Repository < Thor
 
         begin
           pko = _build(package,
-            FLAVOR:   package.flavor,
-            FEATURES: package.features
+            :FLAVOR   => package.flavor,
+            :FEATURES => package.features
           )
 
           build.xpath('.//digest').each {|node| node.remove}
@@ -475,7 +475,7 @@ class Repository < Thor
           Packo.debug e
         end
 
-        File.write(repository, dom.to_xml(indent: 4))
+        File.write(repository, dom.to_xml(:indent => 4))
       }
     }
   end
@@ -484,7 +484,7 @@ class Repository < Thor
 
   def _build (package, env)
     Do.cd {
-      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
+      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", :secure => true rescue nil
       FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
       require 'packo/cli/build'
@@ -502,16 +502,16 @@ class Repository < Thor
 
   def _add (type, name, uri, path)
     Helpers::Repository.wrap(Models::Repository.create(
-      type: type,
-      name: name,
+      :type => type,
+      :name => name,
 
-      uri:  uri,
-      path: path
+      :uri  => uri,
+      :path => path
     )).populate
   end
 
   def _delete (type, name)
-    Models:Repository.first(:name: name, type: type).destroy rescue nil
+    Models::Repository.first(:name => name, :type => type).destroy rescue nil
   end
 
   def _checkout (uri, path)
@@ -531,7 +531,7 @@ class Repository < Thor
     end
 
     case scm
-      when 'git'; Packo.sh 'git', 'clone', '--depth', '1', uri.to_s, path, silent: !System.env[:VERBOSE]
+      when 'git'; Packo.sh 'git', 'clone', '--depth', '1', uri.to_s, path, :silent => !System.env[:VERBOSE]
     end
   end
 

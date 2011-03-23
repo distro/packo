@@ -23,7 +23,7 @@ class Strip < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :strip, self.method(:strip), before: :pack
+    package.stages.add :strip, self.method(:strip), :before => :pack
   end
 
   def strip
@@ -31,7 +31,7 @@ class Strip < Module
       next if package.env[:NO_STRIP]
 
       Find.find(package.distdir) {|file|
-        Packo.sh 'strip', file, silent: true rescue nil
+        Packo.sh 'strip', file, :silent => true rescue nil
       }
     }
   end

@@ -32,19 +32,19 @@ class Repository
 
   property :id, Serial
 
-  property :type, Enum[:binary, :source, :virtual], required: true
-  property :name, String,                           required: true
+  property :type, Enum[:binary, :source, :virtual], :required => true
+  property :name, String,                           :required => true
 
-  property :uri,  URI,  required: true
-  property :path, Text, required: true
+  property :uri,  URI,  :required => true
+  property :path, Text, :required => true
 
-  has n, :packages, constraint: :destroy
+  has n, :packages, :constraint => :destroy
 
   after :create do |repo|
     case repo.type
-      when :binary;  Binary.create(repo: repo)
-      when :source;  Source.create(repo: repo)
-      when :virtual; Virtual.create(repo: repo)
+      when :binary;  Binary.create(:repo => repo)
+      when :source;  Source.create(:repo => repo)
+      when :virtual; Virtual.create(:repo => repo)
     end
   end
 
@@ -58,18 +58,18 @@ class Repository
 
   def data
      case type
-      when :binary;  Binary.first_or_create(repo: self)
-      when :source;  Source.first_or_create(repo: self)
-      when :virtual; Virtual.first_or_create(repo: self)
+      when :binary;  Binary.first_or_create(:repo => self)
+      when :source;  Source.first_or_create(:repo => self)
+      when :virtual; Virtual.first_or_create(:repo => self)
     end
   end
 
   def to_hash
     Hash[
-      type: self.type,
-      name: self.name,
-      uri:  self.uri,
-      path: self.path
+      :type => self.type,
+      :name => self.name,
+      :uri  => self.uri,
+      :path => self.path
     ]
   end
 
@@ -108,7 +108,7 @@ class Repository
 
       package = Packo::Package.parse(expression)
 
-      conditions = { order: [:name.asc] }
+      conditions = { :order => [:name.asc] }
 
       if exact
         conditions[:name]    = package.name    if package.name

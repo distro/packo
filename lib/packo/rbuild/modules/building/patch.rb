@@ -46,7 +46,7 @@ class Patch < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :patch, self.method(:patch), after: :fetch, priority: -1
+    package.stages.add :patch, self.method(:patch), :after => :fetch, :priority => -1
 
     before :initialize do |package|
       package.define_singleton_method :patch, &Patch.method(:do)
