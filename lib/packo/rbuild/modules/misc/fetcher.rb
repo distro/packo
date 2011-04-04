@@ -89,7 +89,7 @@ class Fetcher < Module
     else
       distfiles = []
       sources   = [package.source].flatten.compact.map {|source|
-        Fetcher.url(source, package)
+        Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
       }
 
       package.stages.callbacks(:fetch).do(sources) {

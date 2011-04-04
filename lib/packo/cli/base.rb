@@ -514,7 +514,7 @@ class Base < Thor
   end
 
   def _exists? (path)
-    Models::InstalledPackage::Content.first(path: path, type.not: :dir).package rescue false
+    Models::InstalledPackage::Content.first(path: path, :type.not => :dir).package rescue false
   end
 end
 

@@ -27,17 +27,19 @@ Fetcher.register :sourceforge, do |url, package|
   body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{project}/files/#{File.dirname(path)}/"))
 
   urls = body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).select {|(url)|
-    url.match(%r{((tar\.(lzma|xz|bz2|gz))|zip|rar)/download$})
+    url.match(%r{((tar\.(lzma|xz|bz2|gz))|tgz|zip|rar)/download$})
   }.map {|(url)| url}
 
   url = nil
-  ['xz', 'lzma', 'bz2', 'gz', 'zip' 'rar'].each {|compression|
+  %w(xz lzma bz2 gz tgz zip rar).each {|compression|
     url = urls.find {|url|
       url.match(%r{\.#{compression}/download$})
     }
 
     break if url
   }
+
+  next unless url
 
   URI.decode(Net::HTTP.get(URI.parse(url)).match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
 end
