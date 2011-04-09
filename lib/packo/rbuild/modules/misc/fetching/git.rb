@@ -46,6 +46,10 @@ class Git < Module
       Packo.sh 'git', 'clone', *options, url, package.workdir
 
       Do.cd package.workdir
+
+      if commit
+        Packo.sh 'git', 'checkout', commit
+      end
     }
   end
 end
