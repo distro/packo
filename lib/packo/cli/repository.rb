@@ -467,7 +467,7 @@ class Repository < Thor
           )
 
           build.xpath('.//digest').each {|node| node.remove}
-          build.add_child dom.create_element('digest', Digest::SHA1.hexdigest(File.read(pko)))
+          build.add_child dom.create_element('digest', Do.digest(pko))
 
           FileUtils.mkpath "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
           FileUtils.mv pko, "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"

@@ -142,7 +142,7 @@ class Base < Thor
 
             name = "#{env[:TMP]}/#{name}"
 
-            if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
+            if (digest = _digest(package, env)) && (result = Do.digest(name)) != digest
               CLI.fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
               exit 13
             end
@@ -304,7 +304,7 @@ class Base < Thor
             end
           elsif File.file?(file)
             type = :obj
-            meta = Digest::SHA1.hexdigest(File.read(file))
+            meta = Do.digest(file)
 
             begin
               FileUtils.cp file, path, preserve: true
@@ -364,7 +364,7 @@ class Base < Thor
 
           case content.type
             when :obj
-              if File.exists?(path) && (options[:force] || content.meta == Digest::SHA1.hexdigest(File.read(path)))
+              if File.exists?(path) && (options[:force] || content.meta == Do.digest(path))
                 puts "<<< #{path}".bold
                 FileUtils.rm_f(path) rescue nil
               else

@@ -36,8 +36,6 @@ descriptions = {
 
 trusted = [:base, :select, :db, :profile]
 
-require 'packo/cli'
-
 if commands.member?(ARGV.first)
   command  = ARGV.shift
   sandbox  = false
@@ -48,8 +46,8 @@ if commands.member?(ARGV.first)
     fakeroot = File.executable?("#{folder}/fakeroot") if !fakeroot
   }
   
-  Packo::CLI.fatal "sandbox isn't installed"  if !sandbox
-  Packo::CLI.fatal "fakeroot isn't installed" if !fakeroot
+  warn "sandbox isn't installed"  if !sandbox
+  warn "fakeroot isn't installed" if !fakeroot
 
   exit system(*([((!trusted.include?(command.to_sym)) ? 'sandbox' : nil), 'fakeroot', "packo-#{command}"] + ARGV).compact)
 end

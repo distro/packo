@@ -65,3 +65,11 @@ module CLI
 end
 
 end
+
+['INT', 'QUIT', 'ABRT', 'TERM', 'TSTP'].each {|sig|
+  trap sig do
+    puts 'Aborting.'
+
+    Process.exit! 0
+  end
+}

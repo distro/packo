@@ -8,10 +8,10 @@ Gem::Specification.new {|s|
     s.homepage     = 'http://github.com/distro/packo'
     s.platform     = Gem::Platform::RUBY
     s.summary      = 'The "pacco" package manager.'
+    s.description  = 'A really flexible package manager, inspired by portage and pacman.'
     s.files        = Dir.glob('lib/**/*.rb')
     s.require_path = 'lib'
     s.executables  = Dir.glob('bin/**').map {|p| p[4, p.length]}
-    s.has_rdoc     = false
 
     s.add_dependency('nokogiri')
     s.add_dependency('thor')

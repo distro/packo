@@ -119,9 +119,9 @@ module Packo
           }
         end
 
-        files = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/files/file").map {|file|
-          OpenStruct.new(name: file['name'], digest: file.text)
-        }
+        files = Hash[digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/files/file").map {|file|
+          [file['name'], file.text]
+        }]
       end
 
       begin

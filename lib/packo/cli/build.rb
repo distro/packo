@@ -344,7 +344,7 @@ class Build < Thor
 
             xml.files {
               package.distfiles.each {|file|
-                xml.file({ name: File.basename(file) }, Digest::SHA1.hexdigest(File.read(file)))
+                xml.file({ name: File.basename(file) }, Do.digest(file))
               } if package.distfiles
             }
           }

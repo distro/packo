@@ -54,6 +54,12 @@ class Fetcher < Module
     )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), silent: !System.env[:VERBOSE]
   end
 
+  def self.filename (text)
+    return unless text
+
+    File.basename(text).sub(/\?.*$/, '')
+  end
+
   def initialize (package)
     super(package)
 
@@ -71,32 +77,46 @@ class Fetcher < Module
   end
 
   def fetch
-    version = package.version
-
     if package.source.is_a?(Hash)
       distfiles = {}
-      sources   = Hash[package.source.clone.map {|(name, source)|
-        [name, Fetcher.url(source, package)]
-      }]
+      sources   = Hash[package.source.dup.map {|(name, source)|
+        next if (Do.digest("#{package.fetchdir}/#{Fetcher.filename(source.interpolate(package))}") rescue false) == package.digests[Fetcher.filename(source.interpolate(package))]
+
+        [name, (Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}")]
+      }.compact]
 
       package.stages.callbacks(:fetch).do(sources) {
         sources.each {|name, source|
-          distfiles[name] = "#{package.fetchdir || System.env[:TMP]}/#{File.basename(source).sub(/\?.*$/, '')}"
+          distfiles[name] = "#{package.fetchdir}/#{Fetcher.filename(source)}"
 
           package.fetch source, distfiles[name]
+        }
+
+        package.source.each {|name, source|
+          next if distfiles[name]
+
+          distfiles[name] = "#{package.fetchdir}/#{Fetcher.filename(source.interpolate(package))}"
         }
       }
     else
       distfiles = []
       sources   = [package.source].flatten.compact.map {|source|
+        next if (Do.digest("#{package.fetchdir}/#{Fetcher.filename(source.interpolate(package))}") rescue false) == package.digests[Fetcher.filename(source.interpolate(package))]
+
         Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
-      }
+      }.compact
 
       package.stages.callbacks(:fetch).do(sources) {
         sources.each {|(source, output)|
-          distfiles << "#{package.fetchdir || System.env[:TMP]}/#{output || File.basename(source).sub(/\?.*$/, '')}"
+          distfiles << "#{package.fetchdir}/#{output || Fetcher.filename(source)}"
 
           package.fetch source, distfiles.last
+        }
+
+        [package.source].flatten.compact.each {|source|
+          next if distfiles.member?("#{package.fetchdir}/#{Fetcher.filename(source.interpolate(package))}")
+
+          distfiles << "#{package.fetchdir}/#{Fetcher.filename(source.interpolate(package))}"
         }
       }
     end
@@ -113,13 +133,8 @@ class Fetcher < Module
       end
 
       distfiles.each {|file|
-        original = package.digests.find {|digest|
-          digest.name == File.basename(file)
-        }.digest rescue nil
-
-        next unless original
-
-        digest = Digest::SHA1.hexdigest(File.read(file))
+        original = package.digests[Fetcher.filename(file)] or next
+        digest   = Do.digest(file) or next
 
         if digest != original
           raise ArgumentError.new("#{File.basename(file)} digest is #{digest} but should be #{original}")
