@@ -343,8 +343,10 @@ class Build < Thor
             xml.features package.features.to_a.map {|f| f.name}.join(' ')
 
             xml.files {
-              package.distfiles.each {|file|
-                xml.file({ name: File.basename(file) }, Do.digest(file))
+              package.distfiles.to_a.each {|(name, file)|
+                file ||= name
+
+                xml.file({ name: File.basename(file.path), url: file.url }, Do.digest(file.path))
               } if package.distfiles
             }
           }

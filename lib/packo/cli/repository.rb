@@ -501,17 +501,21 @@ class Repository < Thor
   end
 
   def _add (type, name, uri, path)
-    Helpers::Repository.wrap(Models::Repository.create(
-      type: type,
-      name: name,
+    Models.transaction {
+      Helpers::Repository.wrap(Models::Repository.create(
+        type: type,
+        name: name,
 
-      uri:  uri,
-      path: path
-    )).populate
+        uri:  uri,
+        path: path
+      )).populate
+    }
   end
 
   def _delete (type, name)
-    Models::Repository.first(name: name, type: type).destroy rescue nil
+    Models.transaction {
+      Models::Repository.first(name: name, type: type).destroy
+    }
   end
 
   def _checkout (uri, path)

@@ -25,7 +25,7 @@ Fetcher.register :github do |url, package|
   CLI.warn 'Github has problems with certificates in the download page.'
   CLI.warn 'If you are using wget you must add --no-check-certificate to the options.'
 
-  return "https://github.com/#{user}/#{project}/tarball/#{file}", "#{project}-#{file}.tar.gz"
+  ["https://github.com/#{user}/#{project}/tarball/#{file}", "#{project}-#{file}.tar.gz"]
 end
 
 end; end; end; end

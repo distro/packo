@@ -99,6 +99,8 @@ module Packo
       after:  ';end'
     }
 
+    files = {}
+
     if package
       if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
         features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
@@ -119,9 +121,17 @@ module Packo
           }
         end
 
-        files = Hash[digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/files/file").map {|file|
-          [file['name'], file.text]
-        }]
+        # FIXME: maybe check slot too?
+        digest.xpath("//build[@version = '#{package.version}']/files/file").each {|file|
+          tmp = OpenStruct.new(
+            name:   file['name'],
+            url:    file['url'],
+            digest: file.text
+          )
+
+          files[file['name']] = tmp
+          files[file['url']]  = tmp
+        }
       end
 
       begin

@@ -68,6 +68,10 @@ end
 
 ['INT', 'QUIT', 'ABRT', 'TERM', 'TSTP'].each {|sig|
   trap sig do
+    if defined?(Packo::Models)
+      Packo::Models.transactions.each {|t| t.rollback}
+    end
+
     puts 'Aborting.'
 
     Process.exit! 0

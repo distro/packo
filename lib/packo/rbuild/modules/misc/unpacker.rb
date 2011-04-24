@@ -59,7 +59,7 @@ class Unpacker < Module
       Unpacker.do((package.ditfiles.is_a?(Hash) ?
         package.distfiles[:default] :
         package.distfiles.first
-      ), "#{package.directory}/work")
+      ).path, "#{package.directory}/work")
 
       Dir.chdir package.workdir
       Dir.chdir "#{package.name}-#{package.version}" rescue false

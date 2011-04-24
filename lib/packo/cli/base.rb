@@ -232,117 +232,148 @@ class Base < Thor
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{System.env[:SELECTORS]}/#{selector.path}", silent: true
       }
 
-      pkg = Models::InstalledPackage.first_or_new(
-        tags_hashed: manifest.package.tags.hashed,
-        name:        manifest.package.name,
-        slot:        manifest.package.slot
-      )
+      Models.transaction {|t|
+        pkg = Models::InstalledPackage.first_or_new(
+          tags_hashed: manifest.package.tags.hashed,
+          name:        manifest.package.name,
+          slot:        manifest.package.slot
+        )
 
-      pkg.attributes = {
-        repo: options[:repository],
+        pkg.attributes = {
+          repo: options[:repository],
 
-        version:  manifest.package.version,
-        revision: manifest.package.revision,
+          version:  manifest.package.version,
+          revision: manifest.package.revision,
 
-        flavor:   manifest.package.flavor,
-        features: manifest.package.features,
+          flavor:   manifest.package.flavor,
+          features: manifest.package.features,
 
-        description: manifest.package.description,
-        homepage:    manifest.package.homepage,
-        license:     manifest.package.license,
+          description: manifest.package.description,
+          homepage:    manifest.package.homepage,
+          license:     manifest.package.license,
 
-        manual: manual,
-        type:   type
-      }
-
-      pkg.save
-
-      manifest.package.tags.each {|tag|
-        pkg.tags.first_or_create(name: tag.to_s)
-      }
-
-      length = "#{path}/dist/".length
-      old    = path
-
-      begin
-        Find.find("#{path}/dist") {|file|
-          next unless file[length, file.length]
-
-          type = nil
-          path = (options[:destination] + file[length, file.length]).cleanpath.to_s
-          fake = path[options[:destination].cleanpath.to_s.length, path.length] || ''
-          meta = nil
-
-          if !options[:force] && File.exists?(path) && !File.directory?(path)
-            if (tmp = _exists?(fake))
-              CLI.fatal "#{path} belongs to #{tmp}, use --force to overwrite"
-            else
-              CLI.fatal "#{path} doesn't belong to any package, use --force to overwrite"
-            end
-
-            raise RuntimeError.new 'File collision'
-          end
-
-          if File.directory?(file)
-            type = :dir
-
-            begin
-              FileUtils.mkpath(path)
-              puts "--- #{path if path != '/'}/"
-            rescue
-              puts "--- #{path if path != '/'}/".red
-            end
-          elsif File.symlink?(file)
-            type = :sym
-            meta = File.readlink(file)
-
-            begin
-              FileUtils.ln_sf meta, path
-              puts ">>> #{path} -> #{meta}".cyan.bold
-            rescue
-              puts ">>> #{path} -> #{meta}".red
-            end
-          elsif File.file?(file)
-            type = :obj
-            meta = Do.digest(file)
-
-            begin
-              FileUtils.cp file, path, preserve: true
-              puts ">>> #{path}".bold
-            rescue
-              puts ">>> #{path}".red
-            end
-          else
-            next
-          end
-
-          content = pkg.contents.first_or_create(
-            type: type,
-            path: fake
-          )
-
-          content.update(
-            meta: meta
-          )
+          manual: manual,
+          type:   type
         }
 
         pkg.save
-      rescue Exception => e
-        CLI.fatal 'Something went deeply wrong while installing package contents'
-        Packo.debug e
 
-        pkg.destroy rescue nil
+        manifest.package.tags.each {|tag|
+          pkg.tags.first_or_create(name: tag.to_s)
+        }
 
-        uninstall(package.to_s(:whole))
+        length = "#{path}/dist/".length
+        old    = path
 
-        exit 17
-      end
+        begin
+          Find.find("#{path}/dist") {|file|
+            next unless file[length, file.length]
 
-      if options[:ignore]
-        pkg.destroy
-      else
-        pkg.update(destination: options[:destination].cleanpath)
-      end
+            type = nil
+            path = (options[:destination] + file[length, file.length]).cleanpath.to_s
+            fake = path[options[:destination].cleanpath.to_s.length, path.length] || ''
+            meta = nil
+
+            if !options[:force] && File.exists?(path) && !File.directory?(path)
+              if (tmp = _exists?(fake))
+                CLI.fatal "#{path} belongs to #{tmp}, use --force to overwrite"
+              else
+                CLI.fatal "#{path} doesn't belong to any package, use --force to overwrite"
+              end
+
+              raise RuntimeError.new 'File collision'
+            end
+
+            if File.directory?(file)
+              type = :dir
+
+              begin
+                FileUtils.mkpath(path)
+                puts "--- #{path if path != '/'}/"
+              rescue
+                puts "--- #{path if path != '/'}/".red
+              end
+            elsif File.symlink?(file)
+              type = :sym
+              meta = File.readlink(file)
+
+              begin
+                FileUtils.ln_sf meta, path
+                puts ">>> #{path} -> #{meta}".cyan.bold
+              rescue
+                puts ">>> #{path} -> #{meta}".red
+              end
+            elsif File.file?(file)
+              type = :obj
+              meta = Do.digest(file)
+
+              begin
+                FileUtils.cp file, path, preserve: true
+                puts ">>> #{path}".bold
+              rescue
+                puts ">>> #{path}".red
+              end
+            else
+              next
+            end
+
+            content = pkg.contents.first_or_create(
+              type: type,
+              path: fake
+            )
+
+            content.update(
+              meta: meta
+            )
+          }
+
+          pkg.save
+        rescue Exception => e
+          CLI.fatal 'Something went deeply wrong while installing package contents'
+          Packo.debug e
+
+          pkg.contents.each {|content| content.check!
+            path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
+
+            case content.type
+              when :obj
+                if File.exists?(path) && (options[:force] || content.meta == Do.digest(path))
+                  puts "<<< #{path}".bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                   puts "=== #{path}".red
+                end
+
+              when :sym
+                if File.exists?(path) && (options[:force] || !File.exists?(path) || content.meta == File.readlink(path))
+                  puts "<<< #{path} -> #{content.meta}".cyan.bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                  puts "=== #{path} -> #{File.readlink(path)}".red
+                end
+
+              when :dir
+                puts "--- #{path if path != '/'}/"
+            end
+          }
+
+          pkg.contents.all(type: :dir, order: [:path.desc]).each {|content|
+            path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
+
+            Dir.delete(path) rescue nil
+          }
+
+          t.rollback
+
+          exit 17
+        end
+
+        if options[:ignore]
+          t.rollback
+        else
+          pkg.update(destination: options[:destination].cleanpath)
+        end
+      }
     }
   end
 
@@ -359,38 +390,40 @@ class Base < Thor
       end
 
       packages.each {|installed|
-        installed.model.contents.each {|content| content.check!
-          path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
+        Models.transaction {
+          installed.model.contents.each {|content| content.check!
+            path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
 
-          case content.type
-            when :obj
-              if File.exists?(path) && (options[:force] || content.meta == Do.digest(path))
-                puts "<<< #{path}".bold
-                FileUtils.rm_f(path) rescue nil
-              else
-                 puts "=== #{path}".red
-              end
+            case content.type
+              when :obj
+                if File.exists?(path) && (options[:force] || content.meta == Do.digest(path))
+                  puts "<<< #{path}".bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                   puts "=== #{path}".red
+                end
 
-            when :sym
-              if File.exists?(path) && (options[:force] || !File.exists?(path) || content.meta == File.readlink(path))
-                puts "<<< #{path} -> #{content.meta}".cyan.bold
-                FileUtils.rm_f(path) rescue nil
-              else
-                puts "=== #{path} -> #{File.readlink(path)}".red
-              end
+              when :sym
+                if File.exists?(path) && (options[:force] || !File.exists?(path) || content.meta == File.readlink(path))
+                  puts "<<< #{path} -> #{content.meta}".cyan.bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                  puts "=== #{path} -> #{File.readlink(path)}".red
+                end
 
-            when :dir
-              puts "--- #{path if path != '/'}/"
-          end
+              when :dir
+                puts "--- #{path if path != '/'}/"
+            end
+          }
+
+          installed.model.contents.all(type: :dir, order: [:path.desc]).each {|content|
+            path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
+
+            Dir.delete(path) rescue nil
+          }
+
+          installed.model.destroy
         }
-
-        installed.model.contents.all(type: :dir, order: [:path.desc]).each {|content|
-          path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
-
-          Dir.delete(path) rescue nil
-        }
-
-        installed.model.destroy
       }
     }
   end

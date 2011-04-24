@@ -13,12 +13,17 @@ Gem::Specification.new {|s|
     s.require_path = 'lib'
     s.executables  = Dir.glob('bin/**').map {|p| p[4, p.length]}
 
-    s.add_dependency('nokogiri')
     s.add_dependency('thor')
+    s.add_dependency('colorb')
+
+    s.add_dependency('nokogiri')
+
     s.add_dependency('datamapper')
+    s.add_dependency('dm-transactions')
+    s.add_dependency('dm-timestamps')
+    s.add_dependency('dm-types')
+    s.add_dependency('dm-constraints')
+
     s.add_dependency('versionomy')
     s.add_dependency('fffs')
-    s.add_dependency('colorb')
-    s.add_dependency('ruby-lzma')
-    s.add_dependency('json')
 }
