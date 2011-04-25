@@ -29,14 +29,15 @@ class Patch < Module
         temp.write patch.to_s
         temp.flush
 
-        Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'"
+        Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'", silent: options[:silent]
 
         temp.close(true)
       else
-        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'"
+        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'", silent: options[:silent]
       end
     rescue Exception => e
-      Packo.debug e
+      Packo.debug e unless options[:silent]
+
       return false
     end
 

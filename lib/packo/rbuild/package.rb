@@ -130,7 +130,7 @@ class Package < Packo::Package
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
-    self.fetchdir  = System.env[:FETCH_PATH] || System.env[:TMP]
+    self.fetchdir  = System.env[:FETCH_PATH] || self.tempdir
 
     stages.callbacks(:initialize).do(self) {
       self.instance_exec(self, &block) if block

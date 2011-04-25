@@ -44,6 +44,13 @@ class File
       f.chmod mode if mode
     }
   end
+
+  def self.append (path, data, mode=nil)
+    open(path, 'ab') {|f|
+      f.write data
+      f.chmod mode if mode
+    }
+  end
 end
 
 class String
@@ -51,12 +58,10 @@ class String
     on.instance_eval("%{#{self}}") rescue self
   end
 
-  alias __old_equal ===
-
   def === (value)
     value.is_a?(Packo::Host) ?
       value == self :
-      __old_equal(value)
+      super(value)
   end
 end
 

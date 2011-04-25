@@ -323,6 +323,8 @@ class Build < Thor
         exit 42
       end
 
+      package.digests = {}
+
       package.after :fetch do |result|
         package.stages.stop!
 

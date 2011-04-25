@@ -153,6 +153,10 @@ module Packo
           RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
         end
 
+        if File.directory?("#{path}/data")
+          RBuild::Package.last.filesystem.load("#{path}/data")
+        end
+
         RBuild::Package.last.digests = files
 
         return RBuild::Package.last
