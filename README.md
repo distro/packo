@@ -85,3 +85,6 @@ so majority of the time is spent there. I'll probably implement a server/client 
 Installation isn't slow, sqlite is slow at changing data in the db, so choose another adapter and you'll get it fast, remember
 that sqlite is fast at selecting, so searches of packages/files/whatever will be fast and updates/installations will be slow,
 choose the adapter that better suits your needs.
+
+_I've worked hard on improving speed so theoretically now it's a lot faster with all the data changing, as long as the 
+adapter supports transactions._

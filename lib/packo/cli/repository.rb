@@ -138,13 +138,15 @@ class Repository < Thor
       end
 
       begin
-        _add type, name, uri, path
+        Models.transaction {
+          _add type, name, uri, path
+        }
+
         CLI.info "Added #{type}/#{name}"
       rescue Exception => e
         CLI.fatal 'Failed to add the cache'
-        Packo.debug e
 
-        _delete(type, name)
+        Packo.debug e
       end
     }
   end
@@ -175,9 +177,11 @@ class Repository < Thor
 
       begin
         repositories.each {|repository|
-          FileUtils.rm_rf repository.path, secure: true
+          Models.transaction {
+            _delete(repository.type, repository.name)
 
-          _delete(repository.type, repository.name)
+            FileUtils.rm_rf repository.path, secure: true
+          }
         }
       rescue Exception => e
         CLI.fatal "Something went wrong while deleting #{name}"
@@ -199,26 +203,28 @@ class Repository < Thor
       uri  = repository.uri.to_s
       path = repository.path
 
-      case repository.type
-        when :binary
-          if (content = open(uri).read) != File.read(path) || options[:force]
-            _delete(:binary, name)
-            File.write(path, content)
-            _add(:binary, name, uri, path)
+      Models.transaction {
+        case repository.type
+          when :binary
+            if (content = open(uri).read) != File.read(path) || options[:force]
+              _delete(:binary, name)
+              File.write(path, content)
+              _add(:binary, name, uri, path)
 
-            updated = true
-          end
+              updated = true
+            end
 
-        when :source
-          if _update(path) || options[:force]
-            _delete(:source, name)
-            _add(:source, name, uri, path)
+          when :source
+            if _update(path) || options[:force]
+              _delete(:source, name)
+              _add(:source, name, uri, path)
 
-            updated = true
-          end
+              updated = true
+            end
 
-        when :virtual
-      end
+          when :virtual
+        end
+      }
 
       if updated
         CLI.info "Updated #{type}/#{name}"
@@ -417,15 +423,17 @@ class Repository < Thor
 
       CLI.info "Rehashing #{type}/#{name}"
 
-      _delete(type, name)
+      Models.transaction {
+        _delete(type, name)
 
-      case type
-        when :binary
-          _add(:binary, name, uri, path)
+        case type
+          when :binary
+            _add(:binary, name, uri, path)
 
-        when :source
-          _add(:source, name, uri, path)
-      end
+          when :source
+            _add(:source, name, uri, path)
+        end
+      }
     }
   end
 
@@ -501,21 +509,17 @@ class Repository < Thor
   end
 
   def _add (type, name, uri, path)
-    Models.transaction {
-      Helpers::Repository.wrap(Models::Repository.create(
-        type: type,
-        name: name,
+    Helpers::Repository.wrap(Models::Repository.create(
+      type: type,
+      name: name,
 
-        uri:  uri,
-        path: path
-      )).populate
-    }
+      uri:  uri,
+      path: path
+    )).populate
   end
 
   def _delete (type, name)
-    Models.transaction {
-      Models::Repository.first(name: name, type: type).destroy
-    }
+    Models::Repository.first(name: name, type: type).destroy
   end
 
   def _checkout (uri, path)
