@@ -70,32 +70,30 @@ module Packo
   end
 
   def self.contents (obj, &block)
-    result = []
+    Enumerator.new do |e|
+      obj.each {|file|
+        next unless File.directory?(file) || File.symlink?(file) || File.file?(file)
 
-    obj.each {|file|
-      next unless File.directory?(file) || File.symlink?(file) || File.file?(file)
+        data = {}
+        data.merge!(block.call(file) || {}) if block
 
-      data = {}
-      data.merge!(block.call(file) || {}) if block
+        next if data[:next]
 
-      next if data[:next]
+        data[:source] ||= file
+        data[:path]   ||= file
 
-      data[:source] ||= file
-      data[:path]   ||= file
+        if File.directory?(file)
+          data[:type] ||= :dir
+        elsif File.symlink?(file)
+          data[:type] ||= :sym
+          data[:meta] ||= File.readlink(file)
+        elsif File.file?(file)
+          data[:type] ||= :obj
+          data[:meta] ||= Packo.digest(file)
+        end
 
-      if File.directory?(file)
-        data[:type] ||= :dir
-      elsif File.symlink?(file)
-        data[:type] ||= :sym
-        data[:meta] ||= File.readlink(file)
-      elsif File.file?(file)
-        data[:type] ||= :obj
-        data[:meta] ||= Packo.digest(file)
-      end
-
-      result << OpenStruct.new(data)
-    }
-
-    result
+        e << OpenStruct.new(data)
+      }
+    end
   end
 end

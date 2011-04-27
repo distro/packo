@@ -422,8 +422,8 @@ class Base < Thor
 
   desc 'search [EXPRESSION] [OPTIONS]', 'Search through installed packages'
   map '--search' => :search, '-Ss' => :search
-  method_option :type,       type: :string,                     aliases: '-t', desc: 'The repository type (binary, source, virtual)'
-  method_option :repository, type: :string,                     aliases: '-r', desc: 'Set a specific repository'
+  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type (binary, source, virtual)'
+  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
   method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package, features and flavor'
   def search (expression='')
     Models.search_installed(expression, options[:repository], options[:type]).group_by {|package|
