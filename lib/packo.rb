@@ -17,44 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'ostruct'
+require 'packo/utils'
 
 module Packo
-  def self.sh (*cmd, &block)
-    options = (Hash === cmd.last) ? cmd.pop : {}
-
-    if !block_given?
-      show_command = cmd.join(' ')
-      show_command = show_command[0, 42] + '...' unless $trace
-
-      block = lambda {|ok, status|
-        ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}] in {#{Dir.pwd}}"
-      }
-    end
-
-    if options[:silent]
-      options[:out] = '/dev/null'
-      options[:err] = '/dev/null'
-    else
-      print "#{cmd.first} "
-      cmd[1 .. cmd.length].each {|cmd|
-        if cmd.match(/[ \$'`]/)
-          print %Q{"#{cmd}" }
-        else
-          print "#{cmd} "
-        end
-      }
-      print "\n"
-    end
-
-    options.delete :silent
-
-    result = Kernel.system(options[:env] || {}, *cmd, options)
-    status = $?
-
-    block.call(result, status)
-  end
-
   def self.debug (argument, options={})
     if !Packo.const_defined?(:System) || (!System.env[:DEBUG] && !options[:force])
       return
@@ -82,15 +47,7 @@ module Packo
       output << options[:separator]
     end
 
-    puts output
-  end
-
-  def self.load (path, options={})
-    if !File.readable? path
-      raise LoadError.new("no such file to load -- #{path}")
-    end
-
-    eval("#{options[:before]}#{File.read(path, encoding: 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
+    $stderr.puts output
   end
 
   def self.loadPackage (path, package=nil)

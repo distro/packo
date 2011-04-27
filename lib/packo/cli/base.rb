@@ -37,7 +37,7 @@ class Base < Thor
   method_option :ignore,      type: :boolean, default: false,                     aliases: '-x', desc: 'Ignore the installation and do not add the package to the database'
   method_option :nodeps,      type: :boolean, default: false,                     aliases: '-N', desc: 'Ignore blockers and dependencies'
   method_option :depsonly,    type: :boolean, default: false,                     aliases: '-D', desc: 'Install only dependencies'
-  method_option :repository,  type: :string,                                         aliases: '-r', desc: 'Set a specific repository'
+  method_option :repository,  type: :string,                                      aliases: '-r', desc: 'Set a specific repository'
   def install (*names)
     type = names.last.is_a?(Symbol) ? names.pop : :both
 

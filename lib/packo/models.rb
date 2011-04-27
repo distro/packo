@@ -78,11 +78,17 @@ class Property
     end
 
     def load (value)
-      Versionomy.parse(value.to_s) unless value.to_s.empty?
+      return if value.to_s.empty?
+
+      whole, version, format = value.to_s.match(/^(.+?):([^:]+)$/).to_a
+
+      Versionomy.parse(version, format)
     end
 
     def dump (value)
-      value.to_s unless value.nil?
+      return unless value
+
+      "#{value}:#{Versionomy::Format.canonical_name_for(value.format)}"
     end
 
     def typecast_to_primitive (value)

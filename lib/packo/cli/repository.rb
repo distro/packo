@@ -37,6 +37,7 @@ class Repository < Thor
 
   desc 'add URI...', 'Add repositories'
   map '-a' => :add
+  method_option :ignore, type: :boolean, default: false, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
   def add (*uris)
     uris.each {|uri|
       uri  = URI.parse(uri)
@@ -139,7 +140,11 @@ class Repository < Thor
 
       begin
         Models.transaction {
-          _add type, name, uri, path
+          if type == :virtual && options[:ignore]
+            _add type, name, uri, path, false
+          else
+            _add type, name, uri, path
+          end
         }
 
         CLI.info "Added #{type}/#{name}"
@@ -150,7 +155,6 @@ class Repository < Thor
       end
     }
   end
-
 
   desc 'delete REPOSITORY...', 'Delete installed repositories'
   map '-d' => :delete, '-R' => :delete
@@ -508,14 +512,16 @@ class Repository < Thor
     }
   end
 
-  def _add (type, name, uri, path)
-    Helpers::Repository.wrap(Models::Repository.create(
+  def _add (type, name, uri, path, populate=true)
+    repo = Helpers::Repository.wrap(Models::Repository.create(
       type: type,
       name: name,
 
       uri:  uri,
       path: path
-    )).populate
+    ))
+
+    repo.populate if populate
   end
 
   def _delete (type, name)

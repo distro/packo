@@ -49,12 +49,20 @@ if commands.member?(ARGV.first)
   warn "sandbox isn't installed"  if !sandbox
   warn "fakeroot isn't installed" if !fakeroot
 
-  exit system(*([((!trusted.include?(command.to_sym)) ? 'sandbox' : nil), 'fakeroot', "packo-#{command}"] + ARGV).compact)
+  args = []
+
+  if !trusted.include?(command.to_sym)
+    args << 'sandbox'
+  end 
+  
+  args << 'fakeroot' << "packo-#{command}"
+  args = args + ARGV.map {|arg| %{"#{arg}"}}
+
+  exit Kernel.system(*args)
 end
 
 require 'rubygems' unless defined?(Gem)
 
-require 'packo'
 require 'packo/cli/base'
 
 class Application < Packo::CLI::Base
