@@ -89,7 +89,7 @@ class Fetcher < Module
       package.distfiles = {}
 
       sources = Hash[package.source.map {|(name, source)|
-        next if package.digests[url(source)] && (Do.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
+        next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
 
         url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
 
@@ -125,7 +125,7 @@ class Fetcher < Module
       package.distfiles = []
 
       sources = [package.source].flatten.compact.map {|source|
-        next if package.digests[url(source)] && (Do.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
+        next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
 
         url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
 
@@ -164,7 +164,7 @@ class Fetcher < Module
         file ||= name
 
         original = package.digests[file.url].digest or next
-        digest   = Do.digest(file.path) or next
+        digest   = Packo.digest(file.path) or next
 
         if digest != original
           raise ArgumentError.new("#{File.basename(file.path)} digest is #{digest} but should be #{original}")

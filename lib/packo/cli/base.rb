@@ -142,7 +142,7 @@ class Base < Thor
 
             name = "#{env[:TMP]}/#{name}"
 
-            if (digest = _digest(package, env)) && (result = Do.digest(name)) != digest
+            if (digest = _digest(package, env)) && (result = Packo.digest(name)) != digest
               CLI.fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
               exit 13
             end
@@ -266,64 +266,56 @@ class Base < Thor
         old    = path
 
         begin
-          Find.find("#{path}/dist") {|file|
-            next unless file[length, file.length]
-
-            type = nil
-            path = (options[:destination] + file[length, file.length]).cleanpath.to_s
-            fake = path[options[:destination].cleanpath.to_s.length, path.length] || ''
-            meta = nil
-
-            if !options[:force] && File.exists?(path) && !File.directory?(path)
-              if (tmp = _exists?(fake))
-                CLI.fatal "#{path} belongs to #{tmp}, use --force to overwrite"
+          Packo.contents(Find.find("#{path}/dist")) {|file|
+            if !file[length, file.length]
+              { next: true }
+            else
+              { path: (options[:destination] + file[length, file.length]).cleanpath.to_s }
+            end
+          }.each {|file|
+            if !options[:force] && File.exists?(file.path) && !File.directory?(file.path)
+              if (tmp = _exists?(file.path))
+                CLI.fatal "#{file.path} belongs to #{tmp}, use --force to overwrite"
               else
-                CLI.fatal "#{path} doesn't belong to any package, use --force to overwrite"
+                CLI.fatal "#{file.path} doesn't belong to any package, use --force to overwrite"
               end
 
               raise RuntimeError.new 'File collision'
             end
 
-            if File.directory?(file)
-              type = :dir
+            case file.type
+              when :dir
+                begin
+                  FileUtils.mkpath(file.path)
+                  puts "--- #{file.path if file.path != '/'}/"
+                rescue
+                  puts "--- #{file.path if file.path != '/'}/".red
+                end
 
-              begin
-                FileUtils.mkpath(path)
-                puts "--- #{path if path != '/'}/"
-              rescue
-                puts "--- #{path if path != '/'}/".red
-              end
-            elsif File.symlink?(file)
-              type = :sym
-              meta = File.readlink(file)
+              when :sym
+                begin
+                  FileUtils.ln_sf file.meta, file.path
+                  puts ">>> #{file.path} -> #{file.meta}".cyan.bold
+                rescue
+                  puts ">>> #{file.path} -> #{file.meta}".red
+                end
 
-              begin
-                FileUtils.ln_sf meta, path
-                puts ">>> #{path} -> #{meta}".cyan.bold
-              rescue
-                puts ">>> #{path} -> #{meta}".red
-              end
-            elsif File.file?(file)
-              type = :obj
-              meta = Do.digest(file)
-
-              begin
-                FileUtils.cp file, path, preserve: true
-                puts ">>> #{path}".bold
-              rescue
-                puts ">>> #{path}".red
-              end
-            else
-              next
+              when :obj
+                begin
+                  FileUtils.cp file.source, file.path, preserve: true
+                  puts ">>> #{file.path}".bold
+                rescue
+                  puts ">>> #{file.path}".red
+                end
             end
 
             content = pkg.contents.first_or_create(
-              type: type,
-              path: fake
+              type: file.type,
+              path: file.path
             )
 
             content.update(
-              meta: meta
+              meta: file.meta
             )
           }
 
@@ -337,7 +329,7 @@ class Base < Thor
 
             case content.type
               when :obj
-                if File.exists?(path) && (options[:force] || content.meta == Do.digest(path))
+                if File.exists?(path) && (options[:force] || content.meta == Packo.digest(path))
                   puts "<<< #{path}".bold
                   FileUtils.rm_f(path) rescue nil
                 else
@@ -396,7 +388,7 @@ class Base < Thor
 
             case content.type
               when :obj
-                if File.exists?(path) && (options[:force] || content.meta == Do.digest(path))
+                if File.exists?(path) && (options[:force] || content.meta == Packo.digest(path))
                   puts "<<< #{path}".bold
                   FileUtils.rm_f(path) rescue nil
                 else

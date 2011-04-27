@@ -99,7 +99,7 @@ class Repository
     else
       whole, validity, package, expression = expression.match(/^([<>]?=?)?(.+?)\s*(?:\[(.*)\])?$/).to_a
 
-      package = Packo::Package.parse(package)
+      package = Packo::Package.parse(package || '')
 
       conditions = { order: [:name.asc] }
 

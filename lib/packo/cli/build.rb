@@ -347,7 +347,7 @@ class Build < Thor
               package.distfiles.to_a.each {|(name, file)|
                 file ||= name
 
-                xml.file({ name: File.basename(file.path), url: file.url }, Do.digest(file.path))
+                xml.file({ name: File.basename(file.path), url: file.url }, Packo.digest(file.path))
               } if package.distfiles
             }
           }

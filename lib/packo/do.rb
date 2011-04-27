@@ -17,16 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'fileutils'
-require 'digest/sha1'
+require 'packo/utils'
 
 module Packo
 
 class Do
-  def self.digest (path)
-    Digest::SHA1.hexdigest(File.read(path))
-  end
-
   def self.cd (path=nil)
     if block_given?
       tmp = Dir.pwd
