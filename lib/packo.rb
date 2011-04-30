@@ -18,6 +18,7 @@
 #++
 
 require 'packo/utils'
+require 'packo/extensions'
 
 module Packo
   def self.debug (argument, options={})
@@ -135,7 +136,6 @@ module Packo
 end
 
 require 'packo/version'
-require 'packo/extensions'
 require 'packo/system'
 require 'packo/do'
 require 'packo/cli'

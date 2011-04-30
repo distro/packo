@@ -17,11 +17,17 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'ostruct'
+require 'packo/extensions'
 require 'digest/sha1'
 require 'fileutils'
+require 'shellwords'
+require 'memoized'
 
 module Packo
+  def self.protected?
+    !!(ENV['SANDBOX_ACTIVE'] || ENV['FAKED_MODE'])
+  end
+
   def self.sh (*cmd, &block)
     options = (Hash === cmd.last) ? cmd.pop : {}
 

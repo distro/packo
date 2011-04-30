@@ -40,7 +40,7 @@ class Repository
   end
 
   def self.wrap (model)
-    Repository.new(
+    Repository.const_get(model.type.capitalize).new(
       type: model.type,
       name: model.name,
 

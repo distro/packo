@@ -37,7 +37,7 @@ class Repository < Thor
 
   desc 'add URI...', 'Add repositories'
   map '-a' => :add
-  method_option :ignore, type: :boolean, default: false, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+  method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
   def add (*uris)
     uris.each {|uri|
       uri  = URI.parse(uri)
@@ -182,9 +182,9 @@ class Repository < Thor
       begin
         repositories.each {|repository|
           Models.transaction {
+            path = repository.path
             _delete(repository.type, repository.name)
-
-            FileUtils.rm_rf repository.path, secure: true
+            FileUtils.rm_rf path, secure: true
           }
         }
       rescue Exception => e
@@ -195,11 +195,14 @@ class Repository < Thor
     }
   end
 
-  desc 'update', 'Update installed repositories'
+  desc 'update [REPOSITORIES...]', 'Update installed repositories'
   map '-u' => :update
   method_option :force, type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
-  def update
+  method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+  def update (*repositories)
     Models::Repository.all.each {|repository|
+      next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
+        
       updated = false
 
       type = repository.type
@@ -227,6 +230,13 @@ class Repository < Thor
             end
 
           when :virtual
+            if (content = open(uri).read != File.read(path)) || options[:force]
+              _delete(:virtual, name)
+              File.write(path, content)
+              _add(:vitual, name, uri, path, !options[:ignore])
+
+              update = true
+            end
         end
       }
 
@@ -550,12 +560,12 @@ class Repository < Thor
   end
 
   def _update (path)
-    result = false
+    done = false
 
     old = Dir.pwd; Dir.chdir(path)
 
-    if !result && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
-      result = true
+    if !done && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
+      done = true
     end
 
     Dir.chdir(old)

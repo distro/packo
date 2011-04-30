@@ -141,7 +141,7 @@ class Build < Thor
   method_option :bump,    type: :boolean, default: true,  aliases: '-b', desc: 'Bump revision when creating a package from command if package is installed'
   method_option :inspect, type: :boolean, default: false, aliases: '-i', desc: 'Inspect the list of files that will be included in the package in EDITOR'
   def command (package, command)
-    if System.env[:SANDBOX_ACTIVE] || System.env[:FAKED_MODE]
+    if Packo.protected?
       CLI.warn "`packo build -x` may not work properly, try with `packo-build -x` if it fails.\n\n"
     end
 

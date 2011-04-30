@@ -18,6 +18,7 @@
 #++
 
 require 'ostruct'
+require 'memoized'
 
 class Object
   def numeric?

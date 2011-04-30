@@ -19,6 +19,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'shellwords'
+
 commands = Dir.glob('/usr/bin/packo-*').map {|path|
   File.basename(path).sub('packo-', '')
 }
@@ -49,16 +51,17 @@ if commands.member?(ARGV.first)
   warn "sandbox isn't installed"  if !sandbox
   warn "fakeroot isn't installed" if !fakeroot
 
-  args = []
+  through = []
 
   if !trusted.include?(command.to_sym)
-    args << 'sandbox'
+    through << 'sandbox'
   end 
   
-  args << 'fakeroot' << "packo-#{command}"
-  args = args + ARGV.map {|arg| %{"#{arg}"}}
+  through << 'fakeroot' << "packo-#{command}"
 
-  exit Kernel.system(*args)
+  exit Kernel.system(*(through + ARGV.map {|arg|
+    arg.shellescape
+  }))
 end
 
 require 'rubygems' unless defined?(Gem)

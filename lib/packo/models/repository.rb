@@ -124,12 +124,12 @@ class Repository
       if validity && !validity.empty?
         result = result.select {|pkg|
           case validity
-            when '>';  pkg.version >  package.version
-            when '>='; pkg.version >= package.version
-            when '<';  pkg.version <  package.version
-            when '<='; pkg.version <= package.version
-            when '=';  pkg.version == package.version
-            else raise ArgumentError.new('Unknown validity type')
+            when '~', '~=' then true
+            when '>'       then pkg.version >  package.version
+            when '>='      then pkg.version >= package.version
+            when '<'       then pkg.version <  package.version
+            when '<='      then pkg.version <= package.version
+            else                pkg.version == package.version
           end
         }
       end

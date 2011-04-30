@@ -382,6 +382,10 @@ class Base < Thor
       end
 
       packages.each {|installed|
+        if installed.repository && installed.repository.type == :virtual
+          repository.uninstall(installed)
+        end
+
         Models.transaction {
           installed.model.contents.each {|content| content.check!
             path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
