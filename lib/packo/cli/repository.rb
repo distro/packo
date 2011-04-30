@@ -195,7 +195,7 @@ class Repository < Thor
     }
   end
 
-  desc 'update [REPOSITORIES...]', 'Update installed repositories'
+  desc 'update [REPOSITORY...]', 'Update installed repositories'
   map '-u' => :update
   method_option :force, type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
   method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
@@ -417,19 +417,11 @@ class Repository < Thor
     puts repository.URI
   end
 
-  desc 'rehash REPOSITORY...', 'Rehash the repository caches'
-  def rehash (*names)
-    repositories = []
+  desc 'rehash [REPOSITORY...]', 'Rehash the repository caches'
+  def rehash (*repositories)
+    Models::Repository.all.each {|repository|
+      next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
 
-    if names.empty?
-      repositories << Models::Repository.all
-    else
-      names.each {|name|
-        repositories << Models::Repository.all(name: name)
-      }
-    end
-
-    repositories.flatten.compact.each {|repository|
       type = repository.type
       name = repository.name
       uri  = repository.uri
