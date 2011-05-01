@@ -37,7 +37,7 @@ class Base < Thor
   method_option :ignore,      type: :boolean, default: false,                     aliases: '-x', desc: 'Ignore the installation and do not add the package to the database'
   method_option :nodeps,      type: :boolean, default: false,                     aliases: '-N', desc: 'Ignore blockers and dependencies'
   method_option :depsonly,    type: :boolean, default: false,                     aliases: '-D', desc: 'Install only dependencies'
-  method_option :repository,  type: :string,                                         aliases: '-r', desc: 'Set a specific repository'
+  method_option :repository,  type: :string,                                      aliases: '-r', desc: 'Set a specific repository'
   def install (*names)
     type = names.last.is_a?(Symbol) ? names.pop : :both
 
@@ -142,7 +142,7 @@ class Base < Thor
 
             name = "#{env[:TMP]}/#{name}"
 
-            if (digest = _digest(package, env)) && (result = Digest::SHA1.hexdigest(File.read(name))) != digest
+            if (digest = _digest(package, env)) && (result = Packo.digest(name)) != digest
               CLI.fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
               exit 13
             end
@@ -232,117 +232,140 @@ class Base < Thor
         Packo.sh 'packo-select', 'add', selector.name, selector.description, "#{System.env[:SELECTORS]}/#{selector.path}", silent: true
       }
 
-      pkg = Models::InstalledPackage.first_or_new(
-        tags_hashed: manifest.package.tags.hashed,
-        name:        manifest.package.name,
-        slot:        manifest.package.slot
-      )
+      Models.transaction {|t|
+        pkg = Models::InstalledPackage.first_or_new(
+          tags_hashed: manifest.package.tags.hashed,
+          name:        manifest.package.name,
+          slot:        manifest.package.slot
+        )
 
-      pkg.attributes = {
-        repo: options[:repository],
+        pkg.attributes = {
+          repo: options[:repository],
 
-        version:  manifest.package.version,
-        revision: manifest.package.revision,
+          version:  manifest.package.version,
+          revision: manifest.package.revision,
 
-        flavor:   manifest.package.flavor,
-        features: manifest.package.features,
+          flavor:   manifest.package.flavor,
+          features: manifest.package.features,
 
-        description: manifest.package.description,
-        homepage:    manifest.package.homepage,
-        license:     manifest.package.license,
+          description: manifest.package.description,
+          homepage:    manifest.package.homepage,
+          license:     manifest.package.license,
 
-        manual: manual,
-        type:   type
-      }
-
-      pkg.save
-
-      manifest.package.tags.each {|tag|
-        pkg.tags.first_or_create(name: tag.to_s)
-      }
-
-      length = "#{path}/dist/".length
-      old    = path
-
-      begin
-        Find.find("#{path}/dist") {|file|
-          next unless file[length, file.length]
-
-          type = nil
-          path = (options[:destination] + file[length, file.length]).cleanpath.to_s
-          fake = path[options[:destination].cleanpath.to_s.length, path.length] || ''
-          meta = nil
-
-          if !options[:force] && File.exists?(path) && !File.directory?(path)
-            if (tmp = _exists?(fake))
-              CLI.fatal "#{path} belongs to #{tmp}, use --force to overwrite"
-            else
-              CLI.fatal "#{path} doesn't belong to any package, use --force to overwrite"
-            end
-
-            raise RuntimeError.new 'File collision'
-          end
-
-          if File.directory?(file)
-            type = :dir
-
-            begin
-              FileUtils.mkpath(path)
-              puts "--- #{path if path != '/'}/"
-            rescue
-              puts "--- #{path if path != '/'}/".red
-            end
-          elsif File.symlink?(file)
-            type = :sym
-            meta = File.readlink(file)
-
-            begin
-              FileUtils.ln_sf meta, path
-              puts ">>> #{path} -> #{meta}".cyan.bold
-            rescue
-              puts ">>> #{path} -> #{meta}".red
-            end
-          elsif File.file?(file)
-            type = :obj
-            meta = Digest::SHA1.hexdigest(File.read(file))
-
-            begin
-              FileUtils.cp file, path, preserve: true
-              puts ">>> #{path}".bold
-            rescue
-              puts ">>> #{path}".red
-            end
-          else
-            next
-          end
-
-          content = pkg.contents.first_or_create(
-            type: type,
-            path: fake
-          )
-
-          content.update(
-            meta: meta
-          )
+          manual: manual,
+          type:   type
         }
 
         pkg.save
-      rescue Exception => e
-        CLI.fatal 'Something went deeply wrong while installing package contents'
-        Packo.debug e
 
-        pkg.destroy rescue nil
+        manifest.package.tags.each {|tag|
+          pkg.tags.first_or_create(name: tag.to_s)
+        }
 
-        uninstall(package.to_s(:whole))
+        length = "#{path}/dist/".length
+        old    = path
 
-        exit 17
-      end
+        begin
+          Packo.contents(Find.find("#{path}/dist")) {|file|
+            if !file[length, file.length]
+              { next: true }
+            else
+              { path: (options[:destination] + file[length, file.length]).cleanpath.to_s }
+            end
+          }.each {|file|
+            if !options[:force] && File.exists?(file.path) && !File.directory?(file.path)
+              if (tmp = _exists?(file.path))
+                CLI.fatal "#{file.path} belongs to #{tmp}, use --force to overwrite"
+              else
+                CLI.fatal "#{file.path} doesn't belong to any package, use --force to overwrite"
+              end
 
-      if options[:ignore]
-        pkg.destroy
-      else
-        pkg.update(destination: options[:destination].cleanpath)
-      end
+              raise RuntimeError.new 'File collision'
+            end
+
+            case file.type
+              when :dir
+                begin
+                  FileUtils.mkpath(file.path)
+                  puts "--- #{file.path if file.path != '/'}/"
+                rescue
+                  puts "--- #{file.path if file.path != '/'}/".red
+                end
+
+              when :sym
+                begin
+                  FileUtils.ln_sf file.meta, file.path
+                  puts ">>> #{file.path} -> #{file.meta}".cyan.bold
+                rescue
+                  puts ">>> #{file.path} -> #{file.meta}".red
+                end
+
+              when :obj
+                begin
+                  FileUtils.cp file.source, file.path, preserve: true
+                  puts ">>> #{file.path}".bold
+                rescue
+                  puts ">>> #{file.path}".red
+                end
+            end
+
+            content = pkg.contents.first_or_create(
+              type: file.type,
+              path: file.path
+            )
+
+            content.update(
+              meta: file.meta
+            )
+          }
+
+          pkg.save
+        rescue Exception => e
+          CLI.fatal 'Something went deeply wrong while installing package contents'
+          Packo.debug e
+
+          pkg.contents.each {|content| content.check!
+            path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
+
+            case content.type
+              when :obj
+                if File.exists?(path) && (options[:force] || content.meta == Packo.digest(path))
+                  puts "<<< #{path}".bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                   puts "=== #{path}".red
+                end
+
+              when :sym
+                if File.exists?(path) && (options[:force] || !File.exists?(path) || content.meta == File.readlink(path))
+                  puts "<<< #{path} -> #{content.meta}".cyan.bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                  puts "=== #{path} -> #{File.readlink(path)}".red
+                end
+
+              when :dir
+                puts "--- #{path if path != '/'}/"
+            end
+          }
+
+          pkg.contents.all(type: :dir, order: [:path.desc]).each {|content|
+            path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
+
+            Dir.delete(path) rescue nil
+          }
+
+          t.rollback
+
+          exit 17
+        end
+
+        if options[:ignore]
+          t.rollback
+        else
+          pkg.update(destination: options[:destination].cleanpath)
+        end
+      }
     }
   end
 
@@ -359,46 +382,52 @@ class Base < Thor
       end
 
       packages.each {|installed|
-        installed.model.contents.each {|content| content.check!
-          path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
+        if installed.repository && installed.repository.type == :virtual
+          repository.uninstall(installed) or next
+        end
 
-          case content.type
-            when :obj
-              if File.exists?(path) && (options[:force] || content.meta == Digest::SHA1.hexdigest(File.read(path)))
-                puts "<<< #{path}".bold
-                FileUtils.rm_f(path) rescue nil
-              else
-                 puts "=== #{path}".red
-              end
+        Models.transaction {
+          installed.model.contents.each {|content| content.check!
+            path = "#{installed.model.destination}/#{content.path}".gsub(%r{/*/}, '/')
 
-            when :sym
-              if File.exists?(path) && (options[:force] || !File.exists?(path) || content.meta == File.readlink(path))
-                puts "<<< #{path} -> #{content.meta}".cyan.bold
-                FileUtils.rm_f(path) rescue nil
-              else
-                puts "=== #{path} -> #{File.readlink(path)}".red
-              end
+            case content.type
+              when :obj
+                if File.exists?(path) && (options[:force] || content.meta == Packo.digest(path))
+                  puts "<<< #{path}".bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                   puts "=== #{path}".red
+                end
 
-            when :dir
-              puts "--- #{path if path != '/'}/"
-          end
+              when :sym
+                if File.exists?(path) && (options[:force] || !File.exists?(path) || content.meta == File.readlink(path))
+                  puts "<<< #{path} -> #{content.meta}".cyan.bold
+                  FileUtils.rm_f(path) rescue nil
+                else
+                  puts "=== #{path} -> #{File.readlink(path)}".red
+                end
+
+              when :dir
+                puts "--- #{path if path != '/'}/"
+            end
+          }
+
+          installed.model.contents.all(type: :dir, order: [:path.desc]).each {|content|
+            path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
+
+            Dir.delete(path) rescue nil
+          }
+
+          installed.model.destroy
         }
-
-        installed.model.contents.all(type: :dir, order: [:path.desc]).each {|content|
-          path = "#{options[:destination]}/#{content.path}".gsub(%r{/*/}, '/')
-
-          Dir.delete(path) rescue nil
-        }
-
-        installed.model.destroy
       }
     }
   end
 
   desc 'search [EXPRESSION] [OPTIONS]', 'Search through installed packages'
   map '--search' => :search, '-Ss' => :search
-  method_option :type,       type: :string,                     aliases: '-t', desc: 'The repository type (binary, source, virtual)'
-  method_option :repository, type: :string,                     aliases: '-r', desc: 'Set a specific repository'
+  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type (binary, source, virtual)'
+  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
   method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package, features and flavor'
   def search (expression='')
     Models.search_installed(expression, options[:repository], options[:type]).group_by {|package|
@@ -414,7 +443,9 @@ class Base < Thor
             print "#{"#{packages.first.tags}/" unless packages.first.tags.empty?}#{packages.first.name.bold}"
 
             print ' ('
-            print packages.map {|package|
+            print packages.sort {|a, b|
+              a.version <=> b.version
+            }.map {|package|
               "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
             }.join(', ')
             print ')'
@@ -428,7 +459,9 @@ class Base < Thor
       else
         print "#{packages.first.tags}/#{packages.first.name.bold} ("
 
-        print packages.map {|package|
+        print packages.sort {|a, b|
+          a.version <=> b.version
+        }.map {|package|
           "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
         }.join(', ')
 
@@ -514,7 +547,7 @@ class Base < Thor
   end
 
   def _exists? (path)
-    Models::InstalledPackage::Content.first(path: path, type.not: :dir).package rescue false
+    Models::InstalledPackage::Content.first(path: path, :type.not => :dir).package rescue false
   end
 end
 

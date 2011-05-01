@@ -61,6 +61,22 @@ class Virtual < Repository
   def packages (*args)
     Enumerator.new(self, :each_package, *args)
   end
+
+  def dependencies (*args)
+    Enumerator.new(self, :each_dependency, *args)
+  end
+
+  def has? (package)
+    false
+  end
+
+  def install (package)
+    false
+  end
+
+  def uninstall (package)
+    true
+  end
 end
 
 end; end

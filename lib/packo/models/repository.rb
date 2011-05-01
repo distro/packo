@@ -97,16 +97,9 @@ class Repository
         }
       end
     else
-      if matches = expression.match(/^([<>]?=?)/)
-        validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
-        expression = expression.sub(/^([<>]?=?)/, '')
+      whole, validity, package, expression = expression.match(/^([<>]?=?)?(.+?)\s*(?:\[(.*)\])?$/).to_a
 
-        validity = nil if validity == '='
-      else
-        validity = nil
-      end
-
-      package = Packo::Package.parse(expression)
+      package = Packo::Package.parse(package || '')
 
       conditions = { order: [:name.asc] }
 
@@ -128,14 +121,24 @@ class Repository
         }
       end
 
-      if validity
+      if validity && !validity.empty?
         result = result.select {|pkg|
           case validity
-            when '>';  pkg.version >  package.version
-            when '>='; pkg.version >= package.version
-            when '<';  pkg.version <  package.version
-            when '<='; pkg.version <= package.version
+            when '~', '~=' then true
+            when '>'       then pkg.version >  package.version
+            when '>='      then pkg.version >= package.version
+            when '<'       then pkg.version <  package.version
+            when '<='      then pkg.version <= package.version
+            else                pkg.version == package.version
           end
+        }
+      end
+
+      if expression && !expression.empty?
+        expression = Packo::Package::Tags::Expression.parse(expression)
+
+        result = result.select {|pkg|
+          expression.evaluate(Packo::Package.wrap(pkg))
         }
       end
     end

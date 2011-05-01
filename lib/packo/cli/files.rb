@@ -137,7 +137,7 @@ class Files < Thor
             end
 
           when :obj
-            if content.meta != (Digest::SHA1.hexdigest(File.read(path)) rescue nil)
+            if content.meta != (Packo.digest(path) rescue nil)
               puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path}".red
             else
               puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path}".green

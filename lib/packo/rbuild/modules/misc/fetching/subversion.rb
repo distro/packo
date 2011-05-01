@@ -19,7 +19,7 @@
 
 module Packo; module RBuild; module Modules; module Misc; module Fetching
 
-class Mercurial < Module
+class Subversion < Module
   def initialize (package)
     super(package)
 
@@ -34,6 +34,8 @@ class Mercurial < Module
 
   def fetch
     package.stages.callbacks(:fetch).do {
+      whole, url = package.source.match(%r[^(\w+://.*?)$]).to_a
+
       package.clean!
       package.create!
 

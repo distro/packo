@@ -34,6 +34,8 @@ class Mercurial < Module
 
   def fetch
     package.stages.callbacks(:fetch).do {
+      whole, url = package.source.match(%r[^(\w+://.*?)$]).to_a
+
       package.clean!
       package.create!
 

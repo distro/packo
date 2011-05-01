@@ -32,10 +32,8 @@ require 'packo/rbuild/package/manifest'
 module Packo; module RBuild
 
 class Package < Packo::Package
-  @@packages = {}
-
   def self.last
-    @@packages[:last]
+    @@last
   end
 
   include Stages::Callable
@@ -63,7 +61,7 @@ class Package < Packo::Package
     if !self.version
       @block = block
 
-      return @@packages[:last] = self
+      return @@last = self
     end
 
     @modules      = []
@@ -132,6 +130,7 @@ class Package < Packo::Package
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
+    self.fetchdir  = System.env[:FETCH_PATH] || self.tempdir
 
     stages.callbacks(:initialize).do(self) {
       self.instance_exec(self, &block) if block
@@ -190,8 +189,7 @@ class Package < Packo::Package
 
     stages.callbacks(:initialized).do(self)
 
-    @@packages.clear
-    @@packages[:last] = self
+    @@last = self
   end
 
   def create!

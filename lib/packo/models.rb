@@ -21,6 +21,7 @@ require 'dm-core'
 require 'dm-constraints'
 require 'dm-migrations'
 require 'dm-types'
+require 'dm-transactions'
 
 require 'versionomy'
 
@@ -77,11 +78,17 @@ class Property
     end
 
     def load (value)
-      Versionomy.parse(value.to_s) unless value.to_s.empty?
+      return if value.to_s.empty?
+
+      whole, version, format = value.to_s.match(/^(.+?):([^:]+)$/).to_a
+
+      Versionomy.parse(version, format)
     end
 
     def dump (value)
-      value.to_s unless value.nil?
+      return unless value
+
+      "#{value}:#{Versionomy::Format.canonical_name_for(value.format)}"
     end
 
     def typecast_to_primitive (value)
@@ -113,6 +120,27 @@ end
 module Packo
 
 module Models
+  def self.transactions
+    @@transactions ||= []
+  end
+
+  def self.transaction (&block)
+    transaction = DataMapper::Transaction.new(DataMapper.repository)
+    transaction.begin
+
+    Models.transactions << transaction
+
+    begin
+      transaction.within &block
+    rescue Exception => e
+      transaction.rollback unless transaction.rollback?
+
+      raise e
+    end
+
+    transaction.commit
+  end
+
   def self.search_installed (expression, name=nil, type=nil)
     Models::InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil).map {|pkg|
       Package.wrap(pkg)

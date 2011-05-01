@@ -37,6 +37,7 @@ class Repository < Thor
 
   desc 'add URI...', 'Add repositories'
   map '-a' => :add
+  method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
   def add (*uris)
     uris.each {|uri|
       uri  = URI.parse(uri)
@@ -138,17 +139,22 @@ class Repository < Thor
       end
 
       begin
-        _add type, name, uri, path
+        Models.transaction {
+          if type == :virtual && options[:ignore]
+            _add type, name, uri, path, false
+          else
+            _add type, name, uri, path
+          end
+        }
+
         CLI.info "Added #{type}/#{name}"
       rescue Exception => e
         CLI.fatal 'Failed to add the cache'
-        Packo.debug e
 
-        _delete(type, name)
+        Packo.debug e
       end
     }
   end
-
 
   desc 'delete REPOSITORY...', 'Delete installed repositories'
   map '-d' => :delete, '-R' => :delete
@@ -175,9 +181,13 @@ class Repository < Thor
 
       begin
         repositories.each {|repository|
-          FileUtils.rm_rf repository.path, secure: true
+          Models.transaction {
+            path = repository.path
 
-          _delete(repository.type, repository.name)
+            _delete(repository.type, repository.name)
+
+            FileUtils.rm_rf path, secure: true
+          }
         }
       rescue Exception => e
         CLI.fatal "Something went wrong while deleting #{name}"
@@ -187,11 +197,14 @@ class Repository < Thor
     }
   end
 
-  desc 'update', 'Update installed repositories'
+  desc 'update [REPOSITORY...]', 'Update installed repositories'
   map '-u' => :update
   method_option :force, type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
-  def update
+  method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+  def update (*repositories)
     Models::Repository.all.each {|repository|
+      next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
+        
       updated = false
 
       type = repository.type
@@ -199,26 +212,35 @@ class Repository < Thor
       uri  = repository.uri.to_s
       path = repository.path
 
-      case repository.type
-        when :binary
-          if (content = open(uri).read) != File.read(path) || options[:force]
-            _delete(:binary, name)
-            File.write(path, content)
-            _add(:binary, name, uri, path)
+      Models.transaction {
+        case repository.type
+          when :binary
+            if (content = open(uri).read) != File.read(path) || options[:force]
+              _delete(:binary, name)
+              File.write(path, content)
+              _add(:binary, name, uri, path)
 
-            updated = true
-          end
+              updated = true
+            end
 
-        when :source
-          if _update(path) || options[:force]
-            _delete(:source, name)
-            _add(:source, name, uri, path)
+          when :source
+            if _update(path) || options[:force]
+              _delete(:source, name)
+              _add(:source, name, uri, path)
 
-            updated = true
-          end
+              updated = true
+            end
 
-        when :virtual
-      end
+          when :virtual
+            if (content = open(uri).read != File.read(path)) || options[:force]
+              _delete(:virtual, name)
+              File.write(path, content)
+              _add(:vitual, name, uri, path, !options[:ignore])
+
+              update = true
+            end
+        end
+      }
 
       if updated
         CLI.info "Updated #{type}/#{name}"
@@ -245,7 +267,9 @@ class Repository < Thor
           print "#{"#{packages.first.tags}/" unless packages.first.tags.empty?}#{packages.first.name.bold}"
 
           print ' ('
-          print packages.map {|package|
+          print packages.sort {|a, b|
+            a.version <=> b.version
+          }.map {|package|
             "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
           }.join(', ')
           print ')'
@@ -255,7 +279,9 @@ class Repository < Thor
       else
         print "#{packages.first.tags}/#{packages.first.name.bold} ("
 
-        print packages.map {|package|
+        print packages.sort {|a, b|
+          a.version <=> b.version
+        }.map {|package|
           "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
         }.join(', ')
 
@@ -397,19 +423,11 @@ class Repository < Thor
     puts repository.URI
   end
 
-  desc 'rehash REPOSITORY...', 'Rehash the repository caches'
-  def rehash (*names)
-    repositories = []
+  desc 'rehash [REPOSITORY...]', 'Rehash the repository caches'
+  def rehash (*repositories)
+    Models::Repository.all.each {|repository|
+      next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
 
-    if names.empty?
-      repositories << Models::Repository.all
-    else
-      names.each {|name|
-        repositories << Models::Repository.all(name: name)
-      }
-    end
-
-    repositories.flatten.compact.each {|repository|
       type = repository.type
       name = repository.name
       uri  = repository.uri
@@ -417,15 +435,17 @@ class Repository < Thor
 
       CLI.info "Rehashing #{type}/#{name}"
 
-      _delete(type, name)
+      Models.transaction {
+        _delete(type, name)
 
-      case type
-        when :binary
-          _add(:binary, name, uri, path)
+        case type
+          when :binary
+            _add(:binary, name, uri, path)
 
-        when :source
-          _add(:source, name, uri, path)
-      end
+          when :source
+            _add(:source, name, uri, path)
+        end
+      }
     }
   end
 
@@ -471,7 +491,7 @@ class Repository < Thor
           )
 
           build.xpath('.//digest').each {|node| node.remove}
-          build.add_child dom.create_element('digest', Digest::SHA1.hexdigest(File.read(pko)))
+          build.add_child dom.create_element('digest', Packo.digest(pko))
 
           FileUtils.mkpath "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
           FileUtils.mv pko, "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
@@ -504,18 +524,20 @@ class Repository < Thor
     }
   end
 
-  def _add (type, name, uri, path)
-    Helpers::Repository.wrap(Models::Repository.create(
+  def _add (type, name, uri, path, populate=true)
+    repo = Helpers::Repository.wrap(Models::Repository.create(
       type: type,
       name: name,
 
       uri:  uri,
       path: path
-    )).populate
+    ))
+
+    repo.populate if populate
   end
 
   def _delete (type, name)
-    Models::Repository.first(name: name, type: type).destroy rescue nil
+    Models::Repository.first(name: name, type: type).destroy
   end
 
   def _checkout (uri, path)
@@ -540,12 +562,12 @@ class Repository < Thor
   end
 
   def _update (path)
-    result = false
+    done = false
 
     old = Dir.pwd; Dir.chdir(path)
 
-    if !result && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
-      result = true
+    if !done && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
+      done = true
     end
 
     Dir.chdir(old)

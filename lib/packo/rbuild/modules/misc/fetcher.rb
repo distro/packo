@@ -54,6 +54,12 @@ class Fetcher < Module
     )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), silent: !System.env[:VERBOSE]
   end
 
+  def self.filename (text)
+    return unless text
+
+    File.basename(text).sub(/\?.*$/, '')
+  end
+
   def initialize (package)
     super(package)
 
@@ -70,59 +76,98 @@ class Fetcher < Module
     package.stages.delete :digest, self.method(:digest)
   end
 
-  def fetch
-    version = package.version
+  def url (text)
+    text.interpolate(package)
+  end
 
+  def filename (text)
+    Fetcher.filename(url(text))
+  end
+
+  def fetch
     if package.source.is_a?(Hash)
-      distfiles = {}
-      sources   = Hash[package.source.clone.map {|(name, source)|
-        [name, Fetcher.url(source, package)]
-      }]
+      package.distfiles = {}
+
+      sources = Hash[package.source.map {|(name, source)|
+        next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
+
+        url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
+
+        [name, (
+          if url.is_a?(Array) && url.length == 2
+            url + [source]
+          else
+            ([url] + [nil, source]).flatten
+          end
+        )]
+      }.compact]
 
       package.stages.callbacks(:fetch).do(sources) {
-        sources.each {|name, source|
-          distfiles[name] = "#{package.fetchdir || System.env[:TMP]}/#{File.basename(source).sub(/\?.*$/, '')}"
+        sources.each {|name, (source, output, original)|
+          package.distfiles[name] = OpenStruct.new(
+            path: "#{package.fetchdir}/#{output || filename(source)}",
+            url:  url(original)
+          )
 
-          package.fetch source, distfiles[name]
+          package.fetch source, package.distfiles[name].path
+        }
+
+        package.source.each {|name, source|
+          next if package.distfiles[name]
+
+          package.distfiles[name] = OpenStruct.new(
+            path: "#{package.fetchdir}/#{package.digests[url(source)].name}",
+            url:  url(source)
+          )
         }
       }
     else
-      distfiles = []
-      sources   = [package.source].flatten.compact.map {|source|
-        Fetcher.url(source, package)
-      }
+      package.distfiles = []
+
+      sources = [package.source].flatten.compact.map {|source|
+        next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
+
+        url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
+
+        if url.is_a?(Array) && url.length == 2
+          url + [source]
+        else
+          ([url] + [nil, source]).flatten
+        end
+      }.compact
 
       package.stages.callbacks(:fetch).do(sources) {
-        sources.each {|(source, output)|
-          distfiles << "#{package.fetchdir || System.env[:TMP]}/#{output || File.basename(source).sub(/\?.*$/, '')}"
+        sources.each {|(source, output, original)|
+          package.distfiles << OpenStruct.new(
+            path: "#{package.fetchdir}/#{output || filename(source)}",
+            url:  url(original)
+          )
 
-          package.fetch source, distfiles.last
+          package.fetch source, package.distfiles.last.path
+        }
+
+        [package.source].flatten.compact.select {|source|
+          !!package.digests[url(source)]
+        }.each {|source|
+          package.distfiles << OpenStruct.new(
+            path: "#{package.fetchdir}/#{package.digests[url(source)].name}",
+            url:  url(source)
+          )
         }
       }
     end
-
-    package.distfiles = distfiles
   end
 
   def digest
     package.stages.callbacks(:digest).do(package.distfiles) {
-      if package.distfiles.is_a?(Hash)
-        distfiles = package.distfiles.values
-      else
-        distfiles = package.distfiles
-      end
+      package.distfiles.each {|name, file|
+        file ||= name
 
-      distfiles.each {|file|
-        original = package.digests.find {|digest|
-          digest.name == File.basename(file)
-        }.digest rescue nil
-
-        next unless original
-
-        digest = Digest::SHA1.hexdigest(File.read(file))
+        original = package.digests[file.url].digest or next
+        digest   = Packo.digest(file.path) or next
 
         if digest != original
-          raise ArgumentError.new("#{File.basename(file)} digest is #{digest} but should be #{original}")
+          raise ArgumentError.new("#{File.basename(file.path)} digest is #{digest} but should be #{original}")
         end
       }
     }

@@ -19,6 +19,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'shellwords'
+
 commands = Dir.glob('/usr/bin/packo-*').map {|path|
   File.basename(path).sub('packo-', '')
 }
@@ -36,8 +38,6 @@ descriptions = {
 
 trusted = [:base, :select, :db, :profile]
 
-require 'packo/cli'
-
 if commands.member?(ARGV.first)
   command  = ARGV.shift
   sandbox  = false
@@ -48,15 +48,24 @@ if commands.member?(ARGV.first)
     fakeroot = File.executable?("#{folder}/fakeroot") if !fakeroot
   }
   
-  Packo::CLI.fatal "sandbox isn't installed"  if !sandbox
-  Packo::CLI.fatal "fakeroot isn't installed" if !fakeroot
+  warn "sandbox isn't installed"  if !sandbox
+  warn "fakeroot isn't installed" if !fakeroot
 
-  exit system(*([((!trusted.include?(command.to_sym)) ? 'sandbox' : nil), 'fakeroot', "packo-#{command}"] + ARGV).compact)
+  through = []
+
+  if !trusted.include?(command.to_sym)
+    through << 'sandbox'
+  end 
+  
+  through << 'fakeroot' << "packo-#{command}"
+
+  exit Kernel.system(*(through + ARGV.map {|arg|
+    arg.shellescape
+  }))
 end
 
 require 'rubygems' unless defined?(Gem)
 
-require 'packo'
 require 'packo/cli/base'
 
 class Application < Packo::CLI::Base
