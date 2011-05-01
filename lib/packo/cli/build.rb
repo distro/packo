@@ -18,9 +18,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'nokogiri'
-require 'digest/sha1'
-
 require 'packo'
 require 'packo/rbuild'
 

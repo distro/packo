@@ -183,7 +183,9 @@ class Repository < Thor
         repositories.each {|repository|
           Models.transaction {
             path = repository.path
+
             _delete(repository.type, repository.name)
+
             FileUtils.rm_rf path, secure: true
           }
         }
@@ -265,7 +267,9 @@ class Repository < Thor
           print "#{"#{packages.first.tags}/" unless packages.first.tags.empty?}#{packages.first.name.bold}"
 
           print ' ('
-          print packages.map {|package|
+          print packages.sort {|a, b|
+            a.version <=> b.version
+          }.map {|package|
             "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
           }.join(', ')
           print ')'
@@ -275,7 +279,9 @@ class Repository < Thor
       else
         print "#{packages.first.tags}/#{packages.first.name.bold} ("
 
-        print packages.map {|package|
+        print packages.sort {|a, b|
+          a.version <=> b.version
+        }.map {|package|
           "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
         }.join(', ')
 

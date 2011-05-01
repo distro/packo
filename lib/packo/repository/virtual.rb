@@ -69,6 +69,14 @@ class Virtual < Repository
   def has? (package)
     false
   end
+
+  def install (package)
+    false
+  end
+
+  def uninstall (package)
+    true
+  end
 end
 
 end; end

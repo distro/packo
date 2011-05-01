@@ -60,7 +60,7 @@ module Packo
     files = {}
 
     if package
-      if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml")))
+      if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml", encoding: 'utf-8')))
         features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
 
         if features
@@ -95,7 +95,7 @@ module Packo
       begin
         Packo.load "#{path}/#{package.name}.rbuild", options
 
-        if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild").split(/^__END__$/)).length > 1
+        if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e
@@ -107,7 +107,7 @@ module Packo
       if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
         RBuild::Package.last.filesystem.merge!(pkg.filesystem)
 
-        if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild").split(/^__END__$/)).length > 1
+        if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
           RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
         end
 
@@ -123,7 +123,7 @@ module Packo
       begin
         Packo.load path, options
 
-        if (pkg = RBuild::Package.last) && (tmp = File.read(path).split(/^__END__$/)).length > 1
+        if (pkg = RBuild::Package.last) && (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e

@@ -383,7 +383,7 @@ class Base < Thor
 
       packages.each {|installed|
         if installed.repository && installed.repository.type == :virtual
-          repository.uninstall(installed)
+          repository.uninstall(installed) or next
         end
 
         Models.transaction {
@@ -443,7 +443,9 @@ class Base < Thor
             print "#{"#{packages.first.tags}/" unless packages.first.tags.empty?}#{packages.first.name.bold}"
 
             print ' ('
-            print packages.map {|package|
+            print packages.sort {|a, b|
+              a.version <=> b.version
+            }.map {|package|
               "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
             }.join(', ')
             print ')'
@@ -457,7 +459,9 @@ class Base < Thor
       else
         print "#{packages.first.tags}/#{packages.first.name.bold} ("
 
-        print packages.map {|package|
+        print packages.sort {|a, b|
+          a.version <=> b.version
+        }.map {|package|
           "#{package.version.to_s.red}" + (package.slot ? "%#{package.slot.to_s.blue.bold}" : '')
         }.join(', ')
 
