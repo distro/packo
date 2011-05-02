@@ -270,7 +270,7 @@ class Base < Thor
             if !file[length, file.length]
               { next: true }
             else
-              { path: (options[:destination] + file[length, file.length]).cleanpath.to_s }
+              { path: Path.clean(options[:destination] + file[length, file.length]) }
             end
           }.each {|file|
             if !options[:force] && File.exists?(file.path) && !File.directory?(file.path)
@@ -363,7 +363,7 @@ class Base < Thor
         if options[:ignore]
           t.rollback
         else
-          pkg.update(destination: options[:destination].cleanpath)
+          pkg.update(destination: Path.clean(options[:destination]))
         end
       }
     }
@@ -378,6 +378,7 @@ class Base < Thor
 
       if packages.empty?
         CLI.fatal "No installed packages match #{name}"
+
         exit 20
       end
 
@@ -503,21 +504,19 @@ class Base < Thor
   end
 
   def _build (package, env)
-    Do.cd {
-      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
-      FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
+    FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
+    FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
-      require 'packo/cli/build'
+    require 'packo/cli/build'
 
-      begin
-        System.env.sandbox(env) {
-          Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-        }
-      rescue
-      end
+    begin
+      System.env.sandbox(env) {
+        Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+      }
+    rescue
+    end
 
-      Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
-    }
+    Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
   end
 
   def _manifest (package, env)

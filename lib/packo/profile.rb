@@ -47,7 +47,7 @@ class Profile
     }
 
     @paths.dup.each {|name, path|
-      @paths[name] = Pathname.new(path)
+      @paths[name] = Path.new(path)
     }
   end
 
@@ -60,7 +60,7 @@ class Profile
       if respond_to? "#{id}="
         send "#{id}=", *args
       else
-        @paths[id] = Pathname.new(args.first)
+        @paths[id] = Path.new(args.first)
       end
     end
   end

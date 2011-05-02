@@ -17,4 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/rbuild/modules/packager'
+
 require 'packo/rbuild/modules/packaging/pko'

@@ -29,6 +29,9 @@ require 'packo/rbuild/features'
 require 'packo/rbuild/flavor'
 require 'packo/rbuild/package/manifest'
 
+require 'packo/rbuild/modules'
+require 'packo/rbuild/behaviors'
+
 module Packo; module RBuild
 
 class Package < Packo::Package
@@ -75,8 +78,8 @@ class Package < Packo::Package
     @stages.add :dependencies, self.method(:dependencies_check), at: :beginning
     @stages.add :blockers,     self.method(:blockers_check),     at: :beginning
 
+    use      Modules::Fetcher, Modules::Unpacker, Modules::Packager
     behavior Behaviors::Default
-    use      Modules::Packaging::PKO
 
     if (@parent = Package.last)
       self.instance_exec(self, &@parent.instance_eval('@block'))
@@ -126,7 +129,7 @@ class Package < Packo::Package
       }
     }
 
-    self.directory = Pathname.new("#{package.env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}").cleanpath.to_s
+    self.directory = Path.clean("#{package.env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}")
     self.workdir   = "#{package.directory}/work"
     self.distdir   = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
@@ -235,20 +238,26 @@ class Package < Packo::Package
     ] if @build_start_at
   end
 
-  def use (klass)
-    @modules << klass.new(self)
+  def use (*modules)
+    modules.flatten.compact.each {|klass|
+      @modules << klass.new(self)
+    }
   end
 
-  def avoid (klass)
-    [klass].flatten.compact.each {|klass|
+  def avoid (*modules)
+    modules.flatten.compact.each {|klass|
       @modules.delete(@modules.find {|mod|
         mod.class == klass
       }).finalize rescue nil
     }
   end
 
-  def behavior (uses)
-    uses.each {|use|
+  def behavior (behavior)
+    if @behavior
+      avoid @behavior
+    end
+
+    (@behavior = behavior).each {|use|
       self.use(use)
     }
   end

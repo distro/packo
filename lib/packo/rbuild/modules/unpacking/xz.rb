@@ -17,35 +17,18 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; module Modules; module Misc; module Fetching
+module Packo; module RBuild; module Modules; module Unpacking
 
-class Mercurial < Module
-  def initialize (package)
-    super(package)
+Unpacker.register /\.xz$/ do |path, to|
+  Packo.sh 'xz', '-dfk', path
 
-    package.avoid [Fetcher, Unpacker]
+  path.sub!(/\.xz$/, '')
 
-    package.stages.add :fetch, self.method(:fetch), after: :beginning
+  if to
+    Do.mv(path, (path = to))
   end
 
-  def finalize
-    package.stages.delete :fetch, self.method(:fetch)
-  end
-
-  def fetch
-    package.stages.callbacks(:fetch).do {
-      whole, url = package.source.match(%r[^(\w+://.*?)$]).to_a
-
-      package.clean!
-      package.create!
-
-      options = []
-
-      Packo.sh 'hg', 'clone', *options, url, package.workdir
-
-      Do.cd package.workdir
-    }
-  end
+  path
 end
 
-end; end; end; end; end
+end; end; end; end

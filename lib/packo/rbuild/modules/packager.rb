@@ -17,54 +17,47 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; module Modules; module Misc
+module Packo; module RBuild; module Modules
 
-class Unpacker < Module
+class Packager < Module
   @@formats = {}
 
   def self.register (type, &block)
     @@formats[type] = block
   end
 
-  def self.do (path, to=nil)
-    block = @@formats.find {|regexp, block|
-      path.match(regexp)
+  def self.do (package, to=nil)
+
+    block = @@formats.find {|extension, block|
+      (to || '.pko').end_with?(extension)
     }.last rescue nil
 
     if block
-      FileUtils.mkpath(to) rescue nil
-      block.call(path, to)
+      block.call(package, to)
     else
-      Packo.debug 'Archive format unsupported'
-      path
+      Packo.debug 'Package format unsupported'
     end
   end
 
   def initialize (package)
     super(package)
 
-    package.stages.add :unpack, self.method(:unpack), after: :fetch, strict: true
+    package.stages.add :pack, self.method(:pack), at: :end, strict: true
 
     before :initialize do |package|
-      package.define_singleton_method :unpack, &Unpacker.method(:do)
+      package.define_singleton_method :pack, &Packager.method(:do)
     end
   end
 
   def finalize
-    package.stages.delete :unpack, self.method(:unpack)
+    package.stages.delete :pack, self.method(:pack)
   end
 
-  def unpack
-    package.stages.callbacks(:unpack).do {
-      Unpacker.do((package.ditfiles.is_a?(Hash) ?
-        package.distfiles[:default] :
-        package.distfiles.first
-      ).path, "#{package.directory}/work")
-
-      Dir.chdir package.workdir
-      Dir.chdir "#{package.name}-#{package.version}" rescue false
+  def pack
+    package.stages.callbacks(:pack).do {
+      Packager.do(package)
     }
   end
 end
 
-end; end; end; end
+end; end; end

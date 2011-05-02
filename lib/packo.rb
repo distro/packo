@@ -53,8 +53,15 @@ module Packo
 
   def self.loadPackage (path, package=nil)
     options = {
-      before: 'module ::Packo::RBuild;',
-      after:  ';end'
+      before: %{
+        module ::Packo::RBuild
+        include ::Packo::RBuild::Modules
+        include ::Packo::RBuild::Behaviors
+      },
+
+      after: %{
+        end
+      }
     }
 
     files = {}

@@ -16,11 +16,3 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
-
-require 'packo/rbuild/modules/misc/fetcher'
-require 'packo/rbuild/modules/misc/unpacker'
-
-# Bleeding edge stuff
-require 'packo/rbuild/modules/misc/fetching/git'
-require 'packo/rbuild/modules/misc/fetching/mercurial'
-require 'packo/rbuild/modules/misc/fetching/subversion'

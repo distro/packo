@@ -238,7 +238,7 @@ class Environment < Hash
       if key.to_s.end_with?('FLAGS')
         self[key] = Flags.parse(value.to_s)
       elsif key.to_s.end_with?('PATH')
-        self[key] = Pathname.new(value.to_s)
+        self[key] = Path.new(value.to_s)
       end
     }
   end
@@ -253,7 +253,7 @@ class Environment < Hash
     if name.to_s.end_with?('FLAGS')
       value = Flags.parse(value.to_s)
     elsif name.to_s.end_with?('PATH')
-      value = Pathname.new(value.to_s)
+      value = Path.new(value.to_s)
     end
 
     super(name.to_sym, value)

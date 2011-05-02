@@ -17,8 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/building/autotools'
-require 'packo/rbuild/modules/building/cmake'
-require 'packo/rbuild/modules/building/rake'
 require 'packo/rbuild/modules/building/patch'
+require 'packo/rbuild/modules/building/cmake'
+
+require 'packo/rbuild/modules/building/autotools'
+require 'packo/rbuild/modules/building/rake'
+require 'packo/rbuild/modules/building/scons'
+
 require 'packo/rbuild/modules/building/strip'

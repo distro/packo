@@ -30,6 +30,7 @@ module Packo
 
   def self.sh (*cmd, &block)
     options = (Hash === cmd.last) ? cmd.pop : {}
+    cmd     = cmd.flatten.compact.map {|c| c.to_s}
 
     if !block_given?
       show_command = cmd.join(' ')

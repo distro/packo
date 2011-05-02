@@ -17,18 +17,19 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; module Modules; module Misc
+module Packo; module RBuild; module Modules; module Unpacking
 
-Unpacker.register /\.lzma$/ do |path, to|
-  Packo.sh 'lzma', '-dfk', path
-
-  path.sub!(/\.lzma$/, '')
+Unpacker.register /\.((tar\.(bz2|gz|xz|lzma))|tgz)$/ do |path, to|
+  options = [case File.extname(path)
+    when '.xz';   '--xz'
+    when '.lzma'; '--lzma'
+  end].flatten.compact
 
   if to
-    Do.mv(path, (path = to))
+    options << '-C' << to
   end
 
-  path
+  Packo.sh 'tar', 'xf', path, *options, '-k'
 end
 
 end; end; end; end

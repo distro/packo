@@ -19,7 +19,7 @@
 
 module Packo; module RBuild; module Modules; module Building
 
-class Rake < Module
+class Scons < Module
   class Configuration
     attr_reader :module
 
@@ -81,26 +81,18 @@ class Rake < Module
     package.stages.add :compile,   self.method(:compile),   after: :configure
     package.stages.add :install,   self.method(:install),   after: :compile
 
-    package.after :initialize do
-      package.environment[:RUBYOPT] = ''
-
-      package.dependencies << 'interpreter/ruby!'
+    package.before :initialize do
+      package.dependencies << 'development/utility/scons!'
     end
 
-    package.rake = Class.new(Module::Helper) {
+    package.scons = Class.new(Module::Helper) {
       def initialize (package)
         super(package)
       end
 
       def do (*args)
         package.environment.sandbox {
-          Packo.sh 'rake', *args
-        }
-      end
-
-      def install (*args)
-        package.environment.sandbox {
-          self.do 'install', *args
+          Packo.sh 'scons', *args
         }
       end
 
@@ -124,14 +116,12 @@ class Rake < Module
 
   def compile
     package.stages.callbacks(:compile).do(@configuration) {
-      package.rake.do @configuration.to_s.shellsplit
+      package.scons.do @configuration.to_s.shellsplit
     }
   end
 
   def install
-    package.stages.callbacks(:install).do(@configuration) {
-      package.rake.install @configuration.to_s.shellsplit
-    }
+    package.stages.callbacks(:install).do(@configuration)
   end
 end
 

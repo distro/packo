@@ -19,9 +19,8 @@
 
 require 'packo/rbuild/module'
 
+require 'packo/rbuild/modules/fetching'
+require 'packo/rbuild/modules/unpacking'
 require 'packo/rbuild/modules/building'
 require 'packo/rbuild/modules/packaging'
 require 'packo/rbuild/modules/misc'
-
-require 'packo/rbuild/modules/misc/fetching'
-require 'packo/rbuild/modules/misc/unpacking'

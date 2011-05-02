@@ -61,7 +61,7 @@ class Files < Thor
       require 'packo/models'
 
       package = Models.search_installed(name).first
-      root    = Pathname.new(package.destination || '/')
+      root    = Path.new(package.destination || '/')
 
       if !package
         fatal "No package matches #{name}"
@@ -70,9 +70,9 @@ class Files < Thor
 
       package.model.contents.each {|content| content.check!
         case content.type
-          when :dir; puts "--- #{(root + content.path).cleanpath}"
-          when :sym; puts ">>> #{(root + content.path).cleanpath} -> #{content.meta}".cyan.bold
-          when :obj; puts ">>> #{(root + content.path).cleanpath}".bold
+          when :dir; puts "--- #{Path.clean(root + content.path)}"
+          when :sym; puts ">>> #{Path.clean(root + content.path)} -> #{content.meta}".cyan.bold
+          when :obj; puts ">>> #{Path.clean(root + content.path)}".bold
         end
       }
     end
@@ -82,7 +82,7 @@ class Files < Thor
   def belongs (file)
     require 'packo/models'
 
-    path    = Pathname.new(file).realpath.to_s
+    path    = Path.new(file).realpath.to_s
     path[0] = ''
 
     if content = Models::InstalledPackage::Content.first(path: path)
@@ -119,7 +119,7 @@ class Files < Thor
       print "\n"
 
       package.model.contents.each {|content|
-        path = (Pathname.new(package.model.destination || '/') + content.path[1, content.path.length]).cleanpath.to_s
+        path = Path.clean((package.model.destination || '/') + content.path[1, content.path.length])
 
         case content.type
           when :dir

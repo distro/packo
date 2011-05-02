@@ -19,60 +19,40 @@
 
 module Packo; module RBuild; module Modules; module Packaging
 
-class PKO < Module
-  def self.pack (name, *files)
-    Packo.sh 'tar', 'cJf', name, *files, '--preserve', silent: true
-  end
+pack = lambda do |name, *files|
+  Packo.sh 'tar', 'cJf', name, *files, '--preserve', silent: true
+end
 
-  def self.unpack (name, to)
-    FileUtils.mkpath(to) rescue nil
+Packager.register('.pko') do |package, to=nil|
+  path = to || "#{package.to_s(:package)}.pko"
 
-    Packo.sh 'tar', 'xJf', name, '-C', to, '--preserve', silent: true
-  end
+  Dir.chdir package.directory
 
-  def initialize (package)
-    super(package)
+  FileUtils.mkpath "#{package.directory}/pre"
 
-    package.stages.add :pack, self.method(:pack), at: :end, strict: true
-  end
+  package.filesystem.pre.each {|name, file|
+    File.write("pre/#{name}", file.content, 0777)
+  }
 
-  def finalize
-    package.stages.delete :pack, self.method(:pack)
-  end
+  FileUtils.mkpath "#{package.directory}/post"
+  package.filesystem.post.each {|name, file|
+    File.write("post/#{name}", file.content, 0777)
+  }
 
-  def pack
-    package.stages.callbacks(:pack).do {
-      path = "#{package.to_s(:package)}.pko"
+  FileUtils.mkpath "#{package.directory}/selectors"
+  package.filesystem.selectors.each {|name, file|
+    File.write("selectors/#{name}", file.content, 0777)
+  }
 
-      Dir.chdir package.directory
+  Package::Manifest.new(package).save('manifest.xml')
 
-      FileUtils.mkpath "#{package.directory}/pre"
+  package.stages.callbacks(:packing).do {
+    Do.clean(package.distdir)
 
-      package.filesystem.pre.each {|name, file|
-        File.write("pre/#{name}", file.content, 0777)
-      }
+    pack.call(path, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
+  }
 
-      FileUtils.mkpath "#{package.directory}/post"
-      package.filesystem.post.each {|name, file|
-        File.write("post/#{name}", file.content, 0777)
-      }
-
-      FileUtils.mkpath "#{package.directory}/selectors"
-      package.filesystem.selectors.each {|name, file|
-        File.write("selectors/#{name}", file.content, 0777)
-      }
-
-      Package::Manifest.new(package).save('manifest.xml')
-
-      package.stages.callbacks(:pack!).do {
-        Do.clean(package.distdir)
-
-        PKO.pack(path, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')
-      }
-
-      path
-    }
-  end
+  path
 end
 
 end; end; end; end

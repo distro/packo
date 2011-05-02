@@ -27,6 +27,8 @@ module Packo
 
 class Package
   def self.parse (text, type=:standard)
+    return text if text.is_a?(Package)
+
     data = {}
 
     case type

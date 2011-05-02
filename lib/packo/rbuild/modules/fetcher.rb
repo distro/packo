@@ -20,7 +20,7 @@
 require 'uri'
 require 'digest/sha1'
 
-module Packo; module RBuild; module Modules; module Misc
+module Packo; module RBuild; module Modules
 
 class Fetcher < Module
   @@wrappers = {}
@@ -174,4 +174,4 @@ class Fetcher < Module
   end
 end
 
-end; end; end; end
+end; end; end
