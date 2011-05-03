@@ -108,7 +108,7 @@ class Do
     content = File.read(file)
 
     seds.each {|(regexp, sub)|
-      content.gsub!(regexp, sub || '')
+      content.gsub!(regexp, sub.to_s)
     }
 
     File.write(file, content)

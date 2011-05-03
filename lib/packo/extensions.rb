@@ -37,10 +37,10 @@ class Object
   def refine_method (meth, &block)
     return unless block_given?
 
-    old = self.instance_method(meth) or return
+    old = self.instance_method(meth) rescue Proc.new {}
 
     define_method(meth) {|*args|
-      self.instance_exec(old.bind(self), *args, &block)
+      self.instance_exec((old.is_a?(Proc) ? old : old.bind(self)), *args, &block)
     }
   end
 end
