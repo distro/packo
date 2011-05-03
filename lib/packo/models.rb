@@ -17,15 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'dm-core'
-require 'dm-constraints'
-require 'dm-migrations'
-require 'dm-types'
-require 'dm-transactions'
-
-require 'versionomy'
-
 require 'packo'
+
+require 'datamapper'
 
 module DataMapper
 

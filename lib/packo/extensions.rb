@@ -18,8 +18,12 @@
 #++
 
 require 'ostruct'
-require 'memoized'
 require 'pathname'
+require 'memoized'
+require 'shellwords'
+require 'open-uri'
+require 'nokogiri'
+require 'versionomy'
 
 Path = Pathname
 
