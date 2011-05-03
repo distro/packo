@@ -20,7 +20,7 @@
 module Packo
 
 def self.version
-  '0.0.1.alpha.2'
+  '0.0.1.alpha.3'
 end
 
 end

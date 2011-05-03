@@ -19,6 +19,7 @@
 #++
 
 require 'packo'
+require 'packo/cli'
 
 module Packo; module CLI
 

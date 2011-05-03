@@ -145,6 +145,5 @@ end
 require 'packo/version'
 require 'packo/system'
 require 'packo/do'
-require 'packo/cli'
 require 'packo/repository'
 require 'packo/package'

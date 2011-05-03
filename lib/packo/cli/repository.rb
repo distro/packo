@@ -18,12 +18,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'open-uri'
-require 'nokogiri'
-
 require 'packo'
+require 'packo/cli'
 require 'packo/rbuild'
 require 'packo/models'
+
 require 'packo/cli/repository/helpers'
 
 module Packo; module CLI

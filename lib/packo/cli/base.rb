@@ -19,6 +19,7 @@
 #++
 
 require 'packo'
+require 'packo/cli'
 require 'packo/models'
 require 'packo/rbuild'
 

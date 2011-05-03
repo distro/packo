@@ -22,6 +22,8 @@ require 'digest/sha1'
 require 'fileutils'
 require 'shellwords'
 require 'memoized'
+require 'open-uri'
+require 'nokogiri'
 
 module Packo
   def self.protected?
