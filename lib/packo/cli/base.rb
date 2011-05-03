@@ -189,7 +189,7 @@ class Base < Thor
 
       case File.extname(name)
         when '.pko'
-          RBuild::Modules::Packaging::PKO.unpack(File.realpath(name), path)
+          RBuild::Modules::Packager.unpack(File.realpath(name), path)
 
           manifest = RBuild::Package::Manifest.open("#{path}/manifest.xml")
 

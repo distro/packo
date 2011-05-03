@@ -22,15 +22,26 @@ module Packo; module RBuild; module Modules
 class Packager < Module
   @@formats = {}
 
-  def self.register (type, &block)
-    @@formats[type] = block
+  def self.register (of, type, &block)
+    (@@formats[type] ||= {})[of] = block
   end
 
-  def self.do (package, to=nil)
-
+  def self.pack (package, to=nil)
     block = @@formats.find {|extension, block|
       (to || '.pko').end_with?(extension)
-    }.last rescue nil
+    }.last[:pack] rescue nil
+
+    if block
+      block.call(package, to)
+    else
+      Packo.debug 'Package format unsupported'
+    end
+  end
+
+  def self.unpack (package, to=nil)
+    block = @@formats.find {|extension, block|
+      (to || '.pko').end_with?(extension)
+    }.last[:unpack] rescue nil
 
     if block
       block.call(package, to)
@@ -45,7 +56,8 @@ class Packager < Module
     package.stages.add :pack, self.method(:pack), at: :end, strict: true
 
     before :initialize do |package|
-      package.define_singleton_method :pack, &Packager.method(:do)
+      package.define_singleton_method :pack, &Packager.method(:pack)
+      package.define_singleton_method :unpack, &Packager.method(:unpack)
     end
   end
 
@@ -55,7 +67,7 @@ class Packager < Module
 
   def pack
     package.stages.callbacks(:pack).do {
-      Packager.do(package)
+      Packager.package(package)
     }
   end
 end

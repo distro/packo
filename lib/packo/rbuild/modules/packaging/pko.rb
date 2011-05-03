@@ -23,7 +23,13 @@ pack = lambda do |name, *files|
   Packo.sh 'tar', 'cJf', name, *files, '--preserve', silent: true
 end
 
-Packager.register('.pko') do |package, to=nil|
+unpack = lambda do |name, to|
+  FileUtils.mkpath(to) rescue nil
+
+  Packo.sh 'tar', 'xJf', name, '-C', to, '--preserve', :silent => true
+end
+
+Packager.register(:pack, '.pko') do |package, to=nil|
   path = to || "#{package.to_s(:package)}.pko"
 
   Dir.chdir package.directory
@@ -53,6 +59,10 @@ Packager.register('.pko') do |package, to=nil|
   }
 
   path
+end
+
+Packager.register(:unpack, '.pko') do |package, to=nil|
+  unpack.call(package, to || "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(package)}")
 end
 
 end; end; end; end
