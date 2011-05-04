@@ -34,10 +34,12 @@ System = Class.new {
   def initialize
     @environment      = Environment.new
     @environmentClean = Environment.new(nil, true)
-    @host             = Host.new(@environmentClean) rescue nil
+    @host             = Host.new(@environmentClean)
   end
 
   def has? (package, exact=true)
+    require 'packo/models'
+
     if package.is_a?(Package::Tags) || package.is_a?(Array)
       expression = "[#{package.join(' && ')}]"
     elsif package.is_a?(String)

@@ -22,46 +22,99 @@ require 'packo/environment'
 module Packo
 
 class Host
+  class Part
+    def initialize (value)
+      assign(value)
+    end
+
+    def assign (value)
+      @value = self.class.normalize(value)
+    end
+
+    def == (value)
+      @value == self.class.normalize(value.to_s)
+    end
+
+    alias === ==
+
+    def nil?
+      @value.nil?
+    end
+
+    def to_s
+      @value.to_s
+    end
+  end
+
+  class Arch < Part
+    def self.normalize (value)
+      case value
+        when 'core2', 'k8', 'amd64' then 'x86_64'
+        when 'x86'                  then 'i686'
+
+        when 'i386', 'i486', 'i586', 'i686', 'x86_64' then value
+
+        else raise ArgumentError.new('Architecture not supported')
+      end
+    end
+
+    def initialize (value=System.env![:ARCH])
+      super(value)
+    end
+  end
+
+  class Vendor < Part
+    def self.normalize (value)
+      case value
+        when 'pc' then value
+
+        else 'unknown'
+      end
+    end
+
+    def initialize (value=System.env![:VENDOR])
+      super(value)
+    end
+  end
+
+  class Kernel < Part
+    def self.normalize (value)
+      case value
+        when 'windows'      then 'cygwin'
+        when 'mac', 'macos' then 'darwin'
+
+        when 'linux', 'cygwin', 'darwin' then value
+
+        else raise ArgumentError.new('Kernel not supported')
+      end
+    end
+
+    def initialize (value=System.env![:KERNEL])
+      super(value)
+    end
+  end
+
+  class Misc < Part
+    def self.normalize (value)
+      case value
+        when 'gnu' then value
+      end
+    end
+
+    def initialize (value=System.env![:MISC])
+      super(value)
+    end
+  end
+
   def self.parse (text)
     matches = text.match(/^([^-]+)(-([^-]+))?-([^-]+)(-([^-]+))?$/) or return
 
     Host.new(
-      ARCH:   matches[1],
-      VENDOR: matches[3],
-      KERNEL: matches[4],
-      MISC:   matches[6]
+      arch:   matches[1],
+      vendor: matches[3],
+      kernel: matches[4],
+      misc:   matches[6]
     ) rescue nil
-  end
-
-  def self.arch (value=System.env![:ARCH])
-    case value
-      when 'core2', 'k8'; 'x86_64'
-      when 'x86';         'i686'
-
-      when 'i386', 'i486', 'i586', 'i686',
-           'amd64', 'x86_64'
-      ; value
-
-      else; raise ArgumentError.new('Architecture not supported')
-    end
-  end
-
-  def self.vendor (value=System.env![:VENDOR])
-    case value
-      when 'pc'; value
-
-      else; 'unknown'
-    end
-  end
-
-  def self.kernel (value=System.env![:KERNEL])
-    case value
-      when 'windows'; 'cygwin'
-      when 'mac';     'darwin'
-      when 'linux';   'linux'
-
-      else; raise ArgumentError.new('Kernel not supported')
-    end
   end
 
   def self.misc (value=System.env![:MISC])
@@ -73,12 +126,12 @@ class Host
   attr_reader :arch, :vendor, :kernel, :misc
 
   def initialize (data)
-    self.arch   = data[:ARCH]
-    self.vendor = data[:VENDOR]
-    self.kernel = data[:KERNEL]
-    self.misc   = data[:MISC]
+    @arch   = Arch.new(data[:ARCH])
+    @vendor = Vendor.new(data[:VENDOR])
+    @kernel = Kernel.new(data[:KERNEL])
+    @misc   = Misc.new(data[:MISC])
 
-    if !self.misc && data[:LIBC] == 'glibc' && (self.kernel == 'linux')
+    if !self.misc && data[:libc] == 'glibc' && (self.kernel == 'linux')
       self.misc = 'gnu'
     end
 
@@ -88,19 +141,19 @@ class Host
   end
 
   def arch= (value)
-    @arch = Host.arch(value)
+    @arch.assign(value)
   end
 
   def vendor= (value)
-    @vendor = Host.vendor(value)
+    @vendor.assign(value)
   end
 
   def kernel= (value)
-    @kernel = Host.kernel(value)
+    @kernel.assign(value)
   end
 
   def misc= (value)
-    @misc = Host.misc(value)
+    @misc.assign(value)
   end
 
   def == (value)
@@ -114,7 +167,7 @@ class Host
   alias === ==
 
   def to_s
-    "#{arch}#{"-#{vendor}" if vendor}-#{kernel}#{"-#{misc}" if misc}"
+    "#{arch}#{"-#{vendor}" unless vendor.nil?}-#{kernel}#{"-#{misc}" unless misc.nil?}"
   end
 end
 
