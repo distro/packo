@@ -34,7 +34,7 @@ class Files < Thor
       require 'packo/rbuild'
 
       path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
-      RBuild::Modules::Packaging::PKO.unpack(File.realpath(name), path)
+      RBuild::Modules::Packager.unpack(File.realpath(name), path)
 
       length = "#{path}/dist".length
 

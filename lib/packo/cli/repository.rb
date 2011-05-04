@@ -560,15 +560,13 @@ class Repository < Thor
   def _update (path)
     done = false
 
-    old = Dir.pwd; Dir.chdir(path)
-
-    if !done && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
-      done = true
+    Do.cd path do
+      if !done && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
+        done = true
+      end
     end
 
-    Dir.chdir(old)
-
-    return result
+    done
   end
 end
 

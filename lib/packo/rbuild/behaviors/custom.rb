@@ -17,13 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/building/patch'
-require 'packo/rbuild/modules/building/cmake'
+module Packo; module RBuild; module Behaviors
 
-require 'packo/rbuild/modules/building/custom'
-require 'packo/rbuild/modules/building/autotools'
-require 'packo/rbuild/modules/building/rake'
-require 'packo/rbuild/modules/building/scons'
-require 'packo/rbuild/modules/building/python_setup'
+Custom = [
+  Modules::Building::Patch,
+  Modules::Building::Custom
+]
 
-require 'packo/rbuild/modules/building/strip'
+end; end; end

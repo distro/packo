@@ -158,6 +158,18 @@ class Do
     FileUtils.chmod @opts || 0755, "#{root}/#{path}", verbose: @verbose
   end
 
+  def rm (*files)
+    files.flatten.compact.each {|file|
+      Do.rm Path.clean("#{root}/#{@relative}/#{file}")
+    }
+  end
+
+  def own (user, group, *files)
+    files.flatten.compact.each {|file|
+      FileUtils.chown user, group, files, :verbose => @verbose
+    }
+  end
+
   def ins (*files)
     files.map {|file|
       file.is_a?(Array) ? [file] : Dir.glob(file)
@@ -270,12 +282,6 @@ class Do
 
     FileUtils.mkpath File.dirname(path) 
     FileUtils.ln_f link, path, verbose: @verbose
-  end
-
-  def own (user, group, *files)
-    files.flatten.compact.each {|file|
-      FileUtils.chown user, group, files, :verbose => @verbose
-    }
   end
 end
 

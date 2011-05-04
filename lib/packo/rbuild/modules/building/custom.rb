@@ -19,61 +19,7 @@
 
 module Packo; module RBuild; module Modules; module Building
 
-class Scons < Module
-  class Configuration
-    attr_reader :module
-
-    def initialize (mod=nil)
-      @module = mod
-
-      @options = {}
-    end
-
-    def clear
-      @options.clear
-    end
-
-    def enable (*names)
-      names.flatten.compact.each {|name|
-        @options[name.to_s] = true
-      }
-    end
-
-    def disable (*names)
-      names.flatten.compact.each {|name|
-        @options[name.to_s] = false
-      }
-    end
-
-    def set (name, value)
-      @options[name.to_s] = value.to_s
-    end
-
-    def get (name)
-      @options[name.to_s]
-    end
-
-    def delete (*names)
-      names.flatten.each {|name|
-        @options.delete(name.to_s)
-      }
-    end
-
-    def to_s
-      result = ''
-
-      @options.each {|name, value|
-        case value
-          when true;  result += "#{name.shellescape}=on "
-          when false; result += "#{name.shellescape}=off "
-          else;       result += "#{name.shellescape}=#{value.shellescape} "
-        end
-      }
-
-      return result
-    end
-  end
-
+class Custom < Module
   def initialize (package)
     super(package)
 
@@ -81,21 +27,14 @@ class Scons < Module
     package.stages.add :compile,   self.method(:compile),   after: :configure
     package.stages.add :install,   self.method(:install),   after: :compile
 
-    package.before :initialize do
-      package.dependencies << 'development/utility/scons!'
-    end
+    package.custom = Class.new(Module::Helper) {
+      attr_accessor :configuration
 
-    package.scons = Class.new(Module::Helper) {
       def initialize (package)
         super(package)
       end
-
-      def do (*args)
-        package.environment.sandbox {
-          Packo.sh 'scons', *args
-        }
-      end
     }.new(package)
+
   end
 
   def finalize
@@ -105,15 +44,13 @@ class Scons < Module
   end
 
   def configure
-    @configuration = Configuration.new(self)
+    @configuration = package.custom.configuration
 
     package.stages.callbacks(:configure).do(@configuration)
   end
 
   def compile
-    package.stages.callbacks(:compile).do(@configuration) {
-      package.scons.do @configuration.to_s.shellsplit
-    }
+    package.stages.callbacks(:compile).do(@configuration)
   end
 
   def install

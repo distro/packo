@@ -18,3 +18,5 @@
 #++
 
 require 'packo/rbuild/behaviors/default'
+require 'packo/rbuild/behaviors/custom'
+require 'packo/rbuild/behaviors/python'
