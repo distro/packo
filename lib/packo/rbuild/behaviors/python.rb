@@ -17,19 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; module Modules; module Misc
+module Packo; module RBuild; module Behaviors
 
-Unpacker.register /\.((tar\.(bz2|gz|xz|lzma))|tgz)$/ do |path, to|
-  options = [case File.extname(path)
-    when '.xz';   '--xz'
-    when '.lzma'; '--lzma'
-  end].flatten.compact
+Python = [
+  Modules::Building::Patch,
+  Modules::Building::PythonSetup
+]
 
-  if to
-    options << '-C' << to
-  end
-
-  Packo.sh 'tar', 'xf', path, *options, '-k'
-end
-
-end; end; end; end
+end; end; end

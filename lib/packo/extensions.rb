@@ -18,11 +18,34 @@
 #++
 
 require 'ostruct'
+require 'pathname'
 require 'memoized'
+require 'shellwords'
+require 'open-uri'
+require 'nokogiri'
+require 'versionomy'
+
+Path = Pathname
+
+class Pathname
+  def self.clean (path)
+    Pathname.new(path).cleanpath.to_s
+  end
+end
 
 class Object
   def numeric?
     true if Float(self) rescue false
+  end
+
+  def refine_method (meth, &block)
+    return unless block_given?
+
+    old = self.instance_method(meth) rescue Proc.new {}
+
+    define_method(meth) {|*args|
+      self.instance_exec((old.is_a?(Proc) ? old : old.bind(self)), *args, &block)
+    }
   end
 end
 
@@ -57,12 +80,6 @@ end
 class String
   def interpolate (on)
     on.instance_eval("%{#{self}}") rescue self
-  end
-
-  def === (value)
-    value.is_a?(Packo::Host) ?
-      value == self :
-      super(value)
   end
 end
 

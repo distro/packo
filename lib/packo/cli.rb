@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo'
+
 require 'thor'
 require 'colorb'
 
@@ -52,15 +54,21 @@ module Packo
 
 module CLI
   def self.info (text)
-    puts "#{'*'.green.bold} #{text}"
+    text.strip.lines.each {|line|
+      puts "#{'*'.green.bold} #{line.strip}"
+    }
   end
 
   def self.warn (text)
-    puts "#{'*'.yellow.bold} #{text}"
+    text.strip.lines.each {|line|
+      puts "#{'*'.yellow.bold} #{line.strip}"
+    }
   end
 
   def self.fatal (text)
-    puts "#{'*'.red} #{text}"
+    text.strip.lines.each {|line|
+      puts "#{'*'.red} #{line.strip}"
+    }
   end
 end
 

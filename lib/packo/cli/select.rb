@@ -18,6 +18,7 @@
 #++
 
 require 'packo'
+require 'packo/cli'
 require 'packo/models'
 
 module Packo; module CLI

@@ -119,3 +119,13 @@ class Host
 end
 
 end
+
+class String
+  refine_method(:==) do |old, value|
+    value.is_a?(Packo::Host) ? value == self : old.call(value)
+  end
+
+  refine_method(:===) do |old, value|
+    value.is_a?(Packo::Host) ? value === self : old.call(value)
+  end
+end

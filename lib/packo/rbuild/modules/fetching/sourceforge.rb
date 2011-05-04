@@ -19,7 +19,7 @@
 
 require 'net/http'
 
-module Packo; module RBuild; module Modules; module Misc
+module Packo; module RBuild; module Modules; module Fetching
 
 Fetcher.register :sourceforge, do |url, package|
   whole, project, path = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a

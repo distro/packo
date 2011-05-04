@@ -17,6 +17,39 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/modules/misc/fetching/gnu'
-require 'packo/rbuild/modules/misc/fetching/sourceforge'
-require 'packo/rbuild/modules/misc/fetching/github'
+module Packo; module RBuild; module Modules; module Fetching
+
+class Mercurial < Module
+  def initialize (package)
+    super(package)
+
+    package.avoid [Fetcher, Unpacker]
+
+    package.stages.add :fetch, self.method(:fetch), after: :beginning
+
+    package.after :initialize do
+      package.dependencies << 'vcs/mercurial!'
+    end
+  end
+
+  def finalize
+    package.stages.delete :fetch, self.method(:fetch)
+  end
+
+  def hg (*args)
+    Packo.sh 'hg', *args
+  end
+
+  def fetch
+    package.stages.callbacks(:fetch).do {
+      package.clean!
+      package.create!
+
+      hg :clone, package.mercurial[:repository].to_s.interpolate(package), package.workdir
+
+      Do.cd package.workdir
+    }
+  end
+end
+
+end; end; end; end

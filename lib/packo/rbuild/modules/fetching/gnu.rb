@@ -19,7 +19,7 @@
 
 require 'net/http'
 
-module Packo; module RBuild; module Modules; module Misc
+module Packo; module RBuild; module Modules; module Fetching
 
 Fetcher.register :gnu do |url, package|
   whole, name, version = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a

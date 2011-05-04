@@ -53,8 +53,15 @@ module Packo
 
   def self.loadPackage (path, package=nil)
     options = {
-      before: 'module ::Packo::RBuild;',
-      after:  ';end'
+      before: %{
+        module ::Packo::RBuild
+        include ::Packo::RBuild::Modules
+        include ::Packo::RBuild::Behaviors
+      },
+
+      after: %{
+        end
+      }
     }
 
     files = {}
@@ -138,6 +145,5 @@ end
 require 'packo/version'
 require 'packo/system'
 require 'packo/do'
-require 'packo/cli'
 require 'packo/repository'
 require 'packo/package'

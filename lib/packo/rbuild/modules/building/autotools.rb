@@ -104,22 +104,22 @@ class Autotools < Module
 
       @enable.each {|name, value|
         case value
-          when true;  result += "--enable-#{name} "
-          when false; result += "--disable-#{name} "
-          else;       result += "--enable-#{name}='#{value}' "
+          when true;  result += "--enable-#{name.shellescape} "
+          when false; result += "--disable-#{name.shellescape} "
+          else;       result += "--enable-#{name.shellescape}=#{value.shellescape} "
         end
       }
 
       @with.each {|name, value|
         case value
-          when true;  result += "--with-#{name} "
-          when false; result += "--without-#{name} "
-          else;       result += "--with-#{name}='#{value}' "
+          when true;  result += "--with-#{name.shellescape} "
+          when false; result += "--without-#{name.shellescape} "
+          else;       result += "--with-#{name.shellescape}=#{value.shellescape} "
         end
       }
 
       @other.each {|name, value|
-        result += "--#{name}='#{value}' "
+        result += "--#{name.shellescape}=#{value.shellescape} "
       }
 
       return result
@@ -268,10 +268,10 @@ class Autotools < Module
   def configure
     @configuration = Configuration.new(self)
 
-    @configuration.set 'prefix',         (System.env[:INSTALL_PATH] + '/usr').cleanpath
-    @configuration.set 'sysconfdir',     (System.env[:INSTALL_PATH] + '/etc').cleanpath
-    @configuration.set 'sharedstatedir', (System.env[:INSTALL_PATH] + '/com').cleanpath
-    @configuration.set 'localstatedir',  (System.env[:INSTALL_PATH] + '/var').cleanpath
+    @configuration.set 'prefix',         Path.clean(System.env[:INSTALL_PATH] + '/usr')
+    @configuration.set 'sysconfdir',     Path.clean(System.env[:INSTALL_PATH] + '/etc')
+    @configuration.set 'sharedstatedir', Path.clean(System.env[:INSTALL_PATH] + '/com')
+    @configuration.set 'localstatedir',  Path.clean(System.env[:INSTALL_PATH] + '/var')
 
     @configuration.set 'host',   package.host
     @configuration.set 'build',  package.host
