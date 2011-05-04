@@ -32,7 +32,11 @@ class Host
     end
 
     def == (value)
-      @value == self.class.normalize(value.to_s)
+      if value.is_a?(Regexp)
+        !!@value.to_s.match(value)
+      else
+        @value == self.class.normalize(value.to_s)
+      end
     end
 
     alias === ==
@@ -110,11 +114,11 @@ class Host
     matches = text.match(/^([^-]+)(-([^-]+))?-([^-]+)(-([^-]+))?$/) or return
 
     Host.new(
-      arch:   matches[1],
-      vendor: matches[3],
-      kernel: matches[4],
-      misc:   matches[6]
-    ) rescue nil
+      ARCH:   matches[1],
+      VENDOR: matches[3],
+      KERNEL: matches[4],
+      MISC:   matches[6]
+    )
   end
 
   def self.misc (value=System.env![:MISC])
@@ -131,7 +135,7 @@ class Host
     @kernel = Kernel.new(data[:KERNEL])
     @misc   = Misc.new(data[:MISC])
 
-    if !self.misc && data[:libc] == 'glibc' && (self.kernel == 'linux')
+    if !self.misc && data[:LIBC] == 'glibc' && (self.kernel == 'linux')
       self.misc = 'gnu'
     end
 
@@ -175,10 +179,14 @@ end
 
 class String
   refine_method(:==) do |old, value|
-    value.is_a?(Packo::Host) ? value == self : old.call(value)
+    (value.is_a?(Packo::Host) || value.is_a?(Packo::Host::Part)) ?
+      value == self :
+      old.call(value)
   end
 
   refine_method(:===) do |old, value|
-    value.is_a?(Packo::Host) ? value === self : old.call(value)
+    (value.is_a?(Packo::Host) || value.is_a?(Packo::Host::Part)) ?
+      value === self :
+      old.call(value)
   end
 end
