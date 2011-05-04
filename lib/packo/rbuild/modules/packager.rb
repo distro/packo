@@ -54,11 +54,6 @@ class Packager < Module
     super(package)
 
     package.stages.add :pack, self.method(:pack), at: :end, strict: true
-
-    before :initialize do |package|
-      package.define_singleton_method :pack, &Packager.method(:pack)
-      package.define_singleton_method :unpack, &Packager.method(:unpack)
-    end
   end
 
   def finalize

@@ -128,7 +128,13 @@ class Package
       if respond_to? "#{id}="
         send "#{id}=", *args
       else
-        @data[id] = (args.length > 1) ? args : args.first
+        value = (args.length > 1) ? args : args.first
+
+        if value.nil?
+          @data.delete(id)
+        else
+          @data[id] = value
+        end
       end
     end
   end
