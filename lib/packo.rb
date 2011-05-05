@@ -112,7 +112,7 @@ module Packo
       Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
 
       if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
-        RBuild::Package.last.filesystem.merge!(pkg.filesystem)
+        RBuild::Package.last.filesystem.include(pkg.filesystem)
 
         if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
           RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
