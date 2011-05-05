@@ -26,6 +26,6 @@ Gem::Specification.new {|s|
     s.add_dependency('dm-constraints')
 
     s.add_dependency('versionomy', '>= 0.4.1')
-    s.add_dependency('fffs', '>= 0.0.7')
+    s.add_dependency('fffs', '>= 0.0.9')
     s.add_dependency('sys-filesystem')
 }
