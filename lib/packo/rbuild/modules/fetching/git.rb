@@ -56,6 +56,9 @@ class Git < Module
       if package.git[:commit] || package.git[:tag]
         git 'checkout', (package.git[:commit] || package.git[:tag]).to_s.interpolate(package)
       end
+
+      git 'submodule', 'init'
+      git 'submodule', 'update'
     }
   end
 end

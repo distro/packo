@@ -73,6 +73,18 @@ class Repository
     @uri = value.is_a?(URI) ? value : URI.parse(value) if value
   end
 
+  def packages (*args)
+    Enumerator.new(self, :each_package, *args)
+  end
+
+  def dependencies (package, *args)
+    Enumerator.new(self, :each_dependency, package, *args)
+  end
+
+  def has? (package)
+    false
+  end
+
   def to_hash
     result = {}
 

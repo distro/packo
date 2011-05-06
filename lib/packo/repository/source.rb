@@ -35,10 +35,6 @@ class Source < Repository
     Nokogiri::XML.parse(File.read("#{self.path}/repository.xml")).xpath('//address').first.text rescue nil
   end
 
-  def packages (what=[self.path], root=self.path)
-    Enumerator.new(self, :each_package, what, root)
-  end
-
   def each_package (what=[self.path], root=self.path, &block)
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
