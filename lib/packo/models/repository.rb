@@ -82,22 +82,10 @@ class Repository
   end
 
   def search (expression, exact=false)
-    if expression.start_with?('[') && expression.end_with?(']')
-      expression = expression[1, expression.length - 2]
-
-      if DataMapper.repository.adapter.respond_to? :select
-        result = _find_by_expression(expression).map {|id|
-          Package.get(id)
-        }
-      else
-        expression = Packo::Package::Tags::Expression.parse(expression)
-
-        result = packages.all.select {|pkg|
-          expression.evaluate(Packo::Package.wrap(pkg))
-        }
-      end
+    if expression.start_with?('(') && expression.end_with?(')')
+      result = find_by_expression(expression[1, expression.length - 2])
     else
-      whole, validity, package, expression = expression.match(/^([<>]?=?)?(.+?)\s*(?:\[(.*)\])?$/).to_a
+      whole, validity, package, expression = expression.match(/^([<>]?=?)?(.+?)\s*(?:\((.*)\))?$/).to_a
 
       package = Packo::Package.parse(package || '')
 
@@ -137,7 +125,7 @@ class Repository
       if expression && !expression.empty?
         expression = Packo::Package::Tags::Expression.parse(expression)
 
-        result = result.select {|pkg|
+        result.select! {|pkg|
           expression.evaluate(Packo::Package.wrap(pkg))
         }
       end
@@ -146,8 +134,31 @@ class Repository
     return result
   end
 
-  private
+  def find_by_expression (expression)
+    if DataMapper.repository.adapter.respond_to? :select
+      joins, names, expression = _expression_to_sql(expression)
 
+      (repository.adapter.select(%{
+        SELECT DISTINCT packo_models_repository_packages.id
+
+        FROM packo_models_repository_packages
+
+        #{joins}
+
+        WHERE packo_models_repository_packages.repo_id = ? #{"AND (#{expression})" if !expression.empty?}
+      }, *(names + [id])) rescue []).map {|id|
+        Package.get(id)
+      }
+    else
+      expression = Packo::Package::Tags::Expression.parse(expression)
+
+      packages.all.select {|pkg|
+        expression.evaluate(Packo::Package.wrap(pkg))
+      }
+    end
+  end
+
+private
   def _expression_to_sql (value)
     value.downcase!
     value.gsub!(/(\s+and\s+|\s*&&\s*)/i, ' && ')
@@ -192,20 +203,6 @@ class Repository
     expression.gsub!(/([\G\s()])!([\s()\A])/, '\1 NOT \2')
 
     return joins, names, expression
-  end
-
-  def _find_by_expression (expression)
-    joins, names, expression = _expression_to_sql(expression)
-
-    repository.adapter.select(%{
-      SELECT DISTINCT packo_models_repository_packages.id
-
-      FROM packo_models_repository_packages
-
-      #{joins}
-
-      WHERE packo_models_repository_packages.repo_id = ? #{"AND (#{expression})" if !expression.empty?}
-    }, *(names + [id])) rescue []
   end
 end
 

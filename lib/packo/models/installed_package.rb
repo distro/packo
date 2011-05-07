@@ -57,31 +57,12 @@ class InstalledPackage
   has n, :contents,     constraint: :destroy
 
   def self.search (expression, exact=false, repository=nil)
-    if expression.start_with?('[') && expression.end_with?(']')
-      expression = expression[1, expression.length - 2]
-
-      if DataMapper.repository.adapter.respond_to? :select
-        result = self._find_by_expression(expression).map {|id|
-          InstalledPackage.get(id)
-        }
-      else
-        expression = Packo::Package::Tags::Expression.parse(expression)
-
-        result = packages.all.select {|pkg|
-          expression.evaluate(Packo::Package.wrap(pkg))
-        }
-      end
+    if expression.start_with?('(') && expression.end_with?(')')
+      result = find_by_expression(expression[1, expression.length - 2])
     else
-      if matches = expression.match(/^([<>]?=?)/)
-        validity = ((matches[1] && !matches[1].empty?) ? matches[1] : nil)
-        expression = expression.sub(/^([<>]?=?)/, '')
+      whole, validity, package, expression = expression.match(/^([<>]?=?)?(.+?)\s*(?:\((.*)\))?$/).to_a
 
-        validity = nil if validity == '='
-      else
-        validity = nil
-      end
-
-      package = Packo::Package.parse(expression)
+      package = Packo::Package.parse(package || '')
 
       conditions = { order: [:name.asc] }
 
@@ -95,7 +76,7 @@ class InstalledPackage
         conditions[:slot.like]    = "%#{package.slot}%" if package.slot
       end
 
-      result = InstalledPackage.all(conditions)
+      result = all(conditions)
 
       if !package.tags.empty?
         result = result.to_a.select {|pkg|
@@ -103,29 +84,62 @@ class InstalledPackage
         }
       end
 
-      if validity
+      if validity && !validity.empty?
         result = result.select {|pkg|
           case validity
-            when '>';  pkg.version >  package.version
-            when '>='; pkg.version >= package.version
-            when '<';  pkg.version <  package.version
-            when '<='; pkg.version <= package.version
+            when '~', '~=' then true
+            when '>'       then pkg.version >  package.version
+            when '>='      then pkg.version >= package.version
+            when '<'       then pkg.version <  package.version
+            when '<='      then pkg.version <= package.version
+            else                pkg.version == package.version
           end
+        }
+      end
+
+      if expression && !expression.empty?
+        expression = Packo::Package::Tags::Expression.parse(expression)
+
+        result.select! {|pkg|
+          expression.evaluate(Packo::Package.wrap(pkg))
         }
       end
     end
 
     if repository
-      result.delete_if {|pkg|
-        pkg.repo != repository
+      result.select! {|pkg|
+        pkg.repo == repository
       }
     end
 
     return result
   end
 
-  private
+  def self.find_by_expression (expression)
+    if DataMapper.repository.adapter.respond_to? :select
+      joins, names, expression = _expression_to_sql(expression)
 
+      (repository.adapter.select(%{
+        SELECT DISTINCT packo_models_installed_packages.id
+
+        FROM packo_models_installed_packages
+
+        #{joins}
+
+        WHERE #{expression}
+      }, *names)).map {|id|
+        InstalledPackage.get(id)
+      }
+    else
+      expression = Packo::Package::Tags::Expression.parse(expression)
+
+      all.select {|pkg|
+        expression.evaluate(Packo::Package.wrap(pkg))
+      }
+    end
+  end
+
+private
   def self._expression_to_sql (value)
     value.downcase!
     value.gsub!(/(\s+and\s+|\s*&&\s*)/i, ' && ')
@@ -147,7 +161,7 @@ class InstalledPackage
     names.each_index {|index|
       joins << %{
         LEFT JOIN (
-            SELECT _used_tag_#{index}.package_id
+            SELECT _used_tag_#{index}.installed_package_id AS package_id
 
             FROM packo_models_installed_package_tags AS _used_tag_#{index}
 
@@ -170,20 +184,6 @@ class InstalledPackage
     expression.gsub!(/([\G\s()])!([\s()\A])/,    '\1 NOT \2')
 
     return joins, names, expression
-  end
-
-  def self._find_by_expression (expression)
-    joins, names, expression = self._expression_to_sql(expression)
-
-    repository.adapter.select(%{
-      SELECT DISTINCT packo_models_installed_packages.id
-
-      FROM packo_models_installed_packages
-
-      #{joins}
-
-      WHERE #{expression}
-    }, *names) rescue []
   end
 end
 

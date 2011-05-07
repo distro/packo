@@ -22,6 +22,8 @@ require 'versionomy'
 require 'packo/package/tags'
 require 'packo/package/flavor'
 require 'packo/package/features'
+require 'packo/package/dependencies'
+require 'packo/package/blockers'
 
 module Packo
 

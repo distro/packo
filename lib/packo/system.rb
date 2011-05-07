@@ -42,10 +42,10 @@ System = Class.new {
 
     if package.is_a?(Package::Tags) || package.is_a?(Array)
       expression = "[#{package.join(' && ')}]"
-    elsif package.is_a?(String)
-      expression = package
+    elsif package.is_a?(Package)
+      expression = package.to_s(:whole)
     else
-      expression = Package.parse(package.to_s(:whole)).to_s(:whole)
+      expression = package.to_s
     end
 
     !Models::InstalledPackage.search(expression, exact).empty?

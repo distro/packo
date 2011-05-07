@@ -21,8 +21,6 @@ require 'fffs'
 require 'find'
 
 require 'packo/package'
-require 'packo/package/dependencies'
-require 'packo/package/blockers'
 
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
