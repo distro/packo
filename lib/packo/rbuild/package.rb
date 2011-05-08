@@ -59,6 +59,12 @@ class Package < Packo::Package
       @filesystem << FFFS::Directory.new(dir)
     }
 
+    ['pre', 'post'].each {|dir|
+      ['install', 'uninstall'].each {|target|
+        @filesystem[dir] << FFFS::Directory.new(target)
+      }
+    }
+
     if !self.version
       @block = block
 
@@ -140,52 +146,38 @@ class Package < Packo::Package
     self.envify!
     self.export! :arch, :kernel, :compiler, :libc
 
-    flavor.dup.each {|element|
+    tmp = []
+    flavor.each {|element|
       next unless element.enabled?
 
-      element.needs.dup.each {|need|
-        if tmp = need.match(/^-(.+)$/)
-          if element.get(tmp[1]).enabled?
-            element.disable!
-
-            if System.env[:VERBOSE]
-              require 'packo/cli'
-              CLI.warn "Flavor #{element} can't be enabled with #{tmp[1]}, disabling."
-            end
-          end
-        elsif flavor.get(need).disabled?
-          element.disable!
-
-          if System.env[:VERBOSE]
-            require 'packo/cli'
-            CLI.warn "Flavor #{element} needs #{need}, disabling"
-          end
-        end
-      }
+      tmp << element.name
     }
 
-    features.dup.each {|feature|
+    flavor.each {|element|
+      next unless element.enabled? && element.needs
+
+      expression = Packo::Package::Tags::Expression.parse(element.needs)
+
+      if !expression.evaluate(tmp)
+        raise ArgumentError.new "Could not ensure `#{expression}` for `#{element.name}`"
+      end
+    }
+
+    tmp = []
+    features.each {|feature|
       next unless feature.enabled?
 
-      feature.needs.dup.each {|need|
-        if tmp = need.match(/^-(.+)$/)
-          if features.get(tmp[1]).enabled?
-            feature.disable!
+      tmp << feature.name
+    }
 
-            if System.env[:VERBOSE]
-              require 'packo/cli'
-              CLI.warn "Feature #{feature} can't be enabled with #{tmp[1]}, disabling."
-            end
-          end
-        elsif features.get(need).disabled?
-          feature.disable!
+    features.each {|feature|
+      next unless feature.enabled? && feature.needs
 
-          if System.env[:VERBOSE]
-            require 'packo/cli'
-            CLI.warn "Feature #{feature} needs #{need}, disabling"
-          end
-        end
-      }
+      expression = Packo::Package::Tags::Expression.parse(feature.needs)
+
+      if !expression.evaluate(tmp)
+        raise ArgumentError.new "Could not ensure `#{expression}` for `#{element.name}`"
+      end
     }
 
     stages.callbacks(:initialized).do(self)

@@ -263,6 +263,8 @@ class Autotools < Module
     package.stages.delete :configure, self.method(:configure)
     package.stages.delete :compile,   self.method(:compile)
     package.stages.delete :install,   self.method(:install)
+
+    package.autotools = nil
   end
 
   def configure

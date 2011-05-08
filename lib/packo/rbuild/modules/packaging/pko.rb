@@ -34,21 +34,9 @@ Packager.register(:pack, '.pko') do |package, to=nil|
 
   Dir.chdir package.directory
 
-  FileUtils.mkpath "#{package.directory}/pre"
-
-  package.filesystem.pre.each {|name, file|
-    File.write("pre/#{name}", file.content, 0777)
-  }
-
-  FileUtils.mkpath "#{package.directory}/post"
-  package.filesystem.post.each {|name, file|
-    File.write("post/#{name}", file.content, 0777)
-  }
-
-  FileUtils.mkpath "#{package.directory}/selectors"
-  package.filesystem.selectors.each {|name, file|
-    File.write("selectors/#{name}", file.content, 0777)
-  }
+  package.filesystem.pre.save("#{package.directory}/pre", 0755)
+  package.filesystem.post.save("#{package.directory}/post", 0755)
+  package.filesystem.selectors.save("#{package.directory}/selectors", 0755)
 
   Package::Manifest.new(package).save('manifest.xml')
 
