@@ -47,14 +47,14 @@ class Do
     files.flatten!
     files.compact!
 
-    type = (path.first.is_a?(Symbol) ? path.shift : :f).to_s
+    type = (files.first.is_a?(Symbol) ? files.shift : :f).to_s
 
     if type.include?('r')
       Do.dir(to)
-      FileUtils.cp_r(files, to, :force => type.include?('f'))
+      FileUtils.cp_r(files, to, force: type.include?('f'), preserve: true)
     else
       Do.dir(File.dirname(to))
-      FileUtils.cp(files, to, :force => type.include?('f'))
+      FileUtils.cp(files, to)
     end
   end
 

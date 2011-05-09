@@ -55,7 +55,7 @@ class Build < Thor
       if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
         CLI.info "Cleaning #{package}."
 
-        clean("#{path}/#{package.name}-#{package.version}.rbuild")
+        clean("#{package.path}/#{package.name}-#{package.version}.rbuild")
 
         package.create!
 
