@@ -26,26 +26,51 @@ class Administration
     package.before :pack do
       next if package.admin.empty?
 
-      package.filesystem.post.install << FFFS::File.new('administration_script', package.admin.to_s)
+      package.filesystem.post.install << FFFS::File.new('administration_script', package.admin.install)
+      package.filesystem.post.uninstall << FFFS::File.new('administration_script', package.admin.uninstall)
     end
 
     package.admin = Class.new(Module::Helper) {
       def initialize (package)
         super(package)
 
-        @script = "#! /bin/sh\n"
+        @raw = "#! /bin/sh\n"
+
+        @source = {
+          install:   @raw.dup,
+          uninstall: @raw.dup
+        }
+
+        @into = :install
       end
 
       def reset
-        @script = "#! /bin/sh\n"
+        @source[:install].replace(@raw)
+        @source[:uninstall].replace(@raw)
       end
 
       def empty?
-        @script == "#! /bin/sh\n"
+        install == @raw && uninstall == @raw
       end
 
-      def to_s
-        @script
+      def install
+        @source[:install]
+      end
+
+      def uninstall
+        @source[:uninstall]
+      end
+
+      def into?
+        @into
+      end
+
+      def into (what)
+        tmp, @into = @into, what
+
+        yield
+
+        @into = tmp
       end
 
       def do
@@ -79,7 +104,13 @@ class Administration
 
         command << name
 
-        @script << "#{command.shelljoin}\n"
+        @source[@into] << "#{command.shelljoin}\n"
+
+        if into? == :install
+          into :uninstall do
+            groupdel name
+          end
+        end
       end
 
       def groupmod (name, options={})
@@ -103,7 +134,7 @@ class Administration
 
         command << name
 
-        @script << "#{command.shelljoin}\n"
+        @source[@into] << "#{command.shelljoin}\n"
       end
 
       def groupdel (name)
@@ -111,7 +142,7 @@ class Administration
 
         command << name
 
-        @script << "#{command.shelljoin}\n"
+        @source[@into] << "#{command.shelljoin}\n"
       end
 
       def useradd (name, options={})
@@ -187,7 +218,13 @@ class Administration
 
         command << name
 
-        @script << "#{command.shelljoin}\n"
+        @source[@into] << "#{command.shelljoin}\n"
+
+        if into? == :install
+          into :uninstall do
+            userdel name
+          end
+        end
       end
 
       def usermod (name, options={})
@@ -256,10 +293,10 @@ class Administration
 
         command << name
 
-        @script << "#{command.shelljoin}\n"
+        @source[@into] << "#{command.shelljoin}\n"
       end
 
-      def userdel (name)
+      def userdel (name, options={})
         command = ['userdel']
 
         if options[:force]
@@ -272,7 +309,7 @@ class Administration
 
         command << name
 
-        @script << "#{command.shelljoin}\n"
+        @source[@into] << "#{command.shelljoin}\n"
       end
 
       def chown (path, options={})
@@ -280,8 +317,15 @@ class Administration
 
         command << '-hR'
         command << "#{options[:user]}:#{options[:group]}"
+        command << path
 
-        @script << "#{command.shelljoin}\n"
+        @source[@into] << "#{command.shelljoin}\n"
+
+        if into? == :install
+          into :uninstall do
+            chown path, user: 'nobody', group: 'nobody'
+          end
+        end
       end
     }.new(package)
   end
