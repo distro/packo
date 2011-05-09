@@ -45,8 +45,16 @@ class Bazaar < Module
       package.clean!
       package.create!
 
-      bzr :branch, package.bazaar[:branch].to_s.interpolate(package),
-        package.bazaar[:repository].to_s.interpolate(package), package.workdir
+      branch     = package.bazaar[:branch].to_s.interpolate(package) rescue nil
+      repository = package.bazaar[:repository].to_s.interpolate(package) rescue nil
+
+      Do.rm package.workdir
+
+      if repository && branch
+        bzr :checkout, '--lightweight', "#{repository}/#{branch}", package.workdir
+      else
+        bzr :checkout, '--lightweight', repository || branch, package.workdir
+      end
 
       Do.cd package.workdir
     }

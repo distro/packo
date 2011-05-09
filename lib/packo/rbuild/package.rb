@@ -93,7 +93,13 @@ class Package < Packo::Package
       vanilla {
         description 'Apply only the patches needed to build succesfully the package'
 
-        needs :not, :documentation, :headers, :debug
+        after :initialized do
+          flavor.each {|element|
+            next if element.name == 'vanilla'
+
+            element.disable!
+          }
+        end
       }
 
       documentation {
@@ -147,23 +153,6 @@ class Package < Packo::Package
     self.export! :arch, :kernel, :compiler, :libc
 
     tmp = []
-    flavor.each {|element|
-      next unless element.enabled?
-
-      tmp << element.name
-    }
-
-    flavor.each {|element|
-      next unless element.enabled? && element.needs
-
-      expression = Packo::Package::Tags::Expression.parse(element.needs)
-
-      if !expression.evaluate(tmp)
-        raise ArgumentError.new "Could not ensure `#{expression}` for `#{element.name}`"
-      end
-    }
-
-    tmp = []
     features.each {|feature|
       next unless feature.enabled?
 
@@ -176,7 +165,7 @@ class Package < Packo::Package
       expression = Packo::Package::Tags::Expression.parse(feature.needs)
 
       if !expression.evaluate(tmp)
-        raise ArgumentError.new "Could not ensure `#{expression}` for `#{element.name}`"
+        raise Package::Tags::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for `#{feature.name}`"
       end
     }
 

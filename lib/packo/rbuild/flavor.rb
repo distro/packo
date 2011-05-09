@@ -62,6 +62,4 @@ class Flavor < Packo::Package::Flavor
   end
 end
 
-
-
 end; end

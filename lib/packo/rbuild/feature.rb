@@ -46,14 +46,8 @@ class Feature < Packo::Package::Feature
     self
   end
 
-  def needs (*names)
-    if names.first == :not
-      names[1, names.length].each {|name|
-        @dependencies.delete(name)
-      }
-    else
-      @dependencies = @dependencies.concat(names).flatten.compact.uniq
-    end
+  def needs (expression=nil)
+    expression ? @needs = expression : @needs
   end
 
   def method_missing (id, *args, &block)

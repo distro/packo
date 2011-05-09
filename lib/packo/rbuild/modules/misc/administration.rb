@@ -23,7 +23,7 @@ class Administration
   def initialize (package)
     super(package)
 
-    before :pack do
+    package.before :pack do
       next if package.admin.empty?
 
       package.filesystem.post.install << FFFS::File.new('administration_script', package.admin.to_s)

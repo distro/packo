@@ -47,6 +47,16 @@ class Object
       self.instance_exec((old.is_a?(Proc) ? old : old.bind(self)), *args, &block)
     }
   end
+
+  def refine_class_method (meth)
+    return unless block_given?
+
+    old = self.method(meth) rescue Proc.new {}
+
+    define_singleton_method(meth) {|*args|
+      yield old, *args
+    }
+  end
 end
 
 module Kernel
@@ -80,6 +90,12 @@ end
 class String
   def interpolate (on)
     on.instance_eval("%{#{self}}") rescue self
+  end
+end
+
+module Shellwords
+  refine_class_method(:shellescape) do |old, *args|
+    old.call(args.first.to_s)
   end
 end
 
