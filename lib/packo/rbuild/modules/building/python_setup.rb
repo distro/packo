@@ -23,6 +23,8 @@ class PythonSetup < Module
   def initialize (package)
     super(package)
 
+    package.avoid package.stages.owner_of(:compile)
+
     package.stages.add :configure, self.method(:configure), after: :fetch
     package.stages.add :compile,   self.method(:compile),   after: :configure
     package.stages.add :install,   self.method(:install),   after: :compile

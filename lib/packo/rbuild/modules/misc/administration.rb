@@ -73,8 +73,8 @@ class Administration
         @into = tmp
       end
 
-      def do
-        yield self
+      def do (&block)
+        self.instance_exec(self, &block)
       end
 
       def groupadd (name, options={})

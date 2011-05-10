@@ -23,10 +23,10 @@ class Autotools < Module
   class Configuration
     attr_accessor :path
 
-    attr_reader :module
+    attr_reader :package
 
-    def initialize (mod=nil)
-      @module = mod
+    def initialize (package=nil)
+      @package = package
 
       @enable = {}
       @with   = {}
@@ -99,6 +99,12 @@ class Autotools < Module
       }
     end
 
+    def execute
+      @package.env.sandbox {
+        Packo.sh "#{self.path} #{self}"
+      }
+    end
+
     def to_s
       result = ''
 
@@ -128,6 +134,8 @@ class Autotools < Module
 
   def initialize (package)
     super(package)
+
+    package.avoid package.stages.owner_of(:compile)
 
     package.stages.add :configure, self.method(:configure), after: :fetch
     package.stages.add :compile,   self.method(:compile),   after: :configure
@@ -163,6 +171,8 @@ class Autotools < Module
     package.environment[:CTARGET] = package.target.to_s
 
     package.autotools = Class.new(Module::Helper) {
+      attr_accessor :m4
+
       def initialize (package)
         super(package)
 
@@ -180,9 +190,7 @@ class Autotools < Module
       def force!;  @forced = true end
 
       def configure (conf)
-        package.environment.sandbox {
-          Packo.sh "#{conf.path} #{conf}"
-        }
+        conf.execute
       end
 
       def autogen
@@ -201,6 +209,8 @@ class Autotools < Module
 
       def aclocal (*args)
         version = args.last.is_a?(Numeric) ? args.pop : @versions[:aclocal]
+
+        args.insert(0, ['-I', @m4]) if @m4
 
         package.environment.sandbox {
           Packo.sh "aclocal#{"-#{version}" if version}", *args
@@ -268,7 +278,7 @@ class Autotools < Module
   end
 
   def configure
-    @configuration = Configuration.new(self)
+    @configuration = Configuration.new(packaage)
 
     @configuration.set 'prefix',         Path.clean(System.env[:INSTALL_PATH] + '/usr')
     @configuration.set 'sysconfdir',     Path.clean(System.env[:INSTALL_PATH] + '/etc')

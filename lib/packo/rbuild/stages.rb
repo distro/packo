@@ -46,6 +46,14 @@ class Stages
     @callbacks = {}
   end
 
+  def owner_of (name)
+    name = name.to_sym
+
+    @stages.find {|stage|
+      stage.name == name
+    }.method.owner rescue nil
+  end
+
   def add (name, method, options={})
     @stages.delete_if {|stage|
       stage.name == name
