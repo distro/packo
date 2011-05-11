@@ -17,9 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'fffs'
-require 'find'
-
 require 'packo/package'
 
 require 'packo/rbuild/stages'
@@ -94,6 +91,8 @@ class Package < Packo::Package
         description 'Apply only the patches needed to build succesfully the package'
 
         after :initialized do
+          next unless enabled?
+
           flavor.each {|element|
             next if element.name == 'vanilla'
 
