@@ -459,7 +459,9 @@ class Build < Thor
           exit 11
         end
 
-        packages.sort {|a, b|
+        packages.select {|pkg|
+          !pkg.masked?
+        }.sort {|a, b|
           a.version <=> b.version
         }.last
       end)

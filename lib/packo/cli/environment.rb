@@ -29,17 +29,14 @@ class Environment < Thor
   class_option :help, type: :boolean, desc: 'Show help usage'
 
   desc 'show', 'Show the current system environment'
+  method_option :modified, type: :boolean, default: false, aliases: '-m', desc: 'Show a modified environment'
   def show
-    length = System.env!.map {|(name, value)| name.length}.max
+    env    = (options[:modified] ? System.env : System.env!)
+    length = env.map {|(name, value)| name.length}.max
 
-    System.env!.each {|(name, value)|
+    env.each {|(name, value)|
       puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
     }
-  end
-
-  desc 'update', 'Update the environment'
-  def update
-
   end
 end
 
