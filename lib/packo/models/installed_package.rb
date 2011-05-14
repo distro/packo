@@ -56,7 +56,7 @@ class InstalledPackage
   has n, :dependencies, constraint: :destroy
   has n, :contents,     constraint: :destroy
 
-  def self.search (expression, exact=false, repository=nil)
+  def self.search (expression, options={})
     if expression.start_with?('(') && expression.end_with?(')')
       result = find_by_expression(expression[1, expression.length - 2])
     else
@@ -66,7 +66,7 @@ class InstalledPackage
 
       conditions = { order: [:name.asc] }
 
-      if exact
+      if options[:exact]
         conditions[:name]    = package.name    if package.name
         conditions[:version] = package.version if package.version
         conditions[:slot]    = package.slot    if package.slot
@@ -106,9 +106,9 @@ class InstalledPackage
       end
     end
 
-    if repository
+    if options[:repository]
       result.select! {|pkg|
-        pkg.repo == repository
+        pkg.repo == options[:repository]
       }
     end
 

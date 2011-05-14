@@ -89,6 +89,39 @@ class Property
       load(value)
     end
   end
+
+  class Location < String
+    # Hopefully the max length of a version won't go over 255 chars
+    length 2048
+
+    def custom?
+      true
+    end
+
+    def primitive? (value)
+      value.is_a?(Packo::Location)
+    end
+
+    def valid? (value, negated = false)
+      super || primitive?(value) || value.is_a?(::String)
+    end
+
+    def load (value)
+      return if value.to_s.empty?
+
+      Packo::Location.parse(value)
+    end
+
+    def dump (value)
+      return unless value
+
+      value.to_s
+    end
+
+    def typecast_to_primitive (value)
+      load(value)
+    end
+  end
 end
 
 begin
@@ -135,34 +168,36 @@ module Models
     transaction.commit
   end
 
-  def self.search_installed (expression, name=nil, type=nil)
-    Models::InstalledPackage.search(expression, true, type && name ? "#{type}/#{name}" : nil).map {|pkg|
+  def self.search_installed (expression, options={})
+    Models::InstalledPackage.search(expression, options).map {|pkg|
       Package.wrap(pkg)
     }
   end
 
-  def self.search (expression, name=nil, type=nil, exact=false)
+  def self.search (expression, options={})
     packages = []
 
-    if name && !name.empty?
-      repository      = Packo::Repository.parse(name)
-      repository.type = type if type && Packo::Repository::Types.member?(type.to_sym)
-      repository      = Models::Repository.first(repository.to_hash)
+    if options[:name] && !options[:name].to_s.empty?
+      repository = Packo::Repository.parse(options[:name] || options[:repository])
 
-      if repository
-        packages << repository.search(expression, exact)
+      if options[:type] && Packo::Repository::Types.member?(options[:type].to_s.to_sym)
+        repository.type = options[:type]
+      end
+
+      if repository = Models::Repository.first(repository.to_hash)
+        packages << repository.search(expression, options)
       end
     else
       Packo::Repository::Types.each {|t|
-        if type.nil? || type == 'all' || type == t
+        if options[:type].nil? || options[:type] == 'all' || options[:type] == t
           Models::Repository.all(type: t).each {|repository|
-            packages << repository.search(expression, exact)
+            packages << repository.search(expression, options)
           }
         end
       }
     end
 
-    return packages.flatten.compact.map {|package|
+    packages.flatten.compact.map {|package|
       Package.wrap(package)
     }
   end

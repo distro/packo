@@ -37,7 +37,7 @@ System = Class.new {
     @host             = Host.new(@environmentClean)
   end
 
-  def has? (package, exact=true)
+  def has? (package, options={})
     require 'packo/models'
 
     if package.is_a?(Package::Tags) || package.is_a?(Array)
@@ -48,7 +48,7 @@ System = Class.new {
       expression = package.to_s
     end
 
-    !Models::InstalledPackage.search(expression, exact).empty?
+    !Models::InstalledPackage.search(expression, options).empty?
   end
 }.new
 

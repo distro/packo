@@ -44,6 +44,12 @@ class Git < Module
     end
   end
 
+  def self.update (path)
+    Do.cd path do
+      !!((`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.'))
+    end
+  end
+
   def initialize (package)
     super(package)
 

@@ -17,8 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'uri'
-
 module Packo
 
 class Repository
@@ -44,14 +42,14 @@ class Repository
       type: model.type,
       name: model.name,
 
-      uri:  model.uri,
-      path: model.path,
+      location: model.location,
+      path:     model.path,
 
       model: model
     )
   end
 
-  attr_accessor :type, :name, :uri, :path
+  attr_accessor :type, :name, :location, :path
 
   attr_reader :model
 
@@ -59,8 +57,8 @@ class Repository
     self.type = data[:type]
     self.name = data[:name]
 
-    self.uri  = data[:uri]
-    self.path = data[:path]
+    self.location = data[:location]
+    self.path     = data[:path]
 
     @model = data[:model]
   end
@@ -69,8 +67,8 @@ class Repository
     @type = value.to_sym if value
   end
 
-  def uri= (value)
-    @uri = value.is_a?(URI) ? value : URI.parse(value) if value
+  def location= (value)
+    @location = value.is_a?(Packo::Location) ? value : Packo::Location[value] if value
   end
 
   def packages (*args)
@@ -88,7 +86,7 @@ class Repository
   def to_hash
     result = {}
 
-    [:type, :name, :uri, :path].each {|name|
+    [:type, :name, :location, :path].each {|name|
       result[name] = self.send(name) unless self.send(name).nil?
     }
 

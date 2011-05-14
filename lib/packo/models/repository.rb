@@ -35,8 +35,8 @@ class Repository
   property :type, Enum[:binary, :source, :virtual], required: true
   property :name, String,                           required: true
 
-  property :uri,  URI,  required: true
-  property :path, Text, required: true
+  property :location, Location, required: true
+  property :path,     Text,     required: true
 
   has n, :packages, constraint: :destroy
 
@@ -66,22 +66,22 @@ class Repository
 
   def to_hash
     Hash[
-      type: self.type,
-      name: self.name,
-      uri:  self.uri,
-      path: self.path
+      type:     self.type,
+      name:     self.name,
+      location: self.location,
+      path:     self.path
     ]
   end
 
   def URI
     case type
       when :binary;  data.mirrors.to_a.map {|m| m.uri}.join("\n")
-      when :source;  data.address
-      when :virtual; data.address
+      when :source;  data.location.to_s
+      when :virtual; data.location.to_s
     end
   end
 
-  def search (expression, exact=false)
+  def search (expression, options={})
     if expression.start_with?('(') && expression.end_with?(')')
       result = find_by_expression(expression[1, expression.length - 2])
     else
@@ -91,7 +91,7 @@ class Repository
 
       conditions = { order: [:name.asc] }
 
-      if exact
+      if options[:exact]
         conditions[:name]    = package.name    if package.name
         conditions[:version] = package.version if package.version
         conditions[:slot]    = package.slot    if package.slot

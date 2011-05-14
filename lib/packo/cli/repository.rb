@@ -31,69 +31,61 @@ module Packo; module CLI
 class Repository < Thor
   include Thor::Actions
 
-  @@scm = ['git']
-
   class_option :help, type: :boolean, desc: 'Show help usage'
 
-  desc 'add URI...', 'Add repositories'
+  desc 'add LOCATION...', 'Add repositories'
   map '-a' => :add
   method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
-  def add (*uris)
-    uris.each {|uri|
-      uri  = URI.parse(uri)
-      kind = nil
-      type = nil
-      name = nil
+  def add (*locations)
+    locations.map {|location|
+      Location.parse(location)
+    }.each {|location|
+      type, name = nil
 
-      if uri.scheme.nil? || uri.scheme == 'file'
-        kind = :file
+      Do.rm("#{System.env[:TMP]}/.__packo.repo")
 
-        if uri.to_s.end_with?('.rb')
-          uri = File.realpath(uri.path)
+      if location.type == :file
+        if location.path.end_with?('.rb')
+          location.path = File.realpath(location.path)
 
           type = :virtual
-          name = File.basename(uri.to_s).sub('.rb', '')
+          name = File.basename(location.path).sub('.rb', '')
         else
-          if File.directory? uri.path
-            dom = Nokogiri::XML.parse(File.read("#{uri.path}/repository.xml"))
+          location.path = File.realpath(location.path)
+
+          if File.directory?(location.path)
+            dom = Nokogiri::XML.parse(File.read("#{location.path}/repository.xml"))
           else
-            dom = Nokogiri::XML.parse(File.read(uri.path))
+            dom = Nokogiri::XML.parse(File.read(location.path))
           end
 
-          uri = File.realpath(uri.path)
-
           type = dom.root['type'].to_sym
           name = dom.root['name']
-        end
-      elsif ['http', 'https', 'ftp'].member?(uri.scheme)
-        kind = :fetched
 
-        if uri.to_s.end_with?('.rb')
+          if type == :source
+            path = location.path
+
+            location = Location[dom.xpath('//location').first]
+            location.repository = path
+          end
+        end
+      elsif location.type == :url
+        if location.address.end_with?('.rb')
           type = :virtual
-          name = File.basename(uri.to_s).sub('.rb', '')
+          name = File.basename(location.address).sub('.rb', '')
         else
-          xml = open(uri).read
-          dom = Nokogiri::XML.parse(xml)
+          dom = Nokogiri::XML.parse(open(location.address).read)
 
           type = dom.root['type'].to_sym
           name = dom.root['name']
         end
-      elsif @@scm.member?(uri.scheme)
-        kind = :scm
+      else
+        _checkout(location, "#{System.env[:TMP]}/.__packo.repo")
 
-        FileUtils.rm_rf("#{System.env[:TMP]}/.__repo", secure: true)
-
-        _checkout(uri, "#{System.env[:TMP]}/.__repo")
-
-        dom = Nokogiri::XML.parse(File.read("#{System.env[:TMP]}/.__repo/repository.xml"))
+        dom = Nokogiri::XML.parse(File.read("#{System.env[:TMP]}/.__packo.repo/repository.xml"))
 
         type = dom.root['type'].to_sym
         name = dom.root['name']
-      end
-
-      if !kind
-        CLI.fatal "I don't know what to do with #{uri}"
-        next
       end
 
       path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
@@ -108,43 +100,34 @@ class Repository < Thor
           path << '.xml'
 
           FileUtils.mkpath(File.dirname(path))
-          File.write(path, open((kind == :file && (!uri.to_s.end_with?('.xml'))) ?
-            "#{uri}/repository.xml" :
-            uri
+          File.write(path, open((location.type == :file && (!location.path.end_with?('.xml'))) ?
+            "#{location.path}/repository.xml" :
+            location.path || location.address
           ).read)
 
         when :source
           FileUtils.rm_rf path, secure: true rescue nil
           FileUtils.mkpath path rescue nil
 
-          case kind
-            when :fetched
-              _checkout(dom.xpath('//address').first.text, path)
-
-            when :scm
-              FileUtils.cp_r "#{System.env[:TMP]}/.__repo/.", path, preserve: true
-
-            else
-              _checkout(uri.to_s, path)
+          if File.directory?("#{System.env[:TMP]}/.__packo.repo")
+            FileUtils.cp_r "#{System.env[:TMP]}/.__packo.repo/.", path, preserve: true
+          else
+            _checkout(location, path)
           end
 
         when :virtual
           path << '.rb'
 
           FileUtils.mkpath(File.dirname(path))
-          File.write(path, open((kind == :file && (!uri.to_s.end_with?('.rb'))) ?
-            "#{uri}/repository.rb" :
-            uri
+          File.write(path, open((location.type == :file && (!location.path.end_with?('.rb'))) ?
+            "#{location.path}/repository.rb" :
+            location.path || location.address
           ).read)
       end
 
       begin
         Models.transaction {
-          if type == :virtual && options[:ignore]
-            _add type, name, uri, path, false
-          else
-            _add type, name, uri, path
-          end
+          _add type, name, location, path, !(type == :virtual && options[:ignore])
         }
 
         CLI.info "Added #{type}/#{name}"
@@ -199,43 +182,43 @@ class Repository < Thor
 
   desc 'update [REPOSITORY...]', 'Update installed repositories'
   map '-u' => :update
-  method_option :force, type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
-  method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+  method_option :force,  type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
+  method_option :ignore, type: :boolean, default: true,  aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
   def update (*repositories)
     Models::Repository.all.each {|repository|
       next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
         
       updated = false
 
-      type = repository.type
-      name = repository.name
-      uri  = repository.uri.to_s
-      path = repository.path
+      type     = repository.type
+      name     = repository.name
+      location = repository.location
+      path     = repository.path
 
       Models.transaction {
         case repository.type
           when :binary
-            if (content = open(uri).read) != File.read(path) || options[:force]
+            if (content = open(location.path || location.address).read) != File.read(path) || options[:force]
               _delete(:binary, name)
               File.write(path, content)
-              _add(:binary, name, uri, path)
+              _add(:binary, name, location, path)
 
               updated = true
             end
 
           when :source
-            if _update(path) || options[:force]
+            if _update(location, path) || options[:force]
               _delete(:source, name)
-              _add(:source, name, uri, path)
+              _add(:source, name, location, path)
 
               updated = true
             end
 
           when :virtual
-            if (content = open(uri).read != File.read(path)) || options[:force]
+            if (content = open(location.path || location.address).read != File.read(path)) || options[:force]
               _delete(:virtual, name)
               File.write(path, content)
-              _add(:vitual, name, uri, path, !options[:ignore])
+              _add(:vitual, name, location, path, !options[:ignore])
 
               update = true
             end
@@ -254,10 +237,10 @@ class Repository < Thor
   map '--search' => :search, '-Ss' => :search
   method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
   method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package'
-  method_option :type,       type: :string,                     aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                     aliases: '-r', desc: 'Set a specific repository'
+  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type'
+  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
   def search (expression='')
-    Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|
+    Models.search(expression, options).group_by {|package|
       "#{package.tags}/#{package.name}"
     }.sort.each {|(name, packages)|
       if options[:full]
@@ -274,7 +257,7 @@ class Repository < Thor
           }.join(', ')
           print ')'
 
-          print " <#{"#{package.repository.type}/#{package.repository.name}".black.bold} | #{package.repository.uri} | #{package.repository.path}>"
+          print " <#{"#{package.repository.type}/#{package.repository.name}".black.bold} | #{package.repository.location} | #{package.repository.path}>"
         }
       else
         print "#{packages.first.tags}/#{packages.first.name.bold} ("
@@ -295,10 +278,10 @@ class Repository < Thor
   desc 'info [EXPRESSION] [OPTIONS]', 'Search packages with the given expression and return detailed informations about them'
   map '--info' => :info, '-I' => :info
   method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
-  method_option :type,       type: :string,                     aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                     aliases: '-r', desc: 'Set a specific repository'
+  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type'
+  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
   def info (expression='')
-    Models.search(expression, options[:exact], options[:repository], options[:type]).group_by {|package|
+    Models.search(expression, options).group_by {|package|
       package.name
     }.sort.each {|(name, packages)|
       packages.sort {|a, b|
@@ -394,7 +377,7 @@ class Repository < Thor
       length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
 
       repositories.each {|repository|
-        puts "  #{repository.type}/#{repository.name}#{' ' * (4 + length - "#{repository.type}/#{repository.name}".length)}#{repository.uri} (#{repository.path})"
+        puts "  #{repository.type}/#{repository.name}#{' ' * (4 + length - "#{repository.type}/#{repository.name}".length)}#{repository.location} (#{repository.path})"
       }
 
       puts ''
@@ -414,13 +397,22 @@ class Repository < Thor
     puts repository.path
   end
 
-  desc 'uri REPOSITORY', 'Output the URI of a given package'
-  def uri (name)
+  desc 'location REPOSITORY', 'Output the URI of a given package'
+  def location (name)
     repository = Models::Repository.first(Packo::Repository.parse(name).to_hash)
 
     exit if !repository
 
-    puts repository.URI
+    location = repository.location
+    length   = location.to_hash.map {|name, value|
+      name.length
+    }.max
+
+    puts "#{'Type'.green}:#{' ' * (length - 4)} #{location.type}"
+
+    location.to_hash.each {|name, value|
+      puts "#{name.to_s.capitalize.green}:#{' ' * (length - name.length)} #{value}"
+    }
   end
 
   desc 'rehash [REPOSITORY...]', 'Rehash the repository caches'
@@ -428,10 +420,10 @@ class Repository < Thor
     Models::Repository.all.each {|repository|
       next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
 
-      type = repository.type
-      name = repository.name
-      uri  = repository.uri
-      path = repository.path
+      type     = repository.type
+      name     = repository.name
+      location = repository.location
+      path     = repository.path
 
       CLI.info "Rehashing #{type}/#{name}"
 
@@ -440,17 +432,17 @@ class Repository < Thor
 
         case type
           when :binary
-            _add(:binary, name, uri, path)
+            _add(:binary, name, location, path)
 
           when :source
-            _add(:source, name, uri, path)
+            _add(:source, name, location, path)
         end
       }
     }
   end
 
   desc 'generate REPOSITORY [OPTIONS]', 'Generate a binary repository from sources'
-  method_option :repository, type: :string,                               aliases: '-r', desc: 'Specify a source repository from where to get packages'
+  method_option :repository, type: :string,                            aliases: '-r', desc: 'Specify a source repository from where to get packages'
   method_option :output,     type: :string, default: System.env[:TMP], aliases: '-o', desc: 'Specify output directory'
   def generate (repository)
     dom = Nokogiri::XML.parse(File.read(repository)) {|config|
@@ -500,74 +492,61 @@ class Repository < Thor
     }
   end
 
-  private
+  no_tasks {
+    def _build (package, env)
+      Do.cd {
+        FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
+        FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
-  def _build (package, env)
-    Do.cd {
-      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
-      FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
+        require 'packo/cli/build'
 
-      require 'packo/cli/build'
+        begin
+          System.env.sandbox(env) {
+            Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+          }
+        rescue
+        end
 
-      begin
-        System.env.sandbox(env) {
-          Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-        }
-      rescue
-      end
-
-      Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
-    }
-  end
-
-  def _add (type, name, uri, path, populate=true)
-    repo = Helpers::Repository.wrap(Models::Repository.create(
-      type: type,
-      name: name,
-
-      uri:  uri,
-      path: path
-    ))
-
-    repo.populate if populate
-  end
-
-  def _delete (type, name)
-    Models::Repository.first(name: name, type: type).destroy
-  end
-
-  def _checkout (uri, path)
-    uri = URI.parse(uri.to_s) if !uri.is_a?(URI)
-
-    if !uri.scheme
-      if File.directory?("#{uri}/.git")
-        scm = 'git'
-      end
-    else
-      scm = uri.scheme
+        Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+      }
     end
 
-    if !@@scm.member?(scm)
-      CLI.fatal "#{scm} is an unsupported SCM"
-      exit 40
+    def _add (type, name, location, path, populate=true)
+      repo = Helpers::Repository.wrap(Models::Repository.create(
+        type: type,
+        name: name,
+
+        location: location,
+        path:     path
+      ))
+
+      repo.populate if populate
     end
 
-    case scm
-      when 'git'; Packo.sh 'git', 'clone', '--depth', '1', uri.to_s, path, silent: !System.env[:VERBOSE]
+    def _delete (type, name)
+      Models::Repository.first(name: name, type: type).destroy
     end
-  end
 
-  def _update (path)
-    done = false
-
-    Do.cd path do
-      if !done && (`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.' rescue nil)
-        done = true
+    def _checkout (location, path)
+      location = Location.parse(location)
+      
+      if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
+        RBuild::Modules::Fetching.const_get(location.type.capitalize).fetch(location, path)
+      else
+        raise ArgumentError.new "#{location.type} is an unsupported SCM"
       end
     end
 
-    done
-  end
+    def _update (location, path)
+      location = Location.parse(location)
+
+      if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
+        RBuild::Modules::Fetching.const_get(location.type.capitalize).update(path)
+      else
+        raise ArgumentError.new "#{location.type} is an unsupported SCM"
+      end
+    end
+  }
 end
 
 end; end

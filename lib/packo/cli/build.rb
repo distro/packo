@@ -44,7 +44,7 @@ class Build < Thor
     output = File.realpath(options[:output])
 
     packages.map {|package|
-      _package(package)
+      _package(package, options)
     }.compact.each {|package|
       CLI.info "Building #{package}"
 
@@ -209,7 +209,7 @@ class Build < Thor
       else
         require 'packo/models'
 
-        packages = Models.search(package, options[:repository])
+        packages = Models.search(package, options)
 
         if (multiple = packages.uniq).length > 1
           CLI.fatal 'Multiple packages with the same name, be more precise.'
@@ -329,7 +329,7 @@ class Build < Thor
     else
       require 'packo/models'
 
-      tmp = Models.search(package, options[:repository])
+      tmp = Models.search(package, options)
 
       if tmp.empty?
         CLI.fatal 'Package not found'
@@ -433,13 +433,13 @@ class Build < Thor
   end
 
   no_tasks {
-    def _package (package)
+    def _package (package, options={})
       package = (if package.end_with?('.rbuild')
         package
       else
         require 'packo/models'
 
-        packages = Models.search(package, options[:repository])
+        packages = Models.search(package, options)
 
         names = packages.group_by {|package|
           "#{package.tags}/#{package.name}"

@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'versionomy'
+require 'packo'
 
 require 'packo/package/tags'
 require 'packo/package/flavor'
@@ -46,6 +46,10 @@ class Package
 
         if matches[1][matches[1].length - 1] != '/'
           data[:name] = data[:tags].pop
+
+          if data[:name] == '*'
+            data.delete(:name)
+          end
         end
 
         data[:version] = matches[2]

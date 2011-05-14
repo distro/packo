@@ -18,7 +18,6 @@
 #++
 
 require 'packo/package'
-require 'nokogiri'
 
 module Packo; class Repository
 

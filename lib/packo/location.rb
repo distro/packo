@@ -17,12 +17,17 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'nokogiri'
+require 'ostruct'
+
 module Packo
 
 class Location < OpenStruct
   def self.[] (data={})
     if data.is_a?(Hash)
       Location.new(data)
+    elsif data.is_a?(Nokogiri::XML::Element)
+      Location.from_dom(data)
     else
       Location.parse(data.to_s)
     end
@@ -51,12 +56,12 @@ class Location < OpenStruct
 
       parts = text.split(/\s*(?<!\\);\s*/)
 
-      if parts.first.split('=', 2).length == 1
+      if parts.first.split(/\s*=\s*/, 2).length == 1
         data[:type] = parts.shift
       end
       
       parts.each {|part|
-        name, value = part.split('=', 2)
+        name, value = part.split(/\s*=\s*/, 2)
 
         next unless value
 
@@ -67,16 +72,28 @@ class Location < OpenStruct
     end
   end
 
+  def self.from_dom (dom)
+    data = {}
+
+    data[:type] = dom['type']
+
+    dom.xpath('./*').each {|e|
+      data[e.name] = e.text
+    }
+
+    Location.new(data)
+  end
+
   attr_reader :type
 
   def initialize (data={})
-    super(data)
+    self.type = data.delete(:type)
 
-    self.type = data[:type]
+    super(data)
   end
 
   def type= (value)
-    @type = value.to_sym
+    @type = value.to_sym if value
   end
 
   def [] (name)
@@ -89,13 +106,10 @@ class Location < OpenStruct
 
   def to_s
     result = ''
-    data   = self.to_hash
 
-    if data[:type]
-      result << "#{data.delete(:type)}; "
-    end
+    result << "#{@type}; " if @type
 
-    result << data.map {|(name, value)|
+    result << self.to_hash.map {|(name, value)|
       "#{name}=#{value.to_s.gsub(';', '\;')}"
     }.join('; ')
 

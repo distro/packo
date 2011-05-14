@@ -103,4 +103,6 @@ end
 
 class OpenStruct
   alias to_hash marshal_dump
+  alias merge! marshal_load
+  alias delete delete_field
 end

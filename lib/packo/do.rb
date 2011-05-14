@@ -27,7 +27,7 @@ class Do
       tmp = Dir.pwd
 
       Dir.chdir(path) if path
-      result = yield
+      result = yield path
       Dir.chdir(tmp)
       result
     else
