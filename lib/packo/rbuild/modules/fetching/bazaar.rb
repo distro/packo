@@ -20,6 +20,20 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Bazaar < Module
+  def self.do (*args)
+    Packo.sh 'bzr', *args
+  end
+
+  def self.fetch (location, path)
+    Do.rm path
+
+    if location.repository && location.branch
+      Bazaar.do :checkout, '--lightweight', "#{location.repository}/#{location.branch}", path
+    else
+      Bazaar.do :checkout, '--lightweight', location.repository || location.branch, path
+    end
+  end
+
   def initialize (package)
     super(package)
 
@@ -36,25 +50,16 @@ class Bazaar < Module
     package.stages.delete :fetch, self.method(:fetch)
   end
 
-  def bzr (*args)
-    Packo.sh 'bzr', *args
-  end
-
   def fetch
     package.stages.callbacks(:fetch).do {
       package.clean!
       package.create!
 
-      branch     = package.bazaar[:branch].to_s.interpolate(package) rescue nil
-      repository = package.bazaar[:repository].to_s.interpolate(package) rescue nil
+      package.source.to_hash.each {|name, value|
+        package.source[name] = value.to_s.interpolate(package)
+      }
 
-      Do.rm package.workdir
-
-      if repository && branch
-        bzr :checkout, '--lightweight', "#{repository}/#{branch}", package.workdir
-      else
-        bzr :checkout, '--lightweight', repository || branch, package.workdir
-      end
+      Bazaar.fetch package.source, package.workdir
 
       Do.cd package.workdir
     }

@@ -20,6 +20,16 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Mercurial < Module
+  def self.do (*args)
+    Packo.sh 'hg', *args
+  end
+
+  def self.fetch (location, path)
+    Do.rm path
+
+    Mercurial.do :clone, location.repository, path
+  end
+
   def initialize (package)
     super(package)
 
@@ -36,16 +46,16 @@ class Mercurial < Module
     package.stages.delete :fetch, self.method(:fetch)
   end
 
-  def hg (*args)
-    Packo.sh 'hg', *args
-  end
-
   def fetch
     package.stages.callbacks(:fetch).do {
       package.clean!
       package.create!
 
-      hg :clone, package.mercurial[:repository].to_s.interpolate(package), package.workdir
+      package.source.to_hash.each {|name, value|
+        package.source[name] = value.to_s.interpolate(package)
+      }
+
+      Mercurial.fetch package.source, package.workdir
 
       Do.cd package.workdir
     }

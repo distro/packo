@@ -20,6 +20,30 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Git < Module
+  def self.do (*args)
+    Packo.sh 'git', *args
+  end
+
+  def self.fetch (location, path)
+    Do.rm path
+
+    options = []
+
+    options << '--branch' << location.branch if location.branch
+    options << '--depth'  << '1' unless location.commit || location.tag
+
+    Git.do :clone, *options, location.repository, path
+
+    Do.cd path do
+      if location.commit || location.tag
+        Git.do 'checkout', location.commit || location.tag
+      end
+
+      Git.do 'submodule', 'init'
+      Git.do 'submodule', 'update'
+    end
+  end
+
   def initialize (package)
     super(package)
 
@@ -36,29 +60,18 @@ class Git < Module
     package.stages.delete :fetch, self.method(:fetch)
   end
 
-  def git (*args)
-    Packo.sh 'git', *args
-  end
-
   def fetch
     package.stages.callbacks(:fetch).do {
       package.clean!
       package.create!
 
-      options = []
-      options << '--branch' << package.git[:branch].to_s.interpolate(package) if package.git[:branch]
-      options << '--depth'  << '1' unless package.git[:commit]
+      package.source.to_hash.each {|name, value|
+        package.source[name] = value.to_s.interpolate(package)
+      }
 
-      git :clone, *options, package.git[:repository].to_s.interpolate(package), package.workdir
+      Git.fetch package.source, package.workdir
 
       Do.cd package.workdir
-
-      if package.git[:commit] || package.git[:tag]
-        git 'checkout', (package.git[:commit] || package.git[:tag]).to_s.interpolate(package)
-      end
-
-      git 'submodule', 'init'
-      git 'submodule', 'update'
     }
   end
 end

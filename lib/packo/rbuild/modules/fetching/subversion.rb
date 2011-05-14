@@ -20,6 +20,28 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Subversion < Module
+  def self.do (*args)
+    Packo.sh 'svn', *args
+  end
+
+  def self.fetch (location, path)
+    Do.rm path
+
+    options = []
+
+    if location.revision
+      options << '--revision' << location.revision
+    end
+
+    if location.tag
+      Subversion.do :checkout, *options, "#{location.repository}/tags/#{location.tag}", path
+    elsif location.branch
+      Subversion.do :checkout, *options, "#{location.repository}/branches/#{location.branch}", path
+    else
+      Subversion.do :checkout, *options, "#{location.repository}/trunk", path
+    end
+  end
+
   def initialize (package)
     super(package)
 
@@ -36,30 +58,16 @@ class Subversion < Module
     package.stages.delete :fetch, self.method(:fetch)
   end
 
-  def svn (*args)
-    Packo.sh 'svn', *args
-  end
-
   def fetch
     package.stages.callbacks(:fetch).do {
       package.clean!
       package.create!
 
-      repository = package.subversion[:repository].to_s.interpolate(package)
+      package.source.to_hash.each {|name, value|
+        package.source[name] = value.to_s.interpolate(package)
+      }
 
-      options = []
-
-      if package.subversion[:revision]
-        options << '--revision' << package.subversion[:revision].to_s.interpolate(package)
-      end
-
-      if package.subversion[:tag]
-        svn 'checkout', *options, "#{repository}/tags/#{package.subversion[:tag].to_s.interpolate(package)}", package.workdir
-      elsif package.subversion[:branch]
-        svn 'checkout', *options, "#{repository}/branches/#{package.subversion[:branch].to_s.interpolate(package)}", package.workdir
-      else
-        svn 'checkout', *options, "#{repository}/trunk", package.workdir
-      end
+      Subversion.fetch package.source, package.workdir
 
       Do.cd package.workdir
     }
