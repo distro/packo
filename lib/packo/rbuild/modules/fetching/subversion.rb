@@ -42,6 +42,12 @@ class Subversion < Module
     end
   end
 
+  def self.update (path)
+    Do.cd path do
+      !`svn update`.match(/^At revision \d+\.$/)
+    end
+  end
+
   def initialize (package)
     super(package)
 

@@ -30,6 +30,16 @@ class Mercurial < Module
     Mercurial.do :clone, location.repository, path
   end
 
+  def self.update (path)
+    Do.cd path do
+      updated = !`hg pull`.include?('no changes found')
+      
+      `hg update` if updated
+
+      updated
+    end
+  end
+
   def initialize (package)
     super(package)
 

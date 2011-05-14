@@ -34,6 +34,12 @@ class Bazaar < Module
     end
   end
 
+  def self.update (path)
+    Do.cd path do
+      !`bzr pull`.match(/^No revisions to pull\.$/)
+    end
+  end
+
   def initialize (package)
     super(package)
 
