@@ -153,6 +153,9 @@ class Do
     @opts = tmp
   end
 
+  alias chmod opts
+  alias opt opts
+
   def dir (path)
     FileUtils.mkpath "#{root}/#{path}", verbose: @verbose
     FileUtils.chmod @opts || 0755, "#{root}/#{path}", verbose: @verbose

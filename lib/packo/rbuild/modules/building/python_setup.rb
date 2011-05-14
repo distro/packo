@@ -40,7 +40,7 @@ class PythonSetup < Module
 
       def do (*args)
         package.environment.sandbox {
-          Packo.sh "python#{@version}", *args
+          Packo.sh "python#{@version}", 'setup.py', *args
         }
       end
 
@@ -64,7 +64,7 @@ class PythonSetup < Module
 
   def compile
     package.stages.callbacks(:compile).do(@configuration) {
-      package.setup.do @configuration
+      package.setup.do :build
     }
   end
 
