@@ -107,13 +107,10 @@ end
 module Packo
 
 class Requirements
-  def self.disk (path, options=nil)
-    if !options.is_a?(Hash)
-      options = path
-      path    = Sys::Filesystem.mounts.first.mount_point
-    end
+  def self.disk (path=nil, option)
+    path ||= Sys::Filesystem.mounts.first.mount_point
 
-    return false if !(stat = Sys::Filesystem.stat(point))
+    return false if !(stat = Sys::Filesystem.stat(path))
 
     return false if options[:free] && stat.free < options[:free]
 
