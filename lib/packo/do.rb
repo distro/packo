@@ -225,8 +225,9 @@ class Do
       docs.map {|doc|
         doc.is_a?(Array) ? [doc] : Dir.glob(doc)
       }.flatten(1).each {|(file, name)|
-        path = "#{root}/#{@relative}/#{File.basename(name || file)}"
+        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
+        FileUtils.mkpath File.dirname(path)
         FileUtils.cp_r file, path, preserve: true, verbose: @verbose
         FileUtils.chmod @opts || 0644, path, verbose: @verbose
       }
@@ -238,8 +239,9 @@ class Do
       htmls.map {|html|
         html.is_a?(Array) ? [html] : Dir.glob(html)
       }.flatten(1).each {|(file, name)|
-        path = "#{root}/#{@relative}/#{File.basename(name || file)}"
+        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
+        FileUtils.mkpath File.dirname(path)
         FileUtils.cp_r file, path, preserve: true, verbose: @verbose
         FileUtils.chmod @opts || 0644, path, verbose: @verbose
       }
@@ -251,8 +253,9 @@ class Do
       mans.map {|man|
         man.is_a?(Array) ? [man] : Dir.glob(man)
       }.flatten(1).each {|(file, name)|
-        path = "#{root}/#{@relative}/#{File.basename(name || file)}"
+        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
+        FileUtils.mkpath File.dirname(path)
         FileUtils.cp_r file, path, preserve: true, verbose: @verbose
         FileUtils.chmod @opts || 0644, path, verbose: @verbose
       }
@@ -264,8 +267,9 @@ class Do
       infos.map {|info|
         info.is_a?(Array) ? [info] : Dir.glob(info)
       }.flatten(1).each {|(file, name)|
-        path = "#{root}/#{@relative}/#{File.basename(name || file)}"
+        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
+        FileUtils.mkpath File.dirname(path)
         FileUtils.cp_r file, path, preserve: true, verbose: @verbose
         Packo.sh 'gzip', '-9', path, silent: !@verbose rescue nil
         FileUtils.chmod @opts || 0644, path, verbose: @verbose

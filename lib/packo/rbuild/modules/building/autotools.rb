@@ -278,7 +278,7 @@ class Autotools < Module
   end
 
   def configure
-    @configuration = Configuration.new(packaage)
+    @configuration = Configuration.new(package)
 
     @configuration.set 'prefix',         Path.clean(System.env[:INSTALL_PATH] + '/usr')
     @configuration.set 'sysconfdir',     Path.clean(System.env[:INSTALL_PATH] + '/etc')

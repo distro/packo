@@ -94,7 +94,7 @@ class Package < Packo::Package
           next unless enabled?
 
           flavor.each {|element|
-            next if element.name == 'vanilla'
+            next if element.name == :vanilla
 
             element.disable!
           }

@@ -31,6 +31,8 @@ class Strip < Module
       next if package.env[:NO_STRIP]
 
       Find.find(package.distdir) {|file|
+        next unless File.file?(file)
+
         Packo.sh 'strip', file, silent: true rescue nil
       }
     }
