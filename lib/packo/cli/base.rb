@@ -147,7 +147,7 @@ class Base < Thor
 
             name = "#{env[:TMP]}/#{name}"
 
-            if (digest = _digest(package, env)) && (result = Packo.digest(name)) != digest
+            if (digest = Do::Repository.digest(package, env)) && (result = Packo.digest(name)) != digest
               CLI.fatal "Digest mismatch (got #{result} expected #{digest}), install this package from source, the mirror could be compromised"
               exit 13
             end
@@ -172,11 +172,9 @@ class Base < Thor
               }
             end
 
-            if options[:depsonly]
-              exit 0
-            end
+            exit 0 if options[:depsonly]
 
-            name = _build(package, env)
+            name = Do::Build.build(package, env)
 
             if !name
               CLI.fatal "Something went wrong while trying to build #{package.to_s(:whole)}"
@@ -279,7 +277,7 @@ class Base < Thor
             end
           }.each {|file|
             if !options[:force] && File.exists?(file.path) && !File.directory?(file.path)
-              if (tmp = _exists?(file.path))
+              if (tmp = Models.exists?(file.path))
                 CLI.fatal "#{file.path} belongs to #{tmp}, use --force to overwrite"
               else
                 CLI.fatal "#{file.path} doesn't belong to any package, use --force to overwrite"
@@ -437,7 +435,7 @@ class Base < Thor
   method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
   method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package, features and flavor'
   def search (expression='')
-    Models.search_installed(expression, options[:repository], options[:type]).group_by {|package|
+    Models.search_installed(expression, options).group_by {|package|
       "#{package.tags}/#{package.name}"
     }.sort.each {|(name, packages)|
       if options[:full]
@@ -502,58 +500,6 @@ class Base < Thor
       print "\n"
     }
   end
-
-  no_tasks {
-    def _uri (repository)
-      Repository.first(Packo::Repository.parse(name).to_hash).URI rescue nil
-    end
-
-    def _build (package, env)
-      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
-      FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
-
-      require 'packo/cli/build'
-
-      begin
-        System.env.sandbox(env) {
-          Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-        }
-      rescue
-      end
-
-      Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
-    end
-
-    def _manifest (package, env)
-      tmp = Models.search(package.to_s, options[:repository])
-
-      RBuild::Package::Manifest.new(
-        Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
-      ).to_s
-    end
-
-    def _has (package, env)
-      !!Models.search(package.to_s(:whole), package.repository.name, package.repository.type).find {|package|
-        !!package.model.data.builds.to_a.find {|build|
-          build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
-          build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
-        }
-      }
-    end
-
-    def _digest (package, env)
-      Models.search(package, package.repository.name, :binary).find {|package|
-        package.model.data.builds.to_a.find {|build|
-          build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
-          build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
-        }
-      }.model.data.digest
-    end
-
-    def _exists? (path)
-      Models::InstalledPackage::Content.first(path: path, :type.not => :dir).package rescue false
-    end
-  }
 end
 
 end; end

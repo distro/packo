@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package'
+require 'packo'
 
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
@@ -198,11 +198,13 @@ class Package < Packo::Package
 
     @build_start_at = Time.now
 
-    stages.callbacks(:build).do(self) {
-      stages.each {|stage|
-        yield stage if block_given?
+    Do.cd {
+      stages.callbacks(:build).do(self) {
+        stages.each {|stage|
+          yield stage if block_given?
 
-        stage.call
+          stage.call
+        }
       }
     }
 

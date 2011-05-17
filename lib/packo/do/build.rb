@@ -18,6 +18,7 @@
 #++
 
 require 'packo'
+require 'packo/rbuild'
 
 module Packo; class Do
   
@@ -30,40 +31,49 @@ class Build
   end
 
   def self.build (package, options={}, &block)
+    if !package.is_a?(Packo::Package)
+      package = self.package(package, options)
+    end
+
     if !System.env[:ARCH] || !System.env[:KERNEL] || !System.env[:LIBC] || !System.env[:COMPILER]
       raise IncompleteEnviroment.new 'You have to set ARCH, KERNEL, LIBC and COMPILER to build packages.'
     end
 
-    FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
-    FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
+    output = nil
+    pwd    = Dir.pwd
 
-    require 'packo/cli/build'
+    System.env.sandbox(options[:env] || {}) {
+      package.after :pack do |path|
+        path = File.realpath(path)
 
-    begin
-      System.env.sandbox(options[:env] || {}) {
-        package.after :pack do |path|
-          Do.cp path, options[:output] || System.env[:TMP]
+        if options[:output]
+          Do.cd(pwd) {
+            Do.cp(path, options[:output])
+          }
         end
 
-        if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
-          Build.clean("#{package.path}/#{package.name}-#{package.version}.rbuild")
+        output = path
+      end
 
-          package.create!
+      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
+        Build.clean(package)
 
-          File.write("#{package.directory}/.build", package.to_s(:everything)) rescue nil
-        end
+        package.create!
 
-        package.build &block
+        File.write("#{package.directory}/.build", package.to_s(:everything)) rescue nil
+      end
 
-        Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-      }
-    rescue
-    end
+      package.build &block
+    }
 
-    Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+    output
   end
 
   def self.command (package, command, options={})
+    if !package.is_a?(Packo::Package)
+      package = Packo::Package.parse(package.to_s)
+    end
+
     unless package.name && package.version
       raise InvalidName.new 'You have to pass a valid package name and version, like package-0.2'
     end
@@ -163,6 +173,10 @@ class Build
   end
 
   def self.clean (package)
+    if !package.is_a?(Packo::Package)
+      package = self.package(package, options)
+    end
+
     package.clean!
   end
 
@@ -220,6 +234,14 @@ class Build
 
       builder.to_xml(indent: 4)
     }
+  end
+
+  def self.manifest (package)
+    if !package.is_a?(Packo::Package)
+      package = self.package(package, options)
+    end
+    
+    RBuild::Package::Manifest.new(package).to_s
   end
 
   def self.package (package, options={})

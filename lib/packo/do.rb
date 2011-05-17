@@ -22,6 +22,7 @@ require 'packo/utils'
 module Packo
 
 class Do
+  # when called without a path it means it will preserve the actual pwd on exit
   def self.cd (path=nil)
     if block_given?
       tmp       = Dir.pwd
@@ -66,7 +67,7 @@ class Do
       FileUtils.cp_r(files, to, force: type.include?('f'), preserve: true)
     else
       Do.dir(File.dirname(to))
-      FileUtils.cp(files, to)
+      FileUtils.cp(files, to, preserve: true)
     end
   end
 

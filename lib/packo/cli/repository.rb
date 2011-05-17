@@ -24,8 +24,6 @@ require 'packo/cli'
 require 'packo/models'
 require 'packo/do/repository'
 
-require 'packo/cli/repository/helpers'
-
 module Packo; module CLI
 
 class Repository < Thor
@@ -92,27 +90,29 @@ class Repository < Thor
   method_option :force,  type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
   method_option :ignore, type: :boolean, default: true,  aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
   def update (*repositories)
-    return if repositories.compact.empty?
+    Models::Repository.all.map {|repository|
+      Packo::Repository.wrap(repository)
+    }.each {|repository|
+      next unless repositories.empty? || repositories.member?(repository.to_s)
 
-    Models::Repository.all.each {|repository|
-      next unless repositories.member?(Packo::Repository.wrap(repository).to_s)
-        
-      if Do::Repository.update(repository)
-        CLI.info "Updated #{type}/#{name}"
+      if Do::Repository.update(repository, options)
+        CLI.info "Updated #{repository}"
       else
-        CLI.info "#{type}/#{name} already up to date"
+        CLI.info "#{repository} already up to date"
       end
     }
   end
 
   desc 'rehash [REPOSITORY...]', 'Rehash the repository caches'
   def rehash (*repositories)
-    return if repositories.compact.empty?
+    Models::Repository.all.map {|repository|
+      Packo::Repository.wrap(repository)
+    }.each {|repository|
+      next unless repositories.empty? || repositories.member?(repository.to_s)
 
-    Models::Repository.all.each {|repository|
-      next unless repositories.member?(Packo::Repository.wrap(repository).to_s)
-
+      CLI.info "Rehashing #{repository}"
       Do::Repository.rehash(repository)
+      puts ''
     }
   end
 

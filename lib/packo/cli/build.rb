@@ -20,7 +20,7 @@
 
 require 'packo'
 require 'packo/cli'
-require 'packo/rbuild'
+require 'packo/do/build'
 
 module Packo; module CLI
 
@@ -30,11 +30,11 @@ class Build < Thor
   class_option :help, type: :boolean, desc: 'Show help usage'
 
   desc 'package PACKAGE... [OPTIONS]', 'Create packages of the matching names'
-  method_option :output,     type: :string,  default: System.env[:TMP], aliases: '-o', desc: 'The directory where to save packages'
-  method_option :wipe,       type: :boolean, default: false,            aliases: '-w', desc: 'Wipes the package directory before building it'
-  method_option :ask,        type: :boolean, default: false,            aliases: '-a', desc: 'Prompt the user if he want to continue building or not'
-  method_option :nodeps,     type: :boolean, default: false,            aliases: '-N', desc: 'Ignore blockers and dependencies'
-  method_option :repository, type: :string,                             aliases: '-r', desc: 'Set a specific source repository'
+  method_option :output,     type: :string,  default: '.',   aliases: '-o', desc: 'The directory where to save packages'
+  method_option :wipe,       type: :boolean, default: false, aliases: '-w', desc: 'Wipes the package directory before building it'
+  method_option :ask,        type: :boolean, default: false, aliases: '-a', desc: 'Prompt the user if he want to continue building or not'
+  method_option :nodeps,     type: :boolean, default: false, aliases: '-N', desc: 'Ignore blockers and dependencies'
+  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific source repository'
   def package (*packages)
     output = File.realpath(options[:output])
 
@@ -50,7 +50,7 @@ class Build < Thor
       rescue Do::Build::Exceptions::IncompleteEnvironment => e
       rescue Do::Build::Exceptions::PackageNotFound => e
       rescue Do::Build::Exceptions::MultiplePackages => e
-        CLI.fatal e
+        CLI.fatal e.message
 
         exit 2
       rescue Package::Tags::Expression::EvaluationError => e
@@ -59,13 +59,14 @@ class Build < Thor
         exit 3
       rescue LoadError
         CLI.warn "The package #{package} could not be instantiated"
+
         nil
       end
     }.compact.each {|package|
       CLI.info "Building #{package}"
 
       begin
-        Do::Build.build(package) {|stage|
+        Do::Build.build(package, options) {|stage|
           CLI.info "Executing #{stage.name}"
         }
 
@@ -178,34 +179,11 @@ class Build < Thor
   desc 'manifest PACKAGE [OPTIONS]', 'Output the manifest of the given package'
   method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific source repository'
   def manifest (package)
-    if package.end_with?('.rbuild')
-      if File.basename(package).match(/.*?-\d/)
-        package = Packo.loadPackage(File.dirname(package), Package.parse(File.basename(package).sub(/\.rbuild$/, '')))
-      else
-        package = Packo.loadPackage(package)
-      end
-    else
-      require 'packo/models'
-
-      tmp = Models.search(package, options)
-
-      if tmp.empty?
-        CLI.fatal 'Package not found'
-        exit 21
-      end
-
-      if (multiple = tmp.uniq).length > 1
-        CLI.fatal 'Multiple packages with the same name, be more precise.'
-        exit 22
-      end
-
-      package = Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
-    end
-
-    if package
-      puts RBuild::Package::Manifest.new(package).to_s
-    else
+    begin  
+      Do::Build.manifest(package)
+    rescue Do::Build::Exceptions::PackageNotFound
       CLI.fatal 'Package could not be instantiated'
+
       exit 23
     end
   end

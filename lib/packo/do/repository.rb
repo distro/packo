@@ -19,6 +19,7 @@
 
 require 'packo'
 
+require 'packo/do/vcs'
 require 'packo/do/repository/helpers'
 
 module Packo; class Do
@@ -89,7 +90,7 @@ class Repository
         name = dom.root['name']
       end
     else
-      Do::Repository.checkout(location, "#{System.env[:TMP]}/.__packo.repo")
+      Do::VCS.checkout(location, "#{System.env[:TMP]}/.__packo.repo")
 
       dom = Nokogiri::XML.parse(File.read("#{System.env[:TMP]}/.__packo.repo/repository.xml"))
 
@@ -121,7 +122,7 @@ class Repository
         if File.directory?("#{System.env[:TMP]}/.__packo.repo")
           FileUtils.cp_r "#{System.env[:TMP]}/.__packo.repo/.", path, preserve: true
         else
-          Do::Repository.checkout(location, path)
+          Do::VCS.checkout(location, path)
         end
 
       when :virtual
@@ -149,7 +150,7 @@ class Repository
     FileUtils.rm_rf path, secure: true
   end
 
-  def self.update (repository)
+  def self.update (repository, options={})
     updated = false
 
     type     = repository.type
@@ -169,7 +170,7 @@ class Repository
           end
 
         when :source
-          if Do::Repository.update(location, path) || options[:force]
+          if Do::VCS.update(location, path) || options[:force]
             Do::Repository::Model.delete(:source, name)
             Do::Repository::Model.add(:source, name, location, path)
 
@@ -195,8 +196,6 @@ class Repository
     name     = repository.name
     location = repository.location
     path     = repository.path
-
-    CLI.info "Rehashing #{type}/#{name}"
 
     Models.transaction {
       Do::Repository::Model.delete(type, name)
@@ -262,28 +261,30 @@ class Repository
     }
   end
 
-  def self.checkout (location, path)
-    require 'packo/rbuild'
-
-    location = Location.parse(location)
-    
-    if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-      RBuild::Modules::Fetching.const_get(location.type.capitalize).fetch(location, path)
-    else
-      raise ArgumentError.new "#{location.type} is an unsupported SCM"
-    end
+  def self.has (package, env)
+    !!Models.search(package.to_s(:whole), package.repository.name, package.repository.type).find {|package|
+      !!package.model.data.builds.to_a.find {|build|
+        build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
+        build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
+      }
+    }
   end
 
-  def self.update (location, path)
-    require 'packo/rbuild'
+  def self.digest (package, env)
+    Models.search(package, package.repository.name, :binary).find {|package|
+      package.model.data.builds.to_a.find {|build|
+        build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
+        build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
+      }
+    }.model.data.digest
+  end
 
-    location = Location.parse(location)
+  def self.manifest (package, options={})
+    tmp = Models.search(package.to_s, options)
 
-    if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-      RBuild::Modules::Fetching.const_get(location.type.capitalize).update(path)
-    else
-      raise ArgumentError.new "#{location.type} is an unsupported SCM"
-    end
+    RBuild::Package::Manifest.new(
+      Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
+    ).to_s
   end
 end
 

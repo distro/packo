@@ -201,6 +201,10 @@ module Models
       Package.wrap(package)
     }
   end
+
+  def self.exists? (path)
+    Models::InstalledPackage::Content.first(path: path, :type.not => :dir).package rescue false
+  end
 end
 
 end
