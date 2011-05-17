@@ -36,34 +36,36 @@ class Build < Thor
   method_option :nodeps,     type: :boolean, default: false,            aliases: '-N', desc: 'Ignore blockers and dependencies'
   method_option :repository, type: :string,                             aliases: '-r', desc: 'Set a specific source repository'
   def package (*packages)
-    if !System.env[:ARCH] || !System.env[:KERNEL] || !System.env[:LIBC] || !System.env[:COMPILER]
-      CLI.fatal 'You have to set ARCH, KERNEL, LIBC and COMPILER to build packages.'
-      exit 1
-    end
-
     output = File.realpath(options[:output])
 
     packages.map {|package|
-      _package(package, options)
+      begin
+        package = Do::Build.package(package, options)
+
+        if package.parent.nil?
+          CLI.warn "The package #{package} does not have a parent"
+        end
+
+        package
+      rescue Do::Build::Exceptions::IncompleteEnvironment => e
+      rescue Do::Build::Exceptions::PackageNotFound => e
+      rescue Do::Build::Exceptions::MultiplePackages => e
+        CLI.fatal e
+
+        exit 2
+      rescue Package::Tags::Expression::EvaluationError => e
+        CLI.fatal e.message
+
+        exit 3
+      rescue LoadError
+        CLI.warn "The package #{package} could not be instantiated"
+        nil
+      end
     }.compact.each {|package|
       CLI.info "Building #{package}"
 
-      package.after :pack do |path|
-        Do.cp path, output
-      end
-
-      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
-        CLI.info "Cleaning #{package}."
-
-        clean("#{package.path}/#{package.name}-#{package.version}.rbuild")
-
-        package.create!
-
-        File.write("#{package.directory}/.build", package.to_s(:everything)) rescue nil
-      end
-
       begin
-        package.build {|stage|
+        Do::Build.build(package) {|stage|
           CLI.info "Executing #{stage.name}"
         }
 
@@ -77,6 +79,7 @@ class Build < Thor
     }
   rescue Exception => e
     Packo.debug e
+
     exit 99
   end
 
@@ -88,110 +91,14 @@ class Build < Thor
       CLI.warn "`packo build -x` may not work properly, try with `packo-build -x` if it fails.\n\n"
     end
 
-    package = Package.parse(package)
-
-    unless package.name && package.version
-      CLI.fatal 'You have to pass a valid package name and version, like package-0.2'
-      exit 1
-    end
-
-    package = RBuild::Package.define(package.name, package.version) {
-      tags *package.tags
-
-      description "Built in: `#{Dir.pwd}` with `#{command}`"
-      maintainer  env[:USER]
-    }
-
-    package.avoid RBuild::Behaviors::Default
-
-    package.clean!
-    package.create!
-
-    tmp = Tempfile.new('packo')
-    dir = "#{System.env[:TMP]}/#{Process.pid}"
-
-    tmp.write %{
-      #! /bin/sh
-
-      cd "#{Dir.pwd}"
-
-      #{command}
-
-      exit $?
-    }
-
-    tmp.chmod 0700
-    tmp.close
-
-    Packo.sh 'installwatch', "--logfile=#{package.tempdir}/newfiles.log", "--exclude=#{Dir.pwd}",
-      "--root=#{package.workdir}", '--transl=yes', '--backup=no', tmp.path
-
-    inspect = options[:inspect]
-
-    package.before :pack, priority: -42 do
-      files = File.new("#{tempdir}/newfiles", 'w')
-
-      files.print File.new("#{tempdir}/newfiles.log", 'r').lines.map {|line| line.strip!
-        whole, type = line.match(/^.*?\t(.*?)\t/).to_a
-
-        case type
-          when 'chmod', 'open'
-            whole, file = line.match(/.*?\t.*?\t(.*?)(\t|$)/).to_a
-
-            next if file.match(%r[^(/dev|#{Regexp.escape(Dir.pwd)}|/tmp)(/|$)])
-
-            file
-
-          when 'symlink'
-            whole, to, file = line.match(/.*?\t.*?\t(.*?)\t(.*?)(\t|$)/).to_a
-
-            "#{file} -> #{to}"
-        end
-      }.compact.uniq.sort.join("\n")
-
-      files.close
-
-      if inspect
-        Packo.sh System.env[:EDITOR] || 'vi', files.path
-      end
-
-      links = []
-
-      File.new("#{tempdir}/newfiles", 'r').lines.each {|line|
-        whole, file, link = line.match(/^(.*?)(?: -> (.*?))?$/).to_a
-
-        FileUtils.mkpath "#{distdir}/#{File.dirname(file)}"
-
-        if link
-          links << [link, file]
-        else
-          FileUtils.cp "#{workdir}/TRANSL/#{file}", "#{distdir}/#{file}"
-        end
-      }
-
-      links.each {|(link, file)|
-        FileUtils.ln_sf link, "#{distdir}/#{file}" rescue nil
-      }
-    end
-
-    package.before :pack do
-      if inspect
-        Packo.sh System.env[:EDITOR] || 'vi', "#{directory}/manifest.xml"
-      end
-    end
-
-    if options[:bump]
-      require 'packo/models'
-
-      if !Models.search_installed(package.to_s).empty?
-        package.revision = Models.search_installed(package.to_s).first.revision + 1
-      end
-    end
-
     begin
-      package.build
+      Do::Build.command(Package.parse(package), command, options)
 
       CLI.info "Succesfully built #{package}"
+    rescue Do::Build::Exceptions::InvalidName => e
+      CLI.fatal e.message
+
+      exit 40
     rescue Exception => e
       CLI.fatal "Failed to build #{package}"
       CLI.fatal e.message
@@ -204,31 +111,31 @@ class Build < Thor
   method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific source repository'
   def clean (*packages)
     packages.map {|package|
-      if package.end_with?('.rbuild')
-        package
-      else
-        require 'packo/models'
+      begin
+        package = Do::Build.package(package, options)
 
-        packages = Models.search(package, options)
-
-        if (multiple = packages.uniq).length > 1
-          CLI.fatal 'Multiple packages with the same name, be more precise.'
-          exit 2
+        if package.parent.nil?
+          CLI.warn "The package #{package} does not have a parent"
         end
 
-        packages.last
+        package
+      rescue Do::Build::Exceptions::IncompleteEnvironment => e
+      rescue Do::Build::Exceptions::PackageNotFound => e
+      rescue Do::Build::Exceptions::MultiplePackages => e
+        CLI.fatal e
+
+        exit 2
+      rescue Package::Tags::Expression::EvaluationError => e
+        CLI.fatal e.message
+
+        exit 3
+      rescue LoadError
+        CLI.warn "The package #{package} could not be instantiated"
+        nil
       end
     }.compact.each {|package|
-      if package.is_a?(String)
-        path    = File.dirname(File.realpath(package))
-        package = Package.parse(package.sub(/\.rbuild$/, ''))
-      else
-        path = "#{package.repository.path}/#{package.model.data.path}"
-      end
-
       begin
-        package = Packo.loadPackage(path, package)
-        package.clean!
+        Do::Build.clean(package)
 
         CLI.info "Cleaned #{package.to_s(:name)}"
       rescue Exception => e
@@ -246,69 +153,20 @@ class Build < Thor
         exit 40
       end
 
-      Dir.chdir(File.dirname(file))
-
       begin
-        if File.basename(file).match(/.*?-\d/)
-          package = Packo.loadPackage(File.dirname(file), Package.parse(File.basename(file).sub(/\.rbuild$/, '')))
-        else
-          package = Packo.loadPackage(file)
-        end
+        Do.cd(File.dirname(file)) {
+          File.write('digest.xml', Do::Build.digest(file))
+        }
+      rescue Do::Build::Exceptions::PackageNotFound => e
       rescue Package::Tags::Expression::EvaluationError => e
         CLI.fatal e.message
 
         raise e
       rescue LoadError
         CLI.fatal 'Failed to load the rbuild'
+
         exit 41
       end
-
-      if !package
-        CLI.fatal "Couldn't instantiate the package."
-        exit 42
-      end
-
-      package.digests = {}
-
-      package.after :fetch do |result|
-        package.stages.stop!
-
-        throw :halt
-      end
-
-      Do.cd {
-        package.build
-      }
-
-      original = Nokogiri::XML.parse(File.read('digest.xml')) {|config|
-        config.default_xml.noblanks
-      } rescue nil
-
-      builder = Nokogiri::XML::Builder.new {|xml|
-        xml.digest(version: '1.0') {
-          xml.build(version: package.version, slot: package.slot) {
-            xml.features package.features.to_a.map {|f| f.name}.join(' ')
-
-            xml.files {
-              package.distfiles.to_a.each {|(name, file)|
-                file ||= name
-
-                xml.file({ name: File.basename(file.path), url: file.url }, Packo.digest(file.path))
-              } if package.distfiles
-            }
-          }
-
-          if original
-            original.xpath('//build').each {|build|
-              if build['version'] != package.version.to_s && ((build['slot'].empty? && !package.slot) || build['slot'] != package.slot.to_s)
-                xml.doc.root.add_child(build)
-              end
-            }
-          end
-        }
-      }
-
-      File.write('digest.xml', builder.to_xml(indent: 4))
     }
   rescue Errno::EACCES
     CLI.fatal 'Try to use packo-build instead.'
@@ -431,68 +289,6 @@ class Build < Thor
 
     super(*args)
   end
-
-  no_tasks {
-    def _package (package, options={})
-      package = (if package.end_with?('.rbuild')
-        package
-      else
-        require 'packo/models'
-
-        packages = Models.search(package, options)
-
-        names = packages.group_by {|package|
-          "#{package.tags}/#{package.name}"
-        }.map {|(name, package)| name}.uniq
-
-        if names.length == 0
-          CLI.fatal "No package matches #{package}"
-
-          exit 10
-        elsif names.length > 1
-          CLI.fatal "More than one package matches: #{package}"
-
-          names.each {|name|
-            puts "    #{name}"
-          }
-
-          exit 11
-        end
-
-        packages.select {|pkg|
-          !pkg.masked?
-        }.sort {|a, b|
-          a.version <=> b.version
-        }.last
-      end)
-
-      if package.is_a?(String)
-        path    = File.dirname(File.realpath(package))
-        package = Package.parse(package.sub(/\.rbuild$/, ''))
-      else
-        path = "#{package.repository.path}/#{package.model.data.path}"
-      end
-
-      package = (begin
-        Packo.loadPackage(path, package)
-      rescue Package::Tags::Expression::EvaluationError => e
-        CLI.fatal e.message
-
-        raise e
-      rescue LoadError
-        CLI.warn "The package #{package} could not be instantiated"
-        return nil
-      end)
-
-      if package.parent.nil?
-         CLI.warn "The package #{package} does not have a parent"
-      end
-
-      package.path = path
-
-      package
-    end
-  }
 end
 
 end; end

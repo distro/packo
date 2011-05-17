@@ -22,7 +22,7 @@ require 'packo'
 
 require 'packo/cli'
 require 'packo/models'
-require 'packo/rbuild'
+require 'packo/do/repository'
 
 require 'packo/cli/repository/helpers'
 
@@ -40,99 +40,12 @@ class Repository < Thor
     locations.map {|location|
       Location.parse(location)
     }.each {|location|
-      type, name = nil
-
-      Do.rm("#{System.env[:TMP]}/.__packo.repo")
-
-      if location.type == :file
-        if location.path.end_with?('.rb')
-          location.path = File.realpath(location.path)
-
-          type = :virtual
-          name = File.basename(location.path).sub('.rb', '')
-        else
-          location.path = File.realpath(location.path)
-
-          if File.directory?(location.path)
-            dom = Nokogiri::XML.parse(File.read("#{location.path}/repository.xml"))
-          else
-            dom = Nokogiri::XML.parse(File.read(location.path))
-          end
-
-          type = dom.root['type'].to_sym
-          name = dom.root['name']
-
-          if type == :source
-            path = location.path
-
-            location = Location[dom.xpath('//location').first]
-            location.repository = path
-          end
-        end
-      elsif location.type == :url
-        if location.address.end_with?('.rb')
-          type = :virtual
-          name = File.basename(location.address).sub('.rb', '')
-        else
-          dom = Nokogiri::XML.parse(open(location.address).read)
-
-          type = dom.root['type'].to_sym
-          name = dom.root['name']
-        end
-      else
-        _checkout(location, "#{System.env[:TMP]}/.__packo.repo")
-
-        dom = Nokogiri::XML.parse(File.read("#{System.env[:TMP]}/.__packo.repo/repository.xml"))
-
-        type = dom.root['type'].to_sym
-        name = dom.root['name']
-      end
-
-      path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
-
-      if Models::Repository.first(type: type, name: name)
-        CLI.fatal "#{type}/#{name} already exists, delete it first"
-        exit 10
-      end
-
-      case type
-        when :binary
-          path << '.xml'
-
-          FileUtils.mkpath(File.dirname(path))
-          File.write(path, open((location.type == :file && (!location.path.end_with?('.xml'))) ?
-            "#{location.path}/repository.xml" :
-            location.path || location.address
-          ).read)
-
-        when :source
-          FileUtils.rm_rf path, secure: true rescue nil
-          FileUtils.mkpath path rescue nil
-
-          if File.directory?("#{System.env[:TMP]}/.__packo.repo")
-            FileUtils.cp_r "#{System.env[:TMP]}/.__packo.repo/.", path, preserve: true
-          else
-            _checkout(location, path)
-          end
-
-        when :virtual
-          path << '.rb'
-
-          FileUtils.mkpath(File.dirname(path))
-          File.write(path, open((location.type == :file && (!location.path.end_with?('.rb'))) ?
-            "#{location.path}/repository.rb" :
-            location.path || location.address
-          ).read)
-      end
-
       begin
-        Models.transaction {
-          _add type, name, location, path, !(type == :virtual && options[:ignore])
-        }
+        repository = Do::Repository.add(location)
 
-        CLI.info "Added #{type}/#{name}"
+        CLI.info "Added #{repository}"
       rescue Exception => e
-        CLI.fatal 'Failed to add the cache'
+        CLI.fatal "Failed to add #{location}"
 
         Packo.debug e
       end
@@ -164,13 +77,7 @@ class Repository < Thor
 
       begin
         repositories.each {|repository|
-          Models.transaction {
-            path = repository.path
-
-            _delete(repository.type, repository.name)
-
-            FileUtils.rm_rf path, secure: true
-          }
+          Do::Repository.delete(repository)
         }
       rescue Exception => e
         CLI.fatal "Something went wrong while deleting #{name}"
@@ -185,51 +92,27 @@ class Repository < Thor
   method_option :force,  type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
   method_option :ignore, type: :boolean, default: true,  aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
   def update (*repositories)
+    return if repositories.compact.empty?
+
     Models::Repository.all.each {|repository|
-      next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
+      next unless repositories.member?(Packo::Repository.wrap(repository).to_s)
         
-      updated = false
-
-      type     = repository.type
-      name     = repository.name
-      location = repository.location
-      path     = repository.path
-
-      Models.transaction {
-        case repository.type
-          when :binary
-            if (content = open(location.path || location.address).read) != File.read(path) || options[:force]
-              _delete(:binary, name)
-              File.write(path, content)
-              _add(:binary, name, location, path)
-
-              updated = true
-            end
-
-          when :source
-            if _update(location, path) || options[:force]
-              _delete(:source, name)
-              _add(:source, name, location, path)
-
-              updated = true
-            end
-
-          when :virtual
-            if (content = open(location.path || location.address).read != File.read(path)) || options[:force]
-              _delete(:virtual, name)
-              File.write(path, content)
-              _add(:vitual, name, location, path, !options[:ignore])
-
-              update = true
-            end
-        end
-      }
-
-      if updated
+      if Do::Repository.update(repository)
         CLI.info "Updated #{type}/#{name}"
       else
         CLI.info "#{type}/#{name} already up to date"
       end
+    }
+  end
+
+  desc 'rehash [REPOSITORY...]', 'Rehash the repository caches'
+  def rehash (*repositories)
+    return if repositories.compact.empty?
+
+    Models::Repository.all.each {|repository|
+      next unless repositories.member?(Packo::Repository.wrap(repository).to_s)
+
+      Do::Repository.rehash(repository)
     }
   end
 
@@ -415,138 +298,14 @@ class Repository < Thor
     }
   end
 
-  desc 'rehash [REPOSITORY...]', 'Rehash the repository caches'
-  def rehash (*repositories)
-    Models::Repository.all.each {|repository|
-      next if !repositories.empty? && !repositories.member?(Packo::Repository.wrap(repository).to_s)
-
-      type     = repository.type
-      name     = repository.name
-      location = repository.location
-      path     = repository.path
-
-      CLI.info "Rehashing #{type}/#{name}"
-
-      Models.transaction {
-        _delete(type, name)
-
-        case type
-          when :binary
-            _add(:binary, name, location, path)
-
-          when :source
-            _add(:source, name, location, path)
-        end
-      }
-    }
-  end
-
-  desc 'generate REPOSITORY [OPTIONS]', 'Generate a binary repository from sources'
+  desc 'generate REPOSITORY.. [OPTIONS]', 'Generate a binary repository from sources'
   method_option :repository, type: :string,                            aliases: '-r', desc: 'Specify a source repository from where to get packages'
   method_option :output,     type: :string, default: System.env[:TMP], aliases: '-o', desc: 'Specify output directory'
-  def generate (repository)
-    dom = Nokogiri::XML.parse(File.read(repository)) {|config|
-      config.default_xml.noblanks
-    }
-
-    dom.xpath('//packages/package').each {|e|
-      CLI.info "Generating #{Packo::Package.new(tags: e['tags'].split(/\s+/), name: e['name'])}".bold if System.env[:VERBOSE]
-
-      e.xpath('.//build').each {|build|
-        package = Package.new(
-          tags:     e['tags'],
-          name:     e['name'],
-          version:  build.parent['name'],
-          slot:     (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
-
-          repository: options[:repository]
-        )
-
-        package.flavor   = (build.xpath('.//flavor').first.text rescue '')
-        package.features = (build.xpath('.//features').first.text rescue '')
-
-        next if File.exists?("#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}/" +
-          "#{package.name}-#{package.version}#{"%#{package.slot}" if package.slot}" +
-          "#{"+#{package.flavor.to_s(:package)}" if !package.flavor.to_s(:package).empty?}" +
-          "#{"-#{package.features.to_s(:package)}" if !package.features.to_s(:package).empty?}" +
-          '.pko'
-        )
-
-        begin
-          pko = _build(package,
-            FLAVOR:   package.flavor,
-            FEATURES: package.features
-          )
-
-          build.xpath('.//digest').each {|node| node.remove}
-          build.add_child dom.create_element('digest', Packo.digest(pko))
-
-          FileUtils.mkpath "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
-          FileUtils.mv pko, "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
-        rescue Exception => e
-          Packo.debug e
-        end
-
-        File.write(repository, dom.to_xml(indent: 4))
-      }
+  def generate (*repositories)
+    repositories.each {|repository|
+      Do::Repository.generate(repository)
     }
   end
-
-  no_tasks {
-    def _build (package, env)
-      Do.cd {
-        FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
-        FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
-
-        require 'packo/cli/build'
-
-        begin
-          System.env.sandbox(env) {
-            Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-          }
-        rescue
-        end
-
-        Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
-      }
-    end
-
-    def _add (type, name, location, path, populate=true)
-      repo = Helpers::Repository.wrap(Models::Repository.create(
-        type: type,
-        name: name,
-
-        location: location,
-        path:     path
-      ))
-
-      repo.populate if populate
-    end
-
-    def _delete (type, name)
-      Models::Repository.first(name: name, type: type).destroy
-    end
-
-    def _checkout (location, path)
-      location = Location.parse(location)
-      
-      if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-        RBuild::Modules::Fetching.const_get(location.type.capitalize).fetch(location, path)
-      else
-        raise ArgumentError.new "#{location.type} is an unsupported SCM"
-      end
-    end
-
-    def _update (location, path)
-      location = Location.parse(location)
-
-      if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-        RBuild::Modules::Fetching.const_get(location.type.capitalize).update(path)
-      else
-        raise ArgumentError.new "#{location.type} is an unsupported SCM"
-      end
-    end
-  }
 end
 
 end; end

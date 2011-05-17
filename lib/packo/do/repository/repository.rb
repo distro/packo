@@ -17,37 +17,32 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module CLI; class Repository < Thor; module Helpers
+module Packo; class Do; class Repository; module Helpers
 
-class Virtual < Packo::Repository::Virtual
-  include Packo::Models
-  include Helpers::Repository
+module Repository
+  def self.wrap (model)
+    unless model
+      raise ArgumentError.new('You passed a nil model.')
+    end
 
-  def initialize (model)
-    super(model.to_hash.merge(model: model))
+    model.save
+
+    case model.type
+      when :binary;  Helpers::Binary.new(model)
+      when :source;  Helpers::Source.new(model)
+      when :virtual; Helpers::Virtual.new(model)
+    end
   end
 
-  def populate
-    self.packages.each {|package|
-      pkg = model.packages.first_or_create(
-        repo: model,
-
-        tags_hashed: package.tags.hashed,
-        name:        package.name,
-        version:     package.version,
-        slot:        package.slot,
-        revision:    package.revision
-      )
-
-      package.tags.each {|tag|
-        pkg.tags << Tag.first_or_create(name: tag.to_s)
-      }
-
-      pkg.data.update(content: package.data)
-
-      pkg.save
-    }
-  end
+  def model;    @model          end
+  def type;     @model.type     end
+  def name;     @model.name     end
+  def location; @model.location end
+  def path;     @model.path     end
 end
+
+require 'packo/do/repository/binary'
+require 'packo/do/repository/source'
+require 'packo/do/repository/virtual'
 
 end; end; end; end

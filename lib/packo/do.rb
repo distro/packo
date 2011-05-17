@@ -24,12 +24,24 @@ module Packo
 class Do
   def self.cd (path=nil)
     if block_given?
-      tmp = Dir.pwd
+      tmp       = Dir.pwd
+      exception = nil
 
       Dir.chdir(path) if path
-      result = yield path
+
+      begin
+        result = yield path
+      rescue Exception => e
+        exception = e
+      end
+
       Dir.chdir(tmp)
-      result
+
+      if exception
+        raise exception
+      else
+        result
+      end
     else
       Dir.chdir(path) rescue false
     end

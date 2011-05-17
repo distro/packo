@@ -17,9 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo'
 require 'packo/models'
 
-module Packo; module CLI; class Repository < Thor; module Helpers
+module Packo; class Do; class Repository; module Helpers
 
 class Binary < Packo::Repository::Binary
   include Packo::Models

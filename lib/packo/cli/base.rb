@@ -40,6 +40,10 @@ class Base < Thor
   method_option :depsonly,    type: :boolean, default: false,                     aliases: '-D', desc: 'Install only dependencies'
   method_option :repository,  type: :string,                                      aliases: '-r', desc: 'Set a specific repository'
   def install (*names)
+
+  end
+
+=begin
     type = names.last.is_a?(Symbol) ? names.pop : :both
 
     FileUtils.mkpath options[:destination] rescue nil
@@ -369,6 +373,7 @@ class Base < Thor
       }
     }
   end
+=end
 
   desc 'uninstall PACKAGE... [OPTIONS]', 'Uninstall packages'
   map '-C' => :uninstall, '-R' => :uninstall, 'remove' => :uninstall
@@ -498,57 +503,57 @@ class Base < Thor
     }
   end
 
-  private
-
-  def _uri (repository)
-    Repository.first(Packo::Repository.parse(name).to_hash).URI rescue nil
-  end
-
-  def _build (package, env)
-    FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
-    FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
-
-    require 'packo/cli/build'
-
-    begin
-      System.env.sandbox(env) {
-        Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
-      }
-    rescue
+  no_tasks {
+    def _uri (repository)
+      Repository.first(Packo::Repository.parse(name).to_hash).URI rescue nil
     end
 
-    Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
-  end
+    def _build (package, env)
+      FileUtils.rm_rf "#{System.env[:TMP]}/.__packo_build", secure: true rescue nil
+      FileUtils.mkpath "#{System.env[:TMP]}/.__packo_build" rescue nil
 
-  def _manifest (package, env)
-    tmp = Models.search(package.to_s, options[:repository])
+      require 'packo/cli/build'
 
-    RBuild::Package::Manifest.new(
-      Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
-    ).to_s
-  end
+      begin
+        System.env.sandbox(env) {
+          Packo::CLI::Build.start(['package', package.to_s(:whole), "--output=#{System.env[:TMP]}/.__packo_build", "--repository=#{package.repository}"])
+        }
+      rescue
+      end
 
-  def _has (package, env)
-    !!Models.search(package.to_s(:whole), package.repository.name, package.repository.type).find {|package|
-      !!package.model.data.builds.to_a.find {|build|
-        build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
-        build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
+      Dir.glob("#{System.env[:TMP]}/.__packo_build/#{package.name}-#{package.version}*.pko").first
+    end
+
+    def _manifest (package, env)
+      tmp = Models.search(package.to_s, options[:repository])
+
+      RBuild::Package::Manifest.new(
+        Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
+      ).to_s
+    end
+
+    def _has (package, env)
+      !!Models.search(package.to_s(:whole), package.repository.name, package.repository.type).find {|package|
+        !!package.model.data.builds.to_a.find {|build|
+          build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
+          build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
+        }
       }
-    }
-  end
+    end
 
-  def _digest (package, env)
-    Models.search(package, package.repository.name, :binary).find {|package|
-      package.model.data.builds.to_a.find {|build|
-        build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
-        build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
-      }
-    }.model.data.digest
-  end
+    def _digest (package, env)
+      Models.search(package, package.repository.name, :binary).find {|package|
+        package.model.data.builds.to_a.find {|build|
+          build.features.split(/\s+/).sort == env[:FEATURES].split(/\s+/).sort && \
+          build.flavor.split(/\s+/).sort   == env[:FLAVOR].split(/\s+/).sort
+        }
+      }.model.data.digest
+    end
 
-  def _exists? (path)
-    Models::InstalledPackage::Content.first(path: path, :type.not => :dir).package rescue false
-  end
+    def _exists? (path)
+      Models::InstalledPackage::Content.first(path: path, :type.not => :dir).package rescue false
+    end
+  }
 end
 
 end; end
