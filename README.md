@@ -18,13 +18,13 @@ Then you can start doing some things.
 
 This adds two repositories and gives you some packages.
 
-    $ packo repository search "[library]"
+    $ packo repository search "(library)"
 
 This searches all packages that have library as tag.
 
 To get more informations about packages do
 
-    $ packo repository info "[library]"
+    $ packo repository info "(library)"
 
 This will give a lot of informations about the package.
 
