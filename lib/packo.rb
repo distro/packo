@@ -102,7 +102,7 @@ module Packo
       begin
         Packo.load "#{path}/#{package.name}.rbuild", options
 
-        if (pkg = RBuild::Package.last) && (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
+        if (pkg = RBuild::Package.current) && (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e
@@ -111,33 +111,33 @@ module Packo
 
       Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
 
-      if RBuild::Package.last.name == package.name && RBuild::Package.last.version == package.version
-        RBuild::Package.last.filesystem.include(pkg.filesystem)
+      if RBuild::Package.current.name == package.name && RBuild::Package.current.version == package.version
+        RBuild::Package.current.filesystem.include(pkg.filesystem)
 
         if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
-          RBuild::Package.last.filesystem.parse(tmp.last.lstrip)
+          RBuild::Package.current.filesystem.parse(tmp.last.lstrip)
         end
 
         if File.directory?("#{path}/data")
-          RBuild::Package.last.filesystem.load("#{path}/data")
+          RBuild::Package.current.filesystem.load("#{path}/data")
         end
 
-        RBuild::Package.last.digests = files
+        RBuild::Package.current.digests = files
 
-        return RBuild::Package.last
+        return RBuild::Package.current
       end
     else
       begin
         Packo.load path, options
 
-        if (pkg = RBuild::Package.last) && (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
+        if (pkg = RBuild::Package.current) && (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e
         Packo.debug e
       end
 
-      return RBuild::Package.last
+      return RBuild::Package.current
     end
   end
 end

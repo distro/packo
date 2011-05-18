@@ -21,11 +21,7 @@ require 'packo/package/tags/expression/name'
 require 'packo/package/tags/expression/logic'
 require 'packo/package/tags/expression/group'
 
-require 'stringio'
-
 module Packo; class Package; class Tags < Array
-
-
 
 class Expression
   class EvaluationError < Exception

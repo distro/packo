@@ -30,15 +30,15 @@ require 'packo/rbuild/behaviors'
 module Packo; module RBuild
 
 class Package < Packo::Package
-  def self.last
-    @@last
+  def self.current
+    @current
+  end
+
+  def self.define (name, version=nil, slot=nil, revision=nil, &block)
+    @current = Package.new(name, version, slot, revision, &block)
   end
 
   include Stages::Callable
-
-  def self.define (name, version=nil, slot=nil, revision=nil, &block)
-    Package.new(name, version, slot, revision, &block)
-  end
 
   attr_reader :parent, :do, :modules, :dependencies, :blockers, :stages, :filesystem
 
@@ -65,7 +65,7 @@ class Package < Packo::Package
     if !self.version
       @block = block
 
-      return @@last = self
+      return self
     end
 
     @modules      = []
@@ -82,7 +82,7 @@ class Package < Packo::Package
     use      Modules::Fetcher, Modules::Unpacker, Modules::Packager
     behavior Behaviors::Default
 
-    if (@parent = Package.last)
+    if (@parent = Package.current)
       self.instance_exec(self, &@parent.instance_eval('@block'))
     end
 
@@ -170,7 +170,7 @@ class Package < Packo::Package
 
     stages.callbacks(:initialized).do(self)
 
-    @@last = self
+    return self
   end
 
   def create!
