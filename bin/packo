@@ -34,9 +34,10 @@ descriptions = {
   :env        => 'Manage packø environment',
   :db         => 'Manage packø databases',
   :profile    => 'Manage packø profiles',
+  :web        => "Manage packø's web interface",
 }
 
-trusted = [:base, :select, :db, :profile]
+trusted = [:base, :select, :db, :profile, :web]
 
 if commands.member?(ARGV.first)
   command  = ARGV.shift
