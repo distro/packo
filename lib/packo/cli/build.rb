@@ -30,14 +30,11 @@ class Build < Thor
   class_option :help, type: :boolean, desc: 'Show help usage'
 
   desc 'package PACKAGE... [OPTIONS]', 'Create packages of the matching names'
-  method_option :output,     type: :string,  default: '.',   aliases: '-o', desc: 'The directory where to save packages'
   method_option :wipe,       type: :boolean, default: false, aliases: '-w', desc: 'Wipes the package directory before building it'
   method_option :ask,        type: :boolean, default: false, aliases: '-a', desc: 'Prompt the user if he want to continue building or not'
   method_option :nodeps,     type: :boolean, default: false, aliases: '-N', desc: 'Ignore blockers and dependencies'
   method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific source repository'
   def package (*packages)
-    output = File.realpath(options[:output])
-
     packages.map {|package|
       begin
         package = Do::Build.package(package, options)
@@ -66,11 +63,11 @@ class Build < Thor
       CLI.info "Building #{package}"
 
       begin
-        Do::Build.build(package, options) {|stage|
+        path = Do::Build.build(package, options) {|stage|
           CLI.info "Executing #{stage.name}"
         }
 
-        CLI.info "Succesfully built #{package}"
+        CLI.info "Succesfully built #{package}, you can find it here: #{path}"
       rescue Exception => e
         CLI.fatal "Failed to build #{package}"
         CLI.fatal e.message

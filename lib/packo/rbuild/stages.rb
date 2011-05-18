@@ -35,6 +35,10 @@ class Stages
     def avoid (chain, name, known=nil)
       self.package.stages.unregister(chain, name, known)
     end
+
+    def skip
+      throw :halt
+    end
   end
 
   attr_reader :package, :stages, :callbacks
