@@ -17,8 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'sys/filesystem'
-
 require 'packo/system'
 
 class Numeric
@@ -45,64 +43,7 @@ class Rational
   include Numeric::Scalar
 end
 
-module Sys
-  class Filesystem
-    class Stat
-      def free
-        self.blocks_available * self.fragment_size
-      end
-
-      def total
-        self.blocks * self.fragment_size
-      end
-    end
-  end
-
-  class Ram
-    def self.total
-      self.status[:total]
-    end
-
-    def self.free
-      self.status[:free]
-    end
-
-    if Packo::System.host.kernel == 'windows'
-      require 'Win32API'
-
-      __global_memory_status = Win32API.new('kernel32', 'GlobalMemoryStatus', 'P', 'V')
-
-      def self.status
-        result = ([1] * 8).pack('LLIIIIII'); __global_memory_status.call(result)
-
-        result = Struct.new(
-          :dwLength, :dwMemoryLoad,
-          :dwTotalPhys, :dwAvailPhys,
-          :dwTotalPageFile, :dwAvailPageFile,
-          :dwTotalVirtual, :dwAvailVritualPhys
-        ).new(*result.unpack('LLIIIIII'))
-
-        { total: result.dwTotalPageFile, free: result.dwAvailPageFile }
-      end
-    elsif Packo::System.host.kernel == 'linux'
-      def self.status
-        result = Hash[File.read('/proc/meminfo').each_line.map {|l|
-          if l =~ /^(\w+):\s+(\d+)/
-            [$1.downcase.to_sym, $2.to_i * 1024]
-          end
-        }.compact]
-
-        { total: result[:memtotal], free: result[:memfree] + result[:buffers] + result[:cached] }
-      end
-    else
-      def self.status
-        warn 'Packo::Requirements does not support this operating system'
-
-        { total: 9001.GB, free: 9001.GB }
-      end
-    end
-  end
-end
+require 'packo/os'
 
 module Packo
 
@@ -110,7 +51,7 @@ class Requirements
   def self.disk (path=nil, option)
     path ||= Sys::Filesystem.mounts.first.mount_point
 
-    return false if !(stat = Sys::Filesystem.stat(path))
+    return false if !(stat = OS::Filesystem.stat(path))
 
     return false if options[:free] && stat.free < options[:free]
 
@@ -120,9 +61,9 @@ class Requirements
   end
 
   def self.memory (options={})
-    return false if options[:free] && Sys::Ram.free < options[:free]
+    return false if options[:free] && OS::Ram.free < options[:free]
 
-    return false if options[:total] && Sys::Ram.total < options[:total]
+    return false if options[:total] && OS::Ram.total < options[:total]
 
     true
   end

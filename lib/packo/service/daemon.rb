@@ -18,6 +18,7 @@
 #++
 
 require 'timeout'
+require 'sys/proctable'
 
 module Packo; class Service
 
@@ -38,13 +39,7 @@ class Daemon
 
   def self.kill (what, signal=:INT)
     if what.is_a?(String) || what.is_a?(Regexp)
-      Sys::ProcTable.ps.select {|ps|
-        ps[:cmdline].match(what)
-      }.map {|ps|
-        ps[:pid]
-      }.all? {|pid|
-        Process.kill signal, pid
-      }
+      Packo.sh 'killall', what, silent: true
     else
       Process.kill signal, what
     end
@@ -99,9 +94,9 @@ class Daemon
     pid
   end
 
-  def stop
+  def stop (options={})
     Timeout.timeout(5) {
-      self.send(:INT)
+      self.send(options[:force] ? :KILL : :INT)
 
       Process.wait(@pid)
     } rescue false
