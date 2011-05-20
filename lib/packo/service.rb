@@ -159,6 +159,10 @@ class Service
           end
         end
       }
+    elsif command == :restart && !block
+      block = Proc.new {
+        run :stop and run :start
+      }
     else
       if !block
         CLI.fatal "#{@options[:name] || 'This service'} doesn't know how to do this"

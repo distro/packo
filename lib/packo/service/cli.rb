@@ -58,6 +58,8 @@ module CLI
       else
         raise Class.new(Exception) { def __packo; end }
       end
+      
+      true
     rescue Exception => e
       puts " #{(options[:bad] || ';_;').red}"
       
@@ -66,6 +68,8 @@ module CLI
 
         Packo.debug e
       end
+
+      false
     end
   end
 end
