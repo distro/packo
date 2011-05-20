@@ -17,12 +17,17 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/callbackable'
 require 'packo/package/feature'
 
 module Packo; module RBuild
 
 class Feature < Packo::Package::Feature
-  include Stages::Callable
+  Callbackable.instance_methods.each {|meth|
+    define_method meth do |*args, &block|
+      package.__send__ meth, *args, &block
+    end
+  }
 
   attr_reader :package, :name, :block, :dependencies
 

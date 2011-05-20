@@ -17,37 +17,43 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/rbuild/stages/stage'
-require 'packo/rbuild/stages/callbacks'
-
 module Packo; module RBuild
 
 class Stages
-  module Callable
-    def before (name, data=nil, &block)
-      self.package.stages.register(:before, name, block, { binding: self }.merge(data || {}))
+  class Stage
+    attr_reader :name, :options, :method
+
+    def initialize (name, method, options)
+      @name    = name.to_sym
+      @method  = method
+      @options = options
+
+      if (@options[:at] || @options[:after] == :beginning || @options[:before] == :ending) && @options[:strict].nil?
+        @options[:strict] = true
+      end
+
+      @options[:priority] ||= 0
     end
 
-    def after (name, data=nil, &block)
-      self.package.stages.register(:after, name, block, { binding: self }.merge(data || {}))
+    def call (*args)
+      @method.call(*args)
     end
 
-    def avoid (chain, name, known=nil)
-      self.package.stages.unregister(chain, name, known)
+    def == (value)
+      @name == value || @method == value
     end
 
-    def skip
-      throw :halt
+    def inspect
+      "#<Stage: #{name} (#{@options.inspect})>"
     end
   end
 
-  attr_reader :package, :stages, :callbacks
+  attr_reader :package, :stages
 
   def initialize (package)
     @package = package
 
     @stages    = []
-    @callbacks = {}
   end
 
   def owner_of (name)
@@ -167,17 +173,6 @@ class Stages
     }
   end
 
-  def register (chain, name, callback, data={})
-    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).register(chain, callback, data)
-  end
-
-  def unregister (chain, name, known=nil)
-    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).unregister(chain, known)
-  end
-
-  def callbacks (name)
-    @callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)
-  end
 end
 
 end; end

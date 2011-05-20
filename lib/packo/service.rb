@@ -19,6 +19,7 @@
 
 require 'packo'
 require 'packo/os'
+require 'packo/callbackable'
 
 require 'packo/service/cli'
 require 'packo/service/daemon'
@@ -45,6 +46,8 @@ class Service
   def self.started? (name)
     !`/etc/init.d/#{name} status`.strip.end_with('stopped')
   end
+
+  include Callbackable
 
   attr_reader :options, :configuration
 
@@ -165,7 +168,9 @@ class Service
       end
     end
 
-    block.call(args) if block
+    callbacks(command).do {
+      block.call(args) if block
+    }
   end
 
   def started?

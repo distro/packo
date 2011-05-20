@@ -17,7 +17,49 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module RBuild; class Stages
+module Packo
+
+module Callbackable
+  def register (chain, name, callback, data={})
+    @callbacks ||= {}
+
+    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).register(chain, callback, data)
+  end
+
+  def unregister (chain, name, known=nil)
+    @callbacks ||= {}
+
+    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).unregister(chain, known)
+  end
+
+  def callbacks (name=nil)
+    @callbacks ||= {}
+
+    if name
+      @callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)
+    else
+      @callbacks
+    end
+  end
+
+  def before (name, data=nil, &block)
+    register(:before, name, block, { binding: self }.merge(data || {}))
+  end
+
+  def after (name, data=nil, &block)
+    register(:after, name, block, { binding: self }.merge(data || {}))
+  end
+
+  def skip (*args)
+    if args.empty?
+      throw :halt
+    else
+      chain, name, known = args
+
+      unregister(chain, name, known)
+    end
+  end
+end
 
 class Callbacks
   Chains = [:before, :after]
@@ -93,4 +135,4 @@ class Callbacks
   end
 end
 
-end; end; end
+end

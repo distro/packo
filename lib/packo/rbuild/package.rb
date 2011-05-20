@@ -38,7 +38,7 @@ class Package < Packo::Package
     @current = Package.new(name, version, slot, revision, &block)
   end
 
-  include Stages::Callable
+  include Callbackable
 
   attr_reader :parent, :do, :modules, :dependencies, :blockers, :stages, :filesystem
 
