@@ -18,80 +18,48 @@
 #++
 
 require 'packo/system'
-
-if Packo::System.host.kernel == 'linux'
-  require 'dl/import'
-  require 'dl/struct'
-
-  module DL
-    module ValueUtil
-    def unsigned_value(val, ty)
-      case ty.abs
-        when TYPE_CHAR
-          [val].pack("c").unpack("C")[0]
-        when TYPE_SHORT
-          [val].pack("s!").unpack("S!")[0]
-        when TYPE_INT
-          [val].pack("i!").unpack("I!")[0]
-        when TYPE_LONG
-          [val].pack("l!").unpack("L!")[0]
-        when TYPE_LONG_LONG
-          [val].pack("q").unpack("Q")[0]
-        else
-          val
-        end
-      end
-    end
-  end
-end
+require 'ffi'
 
 module Packo; module OS
 
 class Filesystem
-  def self.total (path=nil)
-    st = self.stat(path)
-    st.f_blocks * st.f_bsize
-  end
+  if Packo::System.host.posix?
+    extend FFI::Library
 
-  def self.free (path=nil)
-    st = self.stat(path)
-    st.f_bavail * st.f_bsize
-  end
+    ffi_lib FFI::Library::LIBC
+    
+    attach_function 'statvfs', [:string, :pointer], :int
 
-  if Packo::System.host.kernel == 'linux'
-    extend DL::Importer
+    class StatVFS < FFI::Struct
+      layout \
+        :f_bsize,   :ulong,
+        :f_frsize,  :ulong,
+        :f_blocks,  :fsblkcnt_t,
+        :f_bfree,   :fsblkcnt_t,
+        :f_bavail,  :fsblkcnt_t,
+        :f_files,   :fsblkcnt_t,
+        :f_ffree,   :fsblkcnt_t,
+        :f_favail,  :fsblkcnt_t,
+        :f_fsid,    :uint64,
+        :f_flag,    :ulong,
+        :f_namemax, :ulong,
+        :__f_spare,   [:int, 6]
+    end
 
-    dlload 'libc.so.6'
+    def self.stat (path=nil)
+      path ||= '/'
+      fs     = StatVFS.new
 
-    extern 'int statvfs(char*, void*)'
-
-    BITS = Packo::System.env[:ARCH] == 'x86_64' ? 64 : 32
-    TYPE = (BITS == 64 ? 'unsigned long long' : 'unsigned long')
-    STRUCT = struct([
-      "unsigned long f_bsize",
-      "unsigned long f_frsize",
-      "#{TYPE} f_blocks",
-      "#{TYPE} f_bfree",
-      "#{TYPE} f_bavail",
-      "#{TYPE} f_files",
-      "#{TYPE} f_ffree",
-      "#{TYPE} f_favail",
-      "unsigned long f_sid",
-    ] + (BITS == 32 ? ["#{TYPE} __f_unused"] : []) + [
-      "unsigned long f_flag",
-      "unsigned long f_namemax",
-      "int __f_spare[6]"
-    ])
-
-    class << self
-      def stat (path=nil)
-        path ||= '/'
-        fs = STRUCT.malloc
-        fail "Mount point '#{path}' not found" if statvfs(path, fs) < 0
-        fs
+      if statvfs(path, fs.pointer) < 0
+        raise ArgumentError.new "Mount point '#{path}' not found"
       end
 
-      protected :statvfs
+      return OpenStruct.new(
+        path: path,
+
+        total: fs[:f_blocks] * fs[:f_frsize],
+        free:  fs[:f_bfree] * fs[:f_bsize]
+      )
     end
   else
     fail 'Unsupported platform, contact the developers please.'

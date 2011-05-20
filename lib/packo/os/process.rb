@@ -20,7 +20,9 @@
 require 'packo/system'
 require 'packo/extensions'
 
-require 'win32ole' if Packo::System.host.kernel == 'windows'
+if Packo::System.host.kernel == 'windows'
+  require 'win32ole'
+end
 
 module Packo; module OS
 
@@ -31,10 +33,10 @@ class Process
     def self.all
       Dir['/proc/*'].inject([]) {|res, pr|
         if pr =~ %r{^/proc/(\d+)$}
-          res << Process.new($1, {
+          res << Process.new($1,
             name:     File.read(File.join(pr, 'comm')).strip,
             command:  File.read(File.join(pr, 'cmdline')).strip
-          })
+          )
         else
           res
         end
@@ -43,11 +45,12 @@ class Process
   elsif Packo::System.host.kernel == 'windows'
     def self.all
       procs = []
+
       WIN32OLE.connect("winmgmts://").ExecQuery("SELECT * FROM win32_process").each {|proc|
-        procs << Process.new(proc.ProcessID, {
+        procs << Process.new(proc.ProcessID,
           name:     proc.Name,
           command:  proc.CommandLine
-        })
+        )
       }
       procs
     end
@@ -82,6 +85,10 @@ class Process
     if wait
       ::Process.wait(@id)
     end
+  end
+
+  def send (signal)
+    kill(signal, false)
   end
 end
 

@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo'
+require 'packo/service/cli'
 require 'packo/service/daemon'
 
 module Packo
@@ -60,7 +60,7 @@ class Service
 
     @configuration ||= {}
 
-    self.instance_exec(self, &block)
+    self.instance_exec(self, &block) if block
 
     self
   end
@@ -79,9 +79,15 @@ class Service
     @blocks[id] = block
   end
 
-  def run (args)
+  def run (*args)
+    args.flatten!
+
     if args.length == 0
-      puts @options[:help] if @options[:help]
+      if @options[:help]
+        puts @options[:help]
+      else
+        puts "#{$0} start|stop|restart|status"
+      end
 
       return
     end
@@ -101,8 +107,18 @@ class Service
 
     block.call(args) if block
   end
+
+  def started?
+    catch_output {
+      run(:status)
+    }.include?('started')
+  end
+
+  def stopped?
+    catch_output {
+      run(:status)
+    }.include?('stopped')
+  end
 end
 
 end
-
-

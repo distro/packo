@@ -1,5 +1,6 @@
+#! /usr/bin/env ruby
 #--
-# Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
+# Copyleft meh. [http://meh.doesntexist.org | meh@paranoici.org]
 #
 # This file is part of packo.
 #
@@ -17,11 +18,15 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/service/cli'
-require 'packo/service/service'
+require 'rubygems' unless defined?(Gem)
 
-at_exit do
-  next unless service = Packo::Service.current
+require 'packo/service'
 
-  service.run(ARGV)
+service = Packo::Service.new
+service.instance_eval(File.read(ARGV.shift))
+
+if !service
+  fail 'No service has been defined'
 end
+
+service.run(ARGV)

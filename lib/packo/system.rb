@@ -34,7 +34,8 @@ System = Class.new {
   def initialize
     @environment      = Environment.new
     @environmentClean = Environment.new(nil, true)
-    @host             = Host.new(@environmentClean)
+
+    @host = Host.new(env!) rescue Host.parse(RUBY_PLATFORM)
   end
 
   def has? (package, options={})

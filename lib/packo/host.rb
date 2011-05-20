@@ -170,6 +170,10 @@ class Host
 
   alias === ==
 
+  def posix?
+    kernel == 'linux' || kernel == 'windows' || kernel == 'mac'
+  end
+
   def to_s
     "#{arch}#{"-#{vendor}" unless vendor.nil?}-#{kernel}#{"-#{misc}" unless misc.nil?}"
   end

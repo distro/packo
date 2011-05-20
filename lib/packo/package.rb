@@ -103,6 +103,8 @@ class Package
     end
   end
 
+  include StructLike
+
   attr_reader :model, :environment
 
   def environment!; @environmentClean; end
@@ -123,26 +125,6 @@ class Package
     self.tags = [] unless self.tags
 
     @model = data[:model]
-  end
-
-  def method_missing (id, *args)
-    id = id.to_s.sub(/[=?]$/, '').to_sym
-
-    if args.length == 0
-      return @data[id]
-    else
-      if respond_to? "#{id}="
-        send "#{id}=", *args
-      else
-        value = (args.length > 1) ? args : args.first
-
-        if value.nil?
-          @data.delete(id)
-        else
-          @data[id] = value
-        end
-      end
-    end
   end
 
   def envify!

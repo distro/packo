@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'ffi'
+
 require 'packo/os/ram'
 require 'packo/os/disk'
 require 'packo/os/process'

@@ -35,6 +35,30 @@ class Pathname
   end
 end
 
+module StructLike
+  def method_missing (id, *args)
+    @data ||= {}
+
+    id = id.to_s.sub(/[=?]$/, '').to_sym
+
+    if args.length == 0
+      return @data[id]
+    else
+      if respond_to? "#{id}="
+        send "#{id}=", *args
+      else
+        value = (args.length > 1) ? args : args.first
+
+        if value.nil?
+          @data.delete(id)
+        else
+          @data[id] = value
+        end
+      end
+    end
+  end
+end
+
 class Object
   def numeric?
     true if Float(self) rescue false
@@ -70,6 +94,20 @@ module Kernel
     $VERBOSE = tmp
 
     return result
+  end
+
+  def catch_output
+    require 'stringio'
+
+    result = StringIO.new
+
+    out, err, $stdout, $stderr = $stdout, $stderr, result, result
+
+    yield
+
+    $stdout, $stderr = out, err
+
+    result.rewind; result.read
   end
 end
 

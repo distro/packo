@@ -22,40 +22,32 @@ require 'packo/system'
 module Packo; module OS
 
 class Ram
-  def self.total
-    self.status[:total]
-  end
-
-  def self.free
-    self.status[:free]
-  end
-
-  if Packo::System.host.kernel == 'windows'
-    require 'Win32API'
-
-    __global_memory_status = Win32API.new('kernel32', 'GlobalMemoryStatus', 'P', 'V')
-
+  if File.readable?('/proc/meminfo')
     def self.status
-      result = ([1] * 8).pack('LLIIIIII'); __global_memory_status.call(result)
+      result = Hash[File.read('/proc/meminfo').each_line.map {|line|
+        whole, name, value = line.match(/^(\w+):\s+(\d+)/).to_a
 
-      result = Struct.new(
-        :dwLength, :dwMemoryLoad,
-        :dwTotalPhys, :dwAvailPhys,
-        :dwTotalPageFile, :dwAvailPageFile,
-        :dwTotalVirtual, :dwAvailVirtualPhys
-      ).new(*result.unpack('LLIIIIII'))
+        next unless whole
 
-      { total: result.dwTotalPageFile, free: result.dwAvailPageFile }
-    end
-  elsif Packo::System.host.kernel == 'linux'
-    def self.status
-      result = Hash[File.read('/proc/meminfo').each_line.map {|l|
-        if l =~ /^(\w+):\s+(\d+)/
-          [$1.downcase.to_sym, $2.to_i * 1024]
-        end
+        [name.downcase.to_sym, value.to_i * 1024]
       }.compact]
 
-      { total: result[:memtotal], free: result[:memfree] + result[:buffers] + result[:cached] }
+      return OpenStruct.new(
+        physical: OpenStruct.new(
+          total: result[:memtotal],
+          free:  result[:memfree]
+        ),
+          
+        swap: OpenStruct.new(
+          total: result[:swaptotal],
+          free:  result[:swapfree]
+        ),
+
+        virtual: OpenStruct.new(
+          total: result[:memtotal] + result[:swaptotal],
+          free:  result[:memfree] + result[:swapfree]
+        )
+      )
     end
   else
     fail 'Unsupported platform, contact the developers please.'

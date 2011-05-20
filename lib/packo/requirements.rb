@@ -49,8 +49,6 @@ module Packo
 
 class Requirements
   def self.disk (path=nil, option)
-    path ||= Sys::Filesystem.mounts.first.mount_point
-
     return false if !(stat = OS::Filesystem.stat(path))
 
     return false if options[:free] && stat.free < options[:free]
@@ -61,9 +59,24 @@ class Requirements
   end
 
   def self.memory (options={})
-    return false if options[:free] && OS::Ram.free < options[:free]
+    status = OS::Ram.status
 
-    return false if options[:total] && OS::Ram.total < options[:total]
+    case options[:type]
+      when :physycal, :phys, :phy
+        return false if options[:free] && status.physical.free < options[:free]
+
+        return false if options[:total] && total.physical.total < options[:total]
+
+      when :swap
+        return false if options[:free] && status.swap.free < options[:free]
+
+        return false if options[:total] && total.swap.total < options[:total]
+
+      else
+        return false if options[:free] && status.virtual.free < options[:free]
+
+        return false if options[:total] && total.virtual.total < options[:total]
+    end
 
     true
   end

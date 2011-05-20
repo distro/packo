@@ -18,7 +18,7 @@
 #++
 
 require 'timeout'
-require 'sys/proctable'
+require 'packo/os/process'
 
 module Packo; class Service
 
@@ -27,33 +27,21 @@ class Daemon
     if id.is_a?(String)
       id = File.read(id).to_i
     end
-
-    require 'sys/proctable'
   
-    if !Sys::ProcTable.ps(id)
+    if !OS::Process.from_id(id)
       raise ArgumentError.new "PID #{id} not found"
     end
 
     Daemon.new(id)
   end
 
-  def self.kill (what, signal=:INT)
-    if what.is_a?(String) || what.is_a?(Regexp)
-      Packo.sh 'killall', what, silent: true
-    else
-      Process.kill signal, what
-    end
-  end
-
-  attr_accessor :command, :pid
-  attr_reader   :data
+  attr_reader :process, :data
 
   def initialize (what)
     @data = OpenStruct.new
 
     if what.is_a?(Integer)
-      @pid     = what
-      @command = Sys::ProcTable.ps(@pid)[:cmdline]
+      @process = OS::Process.from_id(@pid)
     else
       @command = what.to_s
     end
@@ -62,7 +50,7 @@ class Daemon
   end
   
   def send (name)
-    Process.kill(name, @pid) if @pid
+    @process.kill(name)
   end
 
   def start (*args)
@@ -77,28 +65,30 @@ class Daemon
 
     if options[:detach]
       Process.detach(pid)
-      w.close
     else
       Process.wait(pid)
-      w.close
+    end
 
-      if $?.to_i != 0
-        raise RuntimeError.new r.read
-      end
+    w.close
+
+    if !options[:detach] && $?.to_i != 0
+      raise RuntimeError.new r.read
     end
 
     if options[:save] != false
-      File.write(@data.pid || "/var/run/#{File.basename(@command)}.pid", pid)
+      File.write(@data.pid || "/var/run/#{File.basename(process.command)}.pid", pid)
     end
 
-    pid
+    @process = OS::Process.from_io(pid)
   end
 
   def stop (options={})
-    Timeout.timeout(5) {
-      self.send(options[:force] ? :KILL : :INT)
-
-      Process.wait(@pid)
+    Timeout.timeout(options[:timeout] || 10) {
+      if options[:force]
+        @process.kill :KILL
+      else
+        @process.kill :INT
+      end
     } rescue false
   end
 end
