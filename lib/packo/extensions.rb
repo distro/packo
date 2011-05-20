@@ -106,3 +106,24 @@ class OpenStruct
   alias merge! marshal_load
   alias delete delete_field
 end
+
+module Process
+  class << self
+    def wait (*args)
+      waitpid(*args)
+    rescue Errno::ECHILD
+      raise $! if args.size == 0
+
+      pid = args.first
+
+      begin Process.kill(0, pid); rescue Errno::EPERM; end # acting like original wait
+
+      begin
+        sleep 0.1 while Process.kill(0, pid)
+      rescue Errno::ESRCH
+      rescue Errno::EPERM
+        retry
+      end
+    end
+  end
+end
