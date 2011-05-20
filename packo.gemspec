@@ -11,7 +11,7 @@ Gem::Specification.new {|s|
     s.description  = 'A really flexible package manager, inspired by portage and pacman.'
     s.files        = Dir.glob('lib/**/*.rb')
     s.require_path = 'lib'
-    s.executables  = Dir.glob('bin/**').map {|p| p[4, p.length]}
+    s.executables  = Dir.glob('bin/**').map {|p| p[4..-1]}
 
     s.add_dependency('thor')
     s.add_dependency('colorb')
