@@ -20,6 +20,8 @@
 require 'packo/system'
 require 'packo/extensions'
 
+require 'win32ole' if Packo::System.host.kernel == 'windows'
+
 module Packo; module OS
 
 class Process
@@ -30,13 +32,24 @@ class Process
       Dir['/proc/*'].inject([]) {|res, pr|
         if pr =~ %r{^/proc/(\d+)$}
           res << Process.new($1, {
-            name: File.read(File.join(pr, 'comm')).strip,
-            command: File.read(File.join(pr, 'cmdline')).strip
+            name:     File.read(File.join(pr, 'comm')).strip,
+            command:  File.read(File.join(pr, 'cmdline')).strip
           })
         else
           res
         end
       }
+    end
+  elsif Packo::System.host.kernel == 'windows'
+    def self.all
+      procs = []
+      WIN32OLE.connect("winmgmts://").ExecQuery("SELECT * FROM win32_process").each {|proc|
+        procs << Process.new(proc.ProcessID, {
+          name:     proc.Name,
+          command:  proc.CommandLine
+        })
+      }
+      procs
     end
   else
     fail 'Unsupported platform, contact the developers please.'
