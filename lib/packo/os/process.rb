@@ -29,44 +29,35 @@ module Packo; module OS
 class Process
   include StructLike
 
-  if Packo::System.host.kernel == 'linux'
+  if Packo::System.host.kernel == 'linux' || Packo::System.host.kernel == 'windows'
     def self.all
-      Dir['/proc/*'].inject([]) {|res, pr|
-        if pr =~ %r{^/proc/(\d+)$}
-          res << Process.new($1,
-            name:     File.read(File.join(pr, 'comm')).strip,
-            command:  File.read(File.join(pr, 'cmdline')).strip
-          )
-        else
-          res
-        end
-      }
-    end
-  elsif Packo::System.host.kernel == 'windows'
-    def self.all
-      procs = []
+      Dir['/proc/[0-9]*'].map {|ps|
+        next unless (pid = ps[6 .. -1]).numeric?
 
-      WIN32OLE.connect("winmgmts://").ExecQuery("SELECT * FROM win32_process").each {|proc|
-        procs << Process.new(proc.ProcessID,
-          name:     proc.Name,
-          command:  proc.CommandLine
-        )
-      }
-      procs
+        Process.new(pid.to_i,
+          name:    File.read(File.join(ps, 'comm')).strip,
+          command: File.read(File.join(ps, 'cmdline')).strip
+        ) rescue nil
+      }.compact
+    end
+
+    def self.from_id (id)
+      return unless id.numeric? && File.directory?("/proc/#{id}")
+
+      Process.new(id,
+        name:    File.read("/proc/#{id}/comm").strip,
+        command: File.read("/proc/#{id}/cmdline").strip
+      )
     end
   else
     fail 'Unsupported platform, contact the developers please.'
   end
 
-  def self.from_id (id)
-    Process.new(id)
-  end
-
   def self.kill (what, signal=:INT)
     if what.is_a?(String) || what.is_a?(Regexp)
-      OS::Process.all.each {|p|
+      OS::Process.all.map {|p|
         p.kill(signal) if p.command.match(what)
-      }
+      }.compact.all?
     else
       OS::Process.from_id(what).kill(signal)
     end
@@ -79,18 +70,23 @@ class Process
     @data = data
   end
 
-  def kill (signal=:INT, wait=true)
-    ::Process.kill(signal, @id)
+  def kill (force=false)
+    result = if force
+      ::Process.kill(:KILL, @id)
+    else
+      ::Process.kill(:INT, @id)
+    end rescue 1 == 1
 
-    if wait
-      ::Process.wait(@id)
+    if result
+      ::Process.wait(@id) rescue nil
     end
+
+    result
   end
 
   def send (signal)
-    kill(signal, false)
+    ::Process.kill(signal)
   end
 end
 
 end; end
-

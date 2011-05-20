@@ -22,11 +22,21 @@ require 'rubygems' unless defined?(Gem)
 
 require 'packo/service'
 
+class Packo::Service
+  OS = Packo::OS
+end
+
 service = Packo::Service.new
-service.instance_eval(File.read(ARGV.shift))
+service.instance_eval(File.read(ARGV.first), ARGV.first)
 
 if !service
   fail 'No service has been defined'
 end
 
-service.run(ARGV)
+begin
+  service.run(ARGV[1 .. -1])
+rescue Exception => e
+  Packo::Service::CLI.fatal e.message
+
+  Packo.debug e
+end

@@ -56,12 +56,16 @@ module CLI
       if yield
         puts " #{(options[:good] || '^_^').green}"
       else
-        raise
+        raise Class.new(Exception) { def __packo; end }
       end
     rescue Exception => e
       puts " #{(options[:bad] || ';_;').red}"
       
-      CLI.fatal e.message
+      if !e.respond_to? :__packo
+        CLI.fatal e.message
+
+        Packo.debug e
+      end
     end
   end
 end

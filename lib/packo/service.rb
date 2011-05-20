@@ -17,6 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo'
+require 'packo/os'
+
 require 'packo/service/cli'
 require 'packo/service/daemon'
 
@@ -31,8 +34,12 @@ class Service
     @current = Service.new(options, &block)
   end
 
-  def self.start (name, options=[])
-    system("/etc/init.d/#{name} start #{options.shelljoin}")
+  def self.start (name, options={})
+    return false unless File.executable?("/etc/init.d/#{name}")
+
+    Packo.sh "/etc/init.d/#{name} start", options
+
+    started?(name)
   end
 
   def self.started? (name)
@@ -65,8 +72,11 @@ class Service
     self
   end
 
-  def needs (what=nil)
-    what ? @needs = what : @needs
+  def needs (*args)
+    args.flatten!
+    args.compact!
+
+    args.empty? ? (@needs || []) : @needs = args
   end
 
   def supervised?
@@ -95,7 +105,17 @@ class Service
     block = @blocks[command = args.shift.to_sym]
 
     if command == :start
-      Package::Tags::Expression.parse(needs)
+      needs.each {|need|
+        if need.start_with? '!'
+          if Service.started?(need[1 .. -1])
+            raise RuntimeError.new "#{@options[:name] || 'This service'} can't run at the same time with #{need[1 .. -1]}"
+          end
+        else
+          if !Service.start(need)
+            raise RuntimeError.new "Could not start #{need}"
+          end
+        end
+      }
     else
       if !block
         CLI.fatal "#{@options[:name] || 'This service'} doesn't know how to do this"

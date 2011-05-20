@@ -87,27 +87,46 @@ end
 
 module Kernel
   def suppress_warnings
+    exception = nil
     tmp, $VERBOSE = $VERBOSE, nil
 
-    result = yield
+    begin
+      result = yield
+    rescue Exception => e
+      exception = e
+    end
 
     $VERBOSE = tmp
 
-    return result
+    if exception
+      raise exception
+    else
+      result
+    end
   end
 
   def catch_output
     require 'stringio'
 
-    result = StringIO.new
+    exception = nil
+    result    = StringIO.new
 
     out, err, $stdout, $stderr = $stdout, $stderr, result, result
 
-    yield
+    begin
+      yield
+    rescue Exception => e
+      exception = e
+    end
 
     $stdout, $stderr = out, err
 
-    result.rewind; result.read
+    if exception
+      raise exception
+    else
+      result.rewind
+      result.read
+    end
   end
 end
 
@@ -154,10 +173,13 @@ module Process
 
       pid = args.first
 
-      begin Process.kill(0, pid); rescue Errno::EPERM; end # acting like original wait
+      begin # act like original wait
+        Process.kill(0, pid)
+      rescue Errno::EPERM
+      end
 
       begin
-        sleep 0.1 while Process.kill(0, pid)
+        sleep 0.1 while Process.kill(0, pid) == 1
       rescue Errno::ESRCH
       rescue Errno::EPERM
         retry

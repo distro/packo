@@ -18,18 +18,20 @@
 #++
 
 require 'timeout'
-require 'packo/os/process'
+require 'packo/os'
 
 module Packo; class Service
 
 class Daemon
   def self.pid (id)
     if id.is_a?(String)
+      return unless File.readable?(id)
+
       id = File.read(id).to_i
     end
   
     if !OS::Process.from_id(id)
-      raise ArgumentError.new "PID #{id} not found"
+      return
     end
 
     Daemon.new(id)
@@ -41,7 +43,7 @@ class Daemon
     @data = OpenStruct.new
 
     if what.is_a?(Integer)
-      @process = OS::Process.from_id(@pid)
+      @process = OS::Process.from_id(what)
     else
       @command = what.to_s
     end
@@ -50,7 +52,7 @@ class Daemon
   end
   
   def send (name)
-    @process.kill(name)
+    @process.send(name)
   end
 
   def start (*args)
@@ -77,18 +79,16 @@ class Daemon
 
     if options[:save] != false
       File.write(@data.pid || "/var/run/#{File.basename(process.command)}.pid", pid)
+    else
+      pid = File.read(@data.pid).to_i rescue return
     end
 
-    @process = OS::Process.from_io(pid)
+    @process = OS::Process.from_id(pid)
   end
 
   def stop (options={})
     Timeout.timeout(options[:timeout] || 10) {
-      if options[:force]
-        @process.kill :KILL
-      else
-        @process.kill :INT
-      end
+      @process.kill(options[:force])
     } rescue false
   end
 end
