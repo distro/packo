@@ -23,18 +23,26 @@ require 'packo/os'
 module Packo; class Service
 
 class Daemon
+  def self.pid_file_for (name)
+    "/var/run/#{name}.pid"
+  end
+
   def self.pid (id)
+    file = nil
+
     if id.is_a?(String)
       return unless File.readable?(id)
 
-      id = File.read(id).to_i
+      file, id = id, File.read(id).to_i
     end
   
     if !OS::Process.from_id(id)
       return
     end
 
-    Daemon.new(id)
+    Daemon.new(id) {|d|
+      d.pid = file
+    }
   end
 
   attr_reader :process, :data
@@ -49,6 +57,10 @@ class Daemon
     end
 
     yield @data, self if block_given?
+
+    if !@data.pid
+      @data.pid = "/var/run/#{File.basename(@command || @process.command)}.pid"
+    end
   end
   
   def send (name)
@@ -77,8 +89,8 @@ class Daemon
       raise RuntimeError.new r.read
     end
 
-    if options[:save] != false
-      File.write(@data.pid || "/var/run/#{File.basename(process.command)}.pid", pid)
+    if options[:detach]
+      File.write(@data.pid || Daemon.pid_file_for(@command || @process.command), pid)
     else
       pid = File.read(@data.pid).to_i rescue return
     end

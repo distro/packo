@@ -61,7 +61,7 @@ class Service
       if File.readable?(file)
         require 'yaml'
 
-        @configuration = YAML::parse_file(file).transform
+        @configuration = YAML::parse_file(file).transform rescue {}
       end
     end
 
@@ -72,11 +72,51 @@ class Service
     self
   end
 
+  [:it, :this].each {|name|
+    define_method name do
+      self
+    end
+  }
+
   def needs (*args)
     args.flatten!
     args.compact!
 
     args.empty? ? (@needs || []) : @needs = args
+  end
+
+  def is (what)
+    start do
+      CLI.warn "#{what[:name]} is already started" and next if started?
+
+      daemon = Daemon.new(what[:command].shellsplit.first) {|d|
+        d.pid = config['pid'] || Daemon.pid_file_for(what[:name])
+      }
+
+      CLI.message "Starting #{what[:name]}..." do
+        daemon.start(*what[:command].shellsplit[1 .. -1].compact, what[:options] || {})
+      end
+    end
+
+    stop do
+      CLI.warn "#{what[:name]} is already stopped" and next if stopped?
+
+      daemon = Daemon.pid(config['pid'] || Daemon.pid_file_for(what[:name]))
+
+      CLI.message "Stopping #{what[:name]}..." do
+        daemon.stop || daemon.stop(force: true)
+      end
+    end
+
+    status do
+      daemon = Daemon.pid(config['pid'] || Daemon.pid_file_for(what[:name]))
+
+      if daemon
+        puts "started"
+      else
+        puts "stopped"
+      end
+    end
   end
 
   def supervised?
