@@ -64,8 +64,6 @@ if commands.member?(ARGV.first)
   }))
 end
 
-require 'rubygems' unless defined?(Gem)
-
 require 'packo/cli/base'
 
 class Application < Packo::CLI::Base
