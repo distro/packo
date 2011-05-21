@@ -40,7 +40,7 @@ class Blocker < Package
       validity = nil
     end
 
-    parsed = Packo::Package.parse(text)
+    parsed = Packo::Package.parse(text, only_parse: true)
 
     self.new(parsed.to_hash, validity, type)
   end
@@ -48,7 +48,7 @@ class Blocker < Package
   attr_reader :type, :validity
 
   def initialize (data, validity=nil, type=nil)
-    super(data)
+    super(data, only_parse: true)
 
     @validity = validity
     @type     = type

@@ -28,12 +28,12 @@ require 'packo/package/blockers'
 module Packo
 
 class Package
-  def self.parse (text, type=:standard)
+  def self.parse (text, options={})
     return text if text.is_a?(Package)
 
     data = {}
 
-    case type
+    case options[:type] || :standard
       when :standard
         matches = text.match(/^(.*?)(\[(.*?)\])?(\{(.*?)\})?$/)
 
@@ -60,7 +60,7 @@ class Package
         end
     end
 
-    Package.new(data)
+    Package.new(data, options)
   end
 
   def self.wrap (model)
@@ -112,11 +112,11 @@ class Package
   alias env  environment
   alias env! environment!
 
-  def initialize (data)
-    @data             = {}
-    @environment      = Environment.new(self)
-    @environmentClean = Environment.new(self, true)
-    @export           = []
+  def initialize (data, options={})
+    @options = options
+
+    @data   = {}
+    @export = []
 
     data.each {|name, value|
       self.send "#{name}=", value
@@ -125,12 +125,19 @@ class Package
     self.tags = [] unless self.tags
 
     @model = data[:model]
+
+    if !options[:only_parse]
+      @environment      = Environment.new(self)
+      @environmentClean = Environment.new(self, true)
+    end
   end
 
   def envify!
-    environment.apply!
+    return if @options[:only_parse]
 
-    environment[:FLAVOR].split(/\s+/).each {|element|
+    env.apply!
+
+    env[:FLAVOR].split(/\s+/).each {|element|
       matches = element.match(/^([+-])?(.+)$/)
 
       (matches[1] == '-') ?
@@ -138,7 +145,7 @@ class Package
         self.flavor.send("#{matches[2]}!")
     }
 
-    "#{environment[:FEATURES]} #{environment[:USE]}".split(/\s+/).each {|feature|
+    "#{env[:FEATURES]} #{env[:USE]}".split(/\s+/).each {|feature|
       feature = Feature.parse(feature)
 
       self.features {
@@ -151,6 +158,8 @@ class Package
         end
       }
     }
+
+    if env[:MASK] then mask! else unmask! end
   end
 
   def export! (*names)
@@ -213,7 +222,7 @@ class Package
   alias eql? ===
 
   def hash
-    "#{self.tags.hashed}/#{self.name}-#{self.version}%#{self.slot}".hash
+    "#{self.tags.hashed if self.tags}/#{self.name}-#{self.version}%#{self.slot}".hash
   end
 
   def to_hash

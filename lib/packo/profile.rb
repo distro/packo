@@ -25,11 +25,8 @@ class Profile
 
     Profile.new(
       config:   "#{path}/config",
-      tags:     "#{path}/tags",
-      packages: "#{path}/packages",
       modules:  "#{path}/modules",
-      mask:     "#{path}/mask",
-      unmask:   "#{path}/unmask",
+      packages: "#{path}/packages"
     )
   end
 
@@ -83,82 +80,32 @@ class Profile
         }
       end
 
-      if File.readable?(tags.to_s)
-        file   = File.read(tags)
-        tags   = {}
-        values = file.split(/^\s*\[.*?\]\s*$/); values.shift
-
-        file.scan(/^\s*\[(.*?)\]\s*$/).flatten.each_with_index {|name, index|
-          tags[name] = values[index]
-        }
-
-        tags.each {|expr, value|
-          next unless Packo::Package::Tags::Expression.parse(expr).evaluate(package) rescue false
-
-          begin
-            suppress_warnings {
-              mod.module_eval value
-            }
-          rescue Exception => e
-            Packo.debug e
-          end
-        }
-      end
-
       if File.readable?(packages.to_s)
-        file     = File.read(packages)
-        packages = {}
-        values   = file.split(/^\s*\[.*?\]\s*$/); values.shift
+        file    = File.read(packages.to_s)
+        checks  = {}
+        configs = file.split(/^\s*!.*?$/)[1 .. -1]
 
-        file.scan(/^\s*\[(.*?)\]\s*$/).flatten.each_with_index {|name, index|
-          packages[name] = values[index]
+        file.scan(/^\s*!\s*(.*?)\s*$/).flatten.each_with_index {|name, index|
+          checks[name] = configs[index]
         }
 
-        packages.each {|name, value|
-          next unless Packo::Package::Dependency.parse(name).in?(package) rescue false
+        checks.each {|expression, config|
+          whole, pkg, expr = expression.match(/^(.*?)?\s*(?:\((.*)\))?\s*(#.*)?$/).to_a.map {|p|
+            p.strip if p && !p.strip.empty?
+          }
+
+          next unless Packo::Package::Dependency.parse(pkg.strip).in?(package) if pkg
+          next unless Packo::Package::Tags::Expression.parse(expr.strip).evaluate(package) if expr
 
           begin
             suppress_warnings {
-              mod.module_eval value
+              mod.module_eval config
             }
           rescue Exception => e
             Packo.debug e
           end
         }
       end
-
-      if File.readable?(mask.to_s)
-        File.read(mask).lines.each {|line|
-          line.strip!
-
-          if line.start_with?('[') && line.end_with?(']')
-            if Packo::Package::Tags::Expression.parse(line[1, line.length - 2]).evaluate(package)
-              package.mask!
-            end
-          else
-            if Packo::Package::Dependency.parse(line).in?(package)
-              package.mask!
-            end
-          end
-        }
-      end
-
-      if File.readable?(unmask.to_s)
-        File.read(unmask).lines.each {|line|
-          line.strip!
-
-          if line.start_with?('[') && line.end_with?(']')
-            if Packo::Package::Tags::Expression.parse(line[1, line.length - 2]).evaluate(package)
-              package.unmask!
-            end
-          else
-            if Packo::Package::Dependency.parse(line).in?(package)
-              package.unmask!
-            end
-          end
-        }
-      end
-
     end
 
     mod.constants.each {|const|
