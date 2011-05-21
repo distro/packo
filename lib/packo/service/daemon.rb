@@ -92,10 +92,14 @@ class Daemon
     if options[:detach]
       File.write(@data.pid || Daemon.pid_file_for(@command || @process.command), pid)
     else
-      pid = File.read(@data.pid).to_i rescue return
+      Timeout.timeout(options[:wait] || 5) {
+        while !(pid = File.read(@data.pid).to_i rescue nil)
+          sleep 0.5
+        end
+      } rescue nil
     end
 
-    @process = OS::Process.from_id(pid)
+    @process = OS::Process.from_id(pid) if pid
   end
 
   def stop (options={})
