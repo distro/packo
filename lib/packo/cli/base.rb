@@ -18,7 +18,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo'
 require 'packo/cli'
 require 'packo/models'
 require 'packo/rbuild'
