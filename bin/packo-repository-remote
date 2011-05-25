@@ -18,5 +18,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+puts 1
 require 'packo/cli/repository/remote'
+puts 2
+
 Packo::CLI::Repository::Remote.start(ARGV)

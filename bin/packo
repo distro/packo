@@ -21,10 +21,6 @@
 
 require 'shellwords'
 
-def cmd (part)
-  part.length > 1 ? part : part.first
-end
-
 commands = Dir.glob('/usr/bin/packo-*').map {|path|
   File.basename(path).sub('packo-', '').split('-').map {|part|
     part.to_sym
@@ -45,7 +41,7 @@ descriptions = {
   :profile => 'Manage packø profiles',
 }
 
-trusted = [:base, :select, :db, :profile, [:repository, :remote]]
+trusted = [:base, :select, :db, :profile]
 
 commands.each {|command|
   next unless command.map {|p| p.to_s} == ARGV[0 .. command.length - 1]
@@ -65,15 +61,13 @@ commands.each {|command|
 
   through = []
 
-  if !trusted.include?(cmd(command))
+  if !trusted.include?(command.length > 1 ? command : command.first)
     through << 'sandbox' if sandbox
   end 
   
   through << 'fakeroot' if fakeroot
   
   through << "packo-#{command.join('-')}"
-
-  ap through
 
   exit Kernel.system(*(through + ARGV.map {|arg|
     arg.shellescape
@@ -93,13 +87,13 @@ class Application < Packo::CLI::Base
 end
 
 commands.each {|command|
-  description = command.length > 1 ?
-    descriptions[command] :
-    descriptions[command.first]
+  next if command.length > 1
+
+  command = command.shift
 
   Application.class_eval %{
-    desc '#{command.join ' '} [ARGUMENTS...]', '#{description}'
-    def #{command.join '_'} (*arguments)
+    desc '#{command} [ARGUMENTS...]', '#{descriptions[command]}'
+    def #{command} (*arguments)
     end
   }
 }
