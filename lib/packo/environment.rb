@@ -225,7 +225,7 @@ class Environment < Hash
       Environment.each(false) {|key, value|
         next if value.nil?
 
-        # This is an array, not a call to self.[]
+        # NOTE: This is an array, not a call to self.[]
         if [:FEATURES].member?(key)
           (self[key] ||= '') << " #{value}"
         else

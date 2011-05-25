@@ -110,7 +110,7 @@ class Location < OpenStruct
     result << "#{@type}; " if @type
 
     result << self.to_hash.map {|(name, value)|
-      "#{name}=#{value.to_s.gsub(';', '\;')}"
+      "#{name} = #{value.to_s.gsub(';', '\;')}"
     }.join('; ')
 
     result

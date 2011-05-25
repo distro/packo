@@ -26,6 +26,10 @@ module Packo
     !!(ENV['SANDBOX_ACTIVE'] || ENV['FAKED_MODE'])
   end
 
+  def self.user?
+    ENV['USER'] != 'root'
+  end
+
   def self.sh (*cmd, &block)
     options = (Hash === cmd.last) ? cmd.pop : {}
     cmd     = cmd.flatten.compact.map {|c| c.to_s}
@@ -39,17 +43,15 @@ module Packo
       }
     end
 
-    if options[:silent]
-      options[:out] = '/dev/null'
-      options[:err] = '/dev/null'
+    if options[:silent] || options[:catch]
+      r, w = IO.pipe
+
+      options[:out] = w
+      options[:err] = w
     else
       print "#{cmd.first} "
       cmd[1 .. cmd.length].each {|cmd|
-        if cmd.match(/[ \$'`]/)
-          print %Q{"#{cmd}" }
-        else
-          print "#{cmd} "
-        end
+        print cmd.shellescape
       }
       print "\n"
     end
@@ -60,6 +62,12 @@ module Packo
     status = $?
 
     block.call(result, status)
+
+    if options[:catch]
+      r.read
+    else
+      status
+    end
   end
 
   def self.load (path, options={})

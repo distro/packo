@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'uri'
+
 require 'packo'
 
 require 'packo/do/vcs'
@@ -46,6 +48,20 @@ class Repository
       require 'packo/models'
 
       Models::Repository.first(name: name, type: type).destroy
+    end
+  end
+
+  class Remote
+    def self.add (uri)
+      uri = URI.parse(uri)
+    end
+
+    def self.delete (name)
+
+    end
+
+    def self.get (name)
+      Models.remote(name).location rescue nil
     end
   end
 

@@ -168,12 +168,6 @@ module Models
     transaction.commit
   end
 
-  def self.search_installed (expression, options={})
-    Models::InstalledPackage.search(expression, options).map {|pkg|
-      Package.wrap(pkg)
-    }
-  end
-
   def self.search (expression, options={})
     packages = []
 
@@ -199,6 +193,16 @@ module Models
 
     packages.flatten.compact.map {|package|
       Package.wrap(package)
+    }
+  end
+
+  def self.remote (name)
+    Models::Repository::Remote.first(Packo::Repository.parse(name).to_hash)
+  end
+
+  def self.search_installed (expression, options={})
+    Models::InstalledPackage.search(expression, options).map {|pkg|
+      Package.wrap(pkg)
     }
   end
 

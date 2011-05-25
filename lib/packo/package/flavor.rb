@@ -56,6 +56,15 @@ class Flavor
     @values.empty?
   end
 
+  def method_missing (id, *args, &block)
+    case id.to_s
+      when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new($1, false)).enabled?
+      when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new($1, false)).disable!
+      when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new($1, false)).enable!
+      when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new($1, false))
+    end
+  end
+
   def set (name, value)
     @values[name.to_sym] = Feature.new(name, value)
   end

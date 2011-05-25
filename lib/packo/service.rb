@@ -27,6 +27,16 @@ require 'packo/service/daemon'
 module Packo
 
 class Service
+  Paths = ['/sbin/init.d', '/sbin/rc.d', '/etc/init.d']
+
+  def self.path (name)
+    path = Paths.find {|path|
+      File.executable?("#{path}/#{name}")
+    } or return
+
+    "#{path}/#{name}"
+  end
+
   def self.current
     @current
   end
@@ -36,15 +46,13 @@ class Service
   end
 
   def self.start (name, options={})
-    return false unless File.executable?("/etc/init.d/#{name}")
-
-    Packo.sh "/etc/init.d/#{name} start", options
+    Packo.sh Service.path(name), :start, options
 
     started?(name)
   end
 
   def self.started? (name)
-    !`/etc/init.d/#{name} status`.strip.end_with('stopped')
+    !Packo.sh(Service.path(name), :status, catch: true).strip.end_with('stopped')
   end
 
   include Callbackable
@@ -58,17 +66,7 @@ class Service
     @options = options
     @blocks  = {}
 
-    if matches = File.realpath($0).match(%r{^/etc/init\.d/(.*)$})
-      whole, file = matches.to_a
-
-      if File.readable?(file)
-        require 'yaml'
-
-        @configuration = YAML::parse_file(file).transform rescue {}
-      end
-    end
-
-    @configuration ||= {}
+    @configuration ||= options[:configuration] || {}
 
     self.instance_exec(self, &block) if block
 

@@ -19,6 +19,7 @@
 
 require 'packo/repository'
 
+require 'packo/models/repository/remote'
 require 'packo/models/repository/package'
 
 require 'packo/models/repository/binary'

@@ -24,7 +24,34 @@ class Packo::Service
   OS = Packo::OS
 end
 
-service = Packo::Service.new
+$0   = File.realpath($0)
+conf = nil
+
+Packo::Service::Paths.each {|path|
+  next unless $0.start_with?(path)
+
+  whole, name = $0.match(%r{^#{path}/(.*?)$})
+
+  next unless File.readable?(file = "/etc/conf.d/#{name}")
+
+  require 'yaml'
+
+  if File.read(file, 3) == '---'
+    conf = YAML::parse_file(file).transform
+  else
+    mod = ::Module.new
+
+    suppress_warnings {
+      mod.module_eval File.read(file)
+    }
+
+    conf = Hash[mod.constants.map {|name|
+      [name, mod.const_get name]
+    }]
+  end
+}
+
+service = Packo::Service.new(configuration: conf)
 service.instance_eval(File.read(ARGV.first), ARGV.first)
 
 if !service

@@ -32,11 +32,11 @@ class Package
   belongs_to :repo, 'Repository'
   has n,     :tags, through: Resource, constraint: :destroy
 
-  property :repository_id, Integer,                                     unique_index: :a
+  property :repository_id, Integer,                               unique_index: :a
   property :tags_hashed,   String,  length: 40,   required: true, unique_index: :a
   property :name,          String,  length: 255,  required: true, unique_index: :a
-  property :version,       Version,                  required: true, unique_index: :a
-  property :slot,          String,  default: '',                     unique_index: :a
+  property :version,       Version,               required: true, unique_index: :a
+  property :slot,          String,  default: '',                  unique_index: :a
   property :revision,      Integer, default: 0
 
   property :description,  Text

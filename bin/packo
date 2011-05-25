@@ -21,31 +21,43 @@
 
 require 'shellwords'
 
+def cmd (part)
+  part.length > 1 ? part : part.first
+end
+
 commands = Dir.glob('/usr/bin/packo-*').map {|path|
-  File.basename(path).sub('packo-', '')
+  File.basename(path).sub('packo-', '').split('-').map {|part|
+    part.to_sym
+  }
 }
 
 descriptions = {
-  :base       => 'Manage packages in the system',
-  :files      => 'Manage various informations about package contents',
-  :build      => 'Manage packø building system',
-  :select     => 'Manage various configurations',
+  :base   => 'Manage packages in the system',
+  :files  => 'Manage various informations about package contents',
+  :build  => 'Manage packø building system',
+  :select => 'Manage various configurations',
+
   :repository => 'Manage packø repositories',
-  :env        => 'Manage packø environment',
-  :db         => 'Manage packø databases',
-  :profile    => 'Manage packø profiles',
+    [:repository, :remote] => 'Manage remote repositories',
+
+  :env     => 'Manage packø environment',
+  :db      => 'Manage packø databases',
+  :profile => 'Manage packø profiles',
 }
 
-trusted = [:base, :select, :db, :profile]
+trusted = [:base, :select, :db, :profile, [:repository, :remote]]
 
-if commands.member?(ARGV.first)
-  command  = ARGV.shift
+commands.each {|command|
+  next unless command.map {|p| p.to_s} == ARGV[0 .. command.length - 1]
+
+  ARGV.shift(command.length)
+
   sandbox  = false
   fakeroot = false
 
   ENV['PATH'].split(':').each {|folder|
-    sandbox  = File.executable?("#{folder}/sandbox")  if !sandbox
-    fakeroot = File.executable?("#{folder}/fakeroot") if !fakeroot
+    sandbox  ||= File.executable?("#{folder}/sandbox")
+    fakeroot ||= File.executable?("#{folder}/fakeroot")
   }
   
   warn "sandbox isn't installed"  if !sandbox
@@ -53,16 +65,20 @@ if commands.member?(ARGV.first)
 
   through = []
 
-  if !trusted.include?(command.to_sym)
-    through << 'sandbox'
+  if !trusted.include?(cmd(command))
+    through << 'sandbox' if sandbox
   end 
   
-  through << 'fakeroot' << "packo-#{command}"
+  through << 'fakeroot' if fakeroot
+  
+  through << "packo-#{command.join('-')}"
+
+  ap through
 
   exit Kernel.system(*(through + ARGV.map {|arg|
     arg.shellescape
   }))
-end
+}
 
 require 'packo/cli/base'
 
@@ -77,9 +93,13 @@ class Application < Packo::CLI::Base
 end
 
 commands.each {|command|
+  description = command.length > 1 ?
+    descriptions[command] :
+    descriptions[command.first]
+
   Application.class_eval %{
-    desc '#{command} [ARGUMENTS...]', '#{descriptions[command.to_sym] || '...'}'
-    def #{command} (*arguments)
+    desc '#{command.join ' '} [ARGUMENTS...]', '#{description}'
+    def #{command.join '_'} (*arguments)
     end
   }
 }

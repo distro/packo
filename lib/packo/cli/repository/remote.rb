@@ -1,4 +1,4 @@
-#! /usr/bin/env ruby
+# encoding: utf-8
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
@@ -18,5 +18,37 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/cli/build'
-Packo::CLI::Build.start(ARGV)
+require 'packo'
+
+require 'packo/cli'
+require 'packo/models'
+require 'packo/do/repository'
+
+module Packo; module CLI; class Repository < Thor
+
+class Remote < Thor
+  include Thor::Actions
+
+  class_option :help, type: :boolean, desc: 'Show help usage'
+
+  desc 'add URI...', 'Add remote sets'
+  map '-a' => :add
+  def add (*uris)
+  end
+
+  desc 'delete NAME...', 'Delete installed remote sets'
+  map '-d' => :delete, '-R' => :delete
+  def delete (*names)
+  end
+
+  desc 'update [NAME...]', 'Update installed remote sets'
+  map '-u' => :update
+  def update (*names)
+  end
+
+  desc 'list [NAME]', 'List available remotes'
+  def list (name=nil)
+  end
+end
+
+end; end; end

@@ -1,4 +1,3 @@
-#! /usr/bin/env ruby
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
@@ -18,5 +17,21 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/cli/build'
-Packo::CLI::Build.start(ARGV)
+module Packo; module Models; class Repository
+
+class Remote
+  include DataMapper::Resource
+  
+  property :owner, String
+
+  property :id, Serial
+
+  property :type, String, unique_index: :a
+  property :name, String, unique_index: :a
+
+  property :description, String
+
+  property :location, Location
+end
+
+end; end; end
