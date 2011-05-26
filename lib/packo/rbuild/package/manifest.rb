@@ -102,47 +102,40 @@ class Manifest
   end
 
   def to_yaml
-    <<-PACKAGE.gsub(/^ {6}/, '')
-      ---
-      package:
-        tags:     #{package.tags}
-        name:     #{package.name}
-        version:  #{package.version}
-        slot:     #{package.slot}
-        revision: #{package.revision}
+    data = {
+      'package'      => {},
+      'dependencies' => [],
+      'blockers'     => [],
+      'selectors'    => []
+    }
 
-        descripion: #{package.description.inspect}
-        homepage:   #{package.homepage.inspect}
-        license:    #{package.license.inspect}
+    data['package'].merge!(Hash[package.to_hash.map {|name, value|
+      next if value.nil?
 
-        maintainer: #{package.maintainer.inspect}
+      [name.to_s, value.to_s]
+    }.compact])
 
-        flavor:   #{package.flavor}
-        features: #{package.features}
+    data['package']['environment'] = Hash[package.environment.map {|name, value|
+      next if value.nil?
 
-        environment: #{package.environment.map {|(name, value)|
-          "\n    #{name}: #{value.to_s.inspect}"
-        }.join}
+      [name.to_s, value.to_s]
+    }.compact]
 
-        exports: #{Base64.encode64(Marshal.dump(package.exports)).gsub("\n", '')}
+    data['package']['exports'] = Base64.encode64(Marshal.dump(package.exports))
 
-      dependencies: #{dependencies.map {|dependency|
-        "\n  - #{dependency.to_s.inspect}"
-      }.join}
+    dependencies.each {|dependency|
+      data['dependencies'] << dependency.to_s
+    }
 
-      blockers: #{blockers.map {|blocker|
-        "\n  - #{blocker.to_s.inspect}"
-      }.join}
+    blockers.each {|blocker|
+      data['blockers'] << blocker.to_s
+    }
 
-      selectors:
-      #{selectors.map {|selector|
-        <<-SELECTOR.gsub(/^ {8}/, '')
-          - name:        #{selector.name.to_s.inspect}
-            description: #{selector.description.to_s.inspect}
-            path:        #{selector.path.to_s.inspect}
-        SELECTOR
-      }.join("\n")}
-    PACKAGE
+    selectors.each {|selector|
+      data['selectors'] << selector.to_hash
+    }
+
+    data.to_yaml
   end
 
   def save (to, options={})
