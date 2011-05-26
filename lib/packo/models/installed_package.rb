@@ -67,13 +67,14 @@ class InstalledPackage
       conditions = { order: [:name.asc] }
 
       if options[:exact]
-        conditions[:name]    = package.name    if package.name
+        conditions[:name] = package.name if package.name
+      else
+        conditions[:name.like] = "%#{package.name}%" if package.name
+      end
+
+      if !validity || validity.empty?
         conditions[:version] = package.version if package.version
         conditions[:slot]    = package.slot    if package.slot
-      else
-        conditions[:name.like]    = "%#{package.name}%" if package.name
-        conditions[:version.like] = package.version     if package.version
-        conditions[:slot.like]    = "%#{package.slot}%" if package.slot
       end
 
       result = all(conditions)

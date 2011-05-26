@@ -20,7 +20,11 @@
 module Packo; module RBuild
 
 class Module
-  include Callbackable
+  Callbackable.instance_methods.each {|meth|
+    define_method meth do |*args, &block|
+      package.__send__ meth, *args, &block
+    end
+  }
 
   class Helper
     attr_accessor :package

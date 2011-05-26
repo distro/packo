@@ -20,10 +20,6 @@
 require 'packo/system'
 require 'packo/extensions'
 
-if Packo::System.host.kernel == 'windows'
-  require 'win32ole'
-end
-
 module Packo; module OS
 
 class Process

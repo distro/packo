@@ -152,7 +152,7 @@ class Build < Thor
 
       begin
         Do.cd(File.dirname(file)) {
-          File.write('digest.xml', Do::Build.digest(file))
+          File.write('digest.yml', Do::Build.digest(file))
         }
       rescue Do::Build::Exceptions::PackageNotFound => e
       rescue Package::Tags::Expression::EvaluationError => e
@@ -167,16 +167,13 @@ class Build < Thor
     }
   rescue Errno::EACCES
     CLI.fatal 'Try to use packo-build instead.'
-  rescue Exception => e
-    Packo.debug e
-    exit 99
   end
 
   desc 'manifest PACKAGE [OPTIONS]', 'Output the manifest of the given package'
   method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific source repository'
   def manifest (package)
     begin  
-      Do::Build.manifest(package)
+      puts Do::Build.manifest(package)
     rescue Do::Build::Exceptions::PackageNotFound
       CLI.fatal 'Package could not be instantiated'
 

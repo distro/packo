@@ -17,8 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo'
-
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
 require 'packo/rbuild/flavor'
@@ -211,7 +209,7 @@ class Package < Packo::Package
     @build_end_at = Time.now
   end
 
-  def build?
+  def built?
     Hash[
       start: @build_start_at,
       end:   @build_end_at

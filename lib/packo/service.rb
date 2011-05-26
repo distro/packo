@@ -27,7 +27,7 @@ require 'packo/service/daemon'
 module Packo
 
 class Service
-  Paths = ['/sbin/init.d', '/sbin/rc.d', '/etc/init.d']
+  Paths = ['/sbin/rc.d', '/sbin/init.d', '/etc/init.d']
 
   def self.path (name)
     path = Paths.find {|path|

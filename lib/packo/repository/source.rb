@@ -30,8 +30,8 @@ class Source < Repository
     super(data)
   end
 
-  def address
-    Nokogiri::XML.parse(File.read("#{self.path}/repository.xml")).xpath('//address').first.text rescue nil
+  def location
+    Location[YAML.parse_file("#{self.path}/repository.yml")['location'].transform]
   end
 
   def each_package (what=[self.path], root=self.path, &block)

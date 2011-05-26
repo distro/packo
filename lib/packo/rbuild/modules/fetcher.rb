@@ -163,7 +163,7 @@ class Fetcher < Module
       package.distfiles.each {|name, file|
         file ||= name
 
-        original = package.digests[file.url].digest or next
+        original = package.digests[file.url].digest rescue nil or next
         digest   = Packo.digest(file.path) or next
 
         if digest != original

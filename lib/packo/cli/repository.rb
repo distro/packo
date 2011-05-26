@@ -303,6 +303,8 @@ class Repository < Thor
     repositories.each {|repository|
       Do::Repository.generate(repository)
     }
+  rescue Errno::EACCES
+    CLI.fatal 'Try to use packo-repository instead.'
   end
 end
 

@@ -66,7 +66,7 @@ class Repository
   end
 
   def self.add (location)
-    type, name = nil
+    data, type, name = nil
 
     Do.rm("#{System.env[:TMP]}/.__packo.repo")
 
@@ -80,18 +80,18 @@ class Repository
         location.path = File.realpath(location.path)
 
         if File.directory?(location.path)
-          dom = Nokogiri::XML.parse(File.read("#{location.path}/repository.xml"))
+          data = YAML.parse_file("#{location.path}/repository.yml").transform
         else
-          dom = Nokogiri::XML.parse(File.read(location.path))
+          data = YAML.parse_file(location.path).transform
         end
 
-        type = dom.root['type'].to_sym
-        name = dom.root['name']
+        type = data['type'].to_sym
+        name = data['name']
 
         if type == :source
           path = location.path
 
-          location = Location[dom.xpath('//location').first]
+          location = Location[data['location']]
           location.repository = path
         end
       end
@@ -100,19 +100,17 @@ class Repository
         type = :virtual
         name = File.basename(location.address).sub('.rb', '')
       else
-        dom = Nokogiri::XML.parse(open(location.address).read)
+        data = YAML.parse_file(location.address).transform
 
-        type = dom.root['type'].to_sym
-        name = dom.root['name']
       end
     else
       Do::VCS.checkout(location, "#{System.env[:TMP]}/.__packo.repo")
 
-      dom = Nokogiri::XML.parse(File.read("#{System.env[:TMP]}/.__packo.repo/repository.xml"))
-
-      type = dom.root['type'].to_sym
-      name = dom.root['name']
+      data = YAML.parse_file("#{System.env[:TMP]}/.__packo.repo/#{location.path || 'repository.yml'}").transform
     end
+
+    type = data['type'].to_sym if !type && data
+    name = data['name']        if !name && data
 
     path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
 
@@ -123,11 +121,11 @@ class Repository
 
     case type
       when :binary
-        path << '.xml'
+        path << '.yml'
 
         FileUtils.mkpath(File.dirname(path))
-        File.write(path, open((location.type == :file && (!location.path.end_with?('.xml'))) ?
-          "#{location.path}/repository.xml" :
+        File.write(path, open((location.type == :file && (!location.path.end_with?('.yml'))) ?
+          "#{location.path}/repository.yml" :
           location.path || location.address
         ).read)
 
@@ -229,52 +227,43 @@ class Repository
     }
   end
 
-  def self.generate (path)
-    dom = Nokogiri::XML.parse(File.read(path)) {|config|
-      config.default_xml.noblanks
-    }
+  def self.generate (path, options={ output: System.env[:TMP] })
+    require 'packo/do/build'
 
-    dom.xpath('//packages/package').each {|e|
-      CLI.info "Generating #{Packo::Package.new(tags: e['tags'].split(/\s+/), name: e['name'])}".bold if System.env[:VERBOSE]
+    data = YAML.parse_file(path).transform
 
-      e.xpath('.//build').each {|build|
-        package = Package.new(
-          tags:     e['tags'],
-          name:     e['name'],
-          version:  build.parent['name'],
-          slot:     (build.parent.parent.name == 'slot') ? build.parent.parent['name'] : nil,
+    data['packages'].each {|name, data|
+      CLI.info "Generating #{name}".bold if System.env[:VERBOSE]    
 
-          repository: options[:repository]
-        )
+      data['builds'].each {|build|
+        package = Package.parse(name)
 
-        package.flavor   = (build.xpath('.//flavor').first.text rescue '')
-        package.features = (build.xpath('.//features').first.text rescue '')
+        package.version = build['version'] if build['version']
+        package.slot    = build['slot']    if build['slot']
 
-        next if File.exists?("#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}/" +
-          "#{package.name}-#{package.version}#{"%#{package.slot}" if package.slot}" +
-          "#{"+#{package.flavor.to_s(:package)}" if !package.flavor.to_s(:package).empty?}" +
-          "#{"-#{package.features.to_s(:package)}" if !package.features.to_s(:package).empty?}" +
-          '.pko'
-        )
+        if build['repository'] || data['repository']
+          package.repository = build['repository'] || data['repository']
+        end
+
+        package.flavor   = build['flavor']   if build['flavor']
+        package.features = build['features'] if build['features']
 
         begin
-          pko = _build(package,
-            FLAVOR:   package.flavor,
-            FEATURES: package.features
-          )
+          result = Do::Build.build(package, env: { FLAVOR: package.flavor, FEATURES: package.features }) {|stage|
+            CLI.info "Executing #{stage.name}"
+          }
 
-          build.xpath('.//digest').each {|node| node.remove}
-          build.add_child dom.create_element('digest', Packo.digest(pko))
+          build['digest'] = Packo.digest(result)
 
-          FileUtils.mkpath "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
-          FileUtils.mv pko, "#{options[:output]}/#{dom.root['name']}/#{package.tags.to_s(true)}"
+          FileUtils.mkpath "#{options[:output]}/#{data['name']}/#{package.tags.to_s(true)}"
+          FileUtils.mv result, "#{options[:output]}/#{data['name']}/#{package.tags.to_s(true)}"
         rescue Exception => e
           Packo.debug e
         end
-
-        File.write(path, dom.to_xml(indent: 4))
       }
     }
+
+    File.write(path.sub(/(\..*?)$/, '.generated\1'), data.to_yaml)
   end
 
   def self.has (package, env)

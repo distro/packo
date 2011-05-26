@@ -91,7 +91,6 @@ class Property
   end
 
   class Location < String
-    # Hopefully the max length of a version won't go over 255 chars
     length 2048
 
     def custom?

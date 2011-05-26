@@ -17,26 +17,23 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo'
 require 'packo/rbuild'
 
 module Packo; class Do
   
 class Build
   module Exceptions
-    class IncompleteEnvironment < Exception; end
-    class PackageNotFound < Exception; end
-    class MultiplePackages < Exception; end
-    class InvalidName < Exception; end
+    IncompleteEnvironment = Class.new(Exception)
+    PackageNotFound       = Class.new(Exception)
+    MultiplePackages      = Class.new(Exception)
+    InvalidName           = Class.new(Exception)
   end
 
   def self.build (package, options={}, &block)
-    if !package.is_a?(Packo::Package)
-      package = self.package(package, options)
-    end
+    package = self.package(package, options)
 
     if !System.env[:ARCH] || !System.env[:KERNEL] || !System.env[:LIBC] || !System.env[:COMPILER]
-      raise IncompleteEnviroment.new 'You have to set ARCH, KERNEL, LIBC and COMPILER to build packages.'
+      raise Exceptions::IncompleteEnviroment.new 'You have to set ARCH, KERNEL, LIBC and COMPILER to build packages.'
     end
 
     output = nil
@@ -172,82 +169,71 @@ class Build
     package.build
   end
 
-  def self.clean (package)
-    if !package.is_a?(Packo::Package)
-      package = self.package(package, options)
-    end
+  def self.clean (package, options={})
+    package = self.package(package, options)
 
     package.clean!
   end
 
-  def self.digest (file)
+  def self.digest (file, options={})
     Do.cd(File.dirname(file)) {
-      if File.basename(file).match(/.*?-\d/)
-        package = Packo.loadPackage(File.dirname(file), Package.parse(File.basename(file).sub(/\.rbuild$/, '')))
-      else
-        package = Packo.loadPackage(file)
-      end
-
-      if !package
-        raise PackageNotFound.new 'Could not instantiate the package.'
-      end
+      package = self.package(file, options)
 
       package.digests = {}
 
       package.after :fetch do |result|
-        package.stages.stop!
-
-        throw :halt
+        stages.stop!
+        skip
       end
 
       Do.cd {
         package.build
       }
 
-      original = Nokogiri::XML.parse(File.read('digest.xml')) {|config|
-        config.default_xml.noblanks
-      } rescue nil
+      data = YAML.parse_file('digest.yml') rescue {}
 
-      builder = Nokogiri::XML::Builder.new {|xml|
-        xml.digest(version: '1.0') {
-          xml.build(version: package.version, slot: package.slot) {
-            xml.features package.features.to_a.map {|f| f.name}.join(' ')
+      data['packages'] ||= []
 
-            xml.files {
-              package.distfiles.to_a.each {|(name, file)|
-                file ||= name
+      data['packages'].delete(data['packages'].find {|pkg|
+        package.version == pkg.version && (!package.slot || package.slot == pkg.slot)
+      })
 
-                xml.file({ name: File.basename(file.path), url: file.url }, Packo.digest(file.path))
-              } if package.distfiles
-            }
-          }
+      pkg = {}
+      pkg['version'] = package.version.to_s
+      pkg['slot']    = package.slot if package.slot
 
-          if original
-            original.xpath('//build').each {|build|
-              if build['version'] != package.version.to_s && ((build['slot'].empty? && !package.slot) || build['slot'] != package.slot.to_s)
-                xml.doc.root.add_child(build)
-              end
-            }
-          end
-        }
+      pkg['features'] = package.features.to_a.map {|f|
+        f.name
+      }.join(' ')
+      
+      pkg['files'] = package.distfiles.to_a.map {|(name, file)|
+        file ||= name
+
+        Hash[
+          'name'   => File.basename(file.path),
+          'url'    => file.url,
+          'digest' => Packo.digest(file.path)
+        ]
       }
 
-      builder.to_xml(indent: 4)
+      data['packages'] << pkg
+
+      data.to_yaml
     }
   end
 
-  def self.manifest (package)
-    if !package.is_a?(Packo::Package)
-      package = self.package(package, options)
-    end
+  def self.manifest (package, options={})
+    package = self.package(package, options)
     
     RBuild::Package::Manifest.new(package).to_s
   end
 
   def self.package (package, options={})
-    package = (if package.end_with?('.rbuild')
-      package
-    else
+    return package if package.is_a?(RBuild::Package)
+
+    package = package.to_s
+
+    if !package.end_with?('.rbuild')
       require 'packo/models'
 
       packages = Models.search(package, options)
@@ -257,17 +243,17 @@ class Build
       }.map {|(name, package)| name}.uniq
 
       if names.length == 0
-        raise PackageNotFound.new "No package matches #{package}"
+        raise Exceptions::PackageNotFound.new "No package matches #{package}"
       elsif names.length > 1
-        raise MultiplePackages.new "More than one package matches: #{package}"
+        raise Exceptions::MultiplePackages.new "More than one package matches: #{package}"
       end
 
-      packages.select {|pkg|
+      package = packages.select {|pkg|
         !pkg.masked?
       }.sort {|a, b|
         a.version <=> b.version
       }.last
-    end)
+    end
 
     if package.is_a?(String)
       path    = File.dirname(File.realpath(package))

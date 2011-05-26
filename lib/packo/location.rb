@@ -17,7 +17,6 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'nokogiri'
 require 'ostruct'
 
 module Packo
@@ -26,8 +25,6 @@ class Location < OpenStruct
   def self.[] (data={})
     if data.is_a?(Hash)
       Location.new(data)
-    elsif data.is_a?(Nokogiri::XML::Element)
-      Location.from_dom(data)
     else
       Location.parse(data.to_s)
     end
@@ -70,18 +67,6 @@ class Location < OpenStruct
 
       Location.new(data)
     end
-  end
-
-  def self.from_dom (dom)
-    data = {}
-
-    data[:type] = dom['type']
-
-    dom.xpath('./*').each {|e|
-      data[e.name] = e.text
-    }
-
-    Location.new(data)
   end
 
   attr_reader :type

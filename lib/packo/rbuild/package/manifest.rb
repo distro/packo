@@ -17,53 +17,42 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'nokogiri'
 require 'base64'
-
-require 'packo'
 
 module Packo; module RBuild; class Package < Packo::Package
 
 class Manifest
   def self.parse (text)
-    dom = Nokogiri::XML.parse(text)
+    data = YAML.parse(text).transform
 
     Manifest.new(OpenStruct.new(
-      maintainer: dom.root['maintainer'],
+      maintainer: data['package']['maintainer'],
 
-      tags:    Packo::Package::Tags.parse(dom.xpath('//package/tags').first.text),
-      name:    dom.xpath('//package/name').first.text,
-      version: Versionomy.parse(dom.xpath('//package/version').first.text),
-      slot:    dom.xpath('//package/slot').first.text,
+      tags:    Packo::Package::Tags.parse(data['package']['tags']),
+      name:    data['package']['name'],
+      version: Versionomy.parse(data['package']['version']),
+      slot:    data['package']['slot'],
 
-      exports: Marshal.load(Base64.decode64(dom.xpath('//package/exports').first.text)),
+      exports: Marshal.load(Base64.decode64(data['package']['exports'])),
 
-      description: dom.xpath('//package/description').first.text,
-      homepage:    dom.xpath('//package/homepage').first.text.split(/\s+/),
-      license:     dom.xpath('//package/license').first.text.split(/\s+/),
+      description: data['package']['description'],
+      homepage:    data['package']['homepage'].split(/\s+/),
+      license:     data['package']['license'].split(/\s+/),
 
-      flavor:   Packo::Package::Flavor.parse(dom.xpath('//package/flavor').first.text || ''),
-      features: Packo::Package::Features.parse(dom.xpath('//package/features').first.text || ''),
+      flavor:   Packo::Package::Flavor.parse(data['package']['flavor'] || ''),
+      features: Packo::Package::Features.parse(data['package']['features'] || ''),
 
-      environment: Hash[dom.xpath('//package/environment/variable').map {|env|
-        [env['name'], env.text]
-      }],
+      environment: data['package']['environment'],
 
-      dependencies: dom.xpath('//dependencies/dependency').map {|dependency|
-        Package::Dependency.parse("#{dependency.text}#{['', '!', '!!'][['both', 'build', 'runtime'].index(dependency['type'])]}")
+      dependencies: data['dependencies'].map {|dependency|
+        Package::Dependency.parse(dependency)
       },
 
-      blockers: dom.xpath('//blockers/blocker').map {|blocker|
-        Package::Blocker.parse("#{blocker.text}#{['', '!', '!!'][['both', 'build', 'runtime'].index(dependency['type'])]}")
+      blockers: data['blockers'].map {|blocker|
+        Package::Blocker.parse(blocker)
       },
 
-      selector: dom.xpath('//selectors/selector').map {|selector|
-        Hash[
-          name:        selector['name'],
-          description: selector['description'],
-          path:        selector.text
-        ]
-      }
+      selector: data['selectors']
     ))
   end
 
@@ -91,9 +80,9 @@ class Manifest
       flavor:   what.flavor,
       features: what.features,
 
-      environment: what.environment.reject {|name, value|
-        [:DATABASE, :FLAVORS, :PROFILE, :CONFIG_FILE, :CONFIG_PATH,
-         :CONFIG_MODULES, :REPOSITORIES, :SELECTORS, :FETCHER,
+      environment: what.environment!.reject {|name, value|
+        [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, 
+         :REPOSITORIES, :SELECTORS, :FETCHER,
          :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
         ].member?(name.to_sym)
       }
@@ -110,59 +99,58 @@ class Manifest
         @selectors << OpenStruct.new(name: matches[1], description: matches[2], path: name)
       }
     end
+  end
 
-    @builder = Nokogiri::XML::Builder.new {|xml|
-      xml.manifest(version: '1.0') {
-        xml.package(maintainer: self.package.maintainer) {
-          xml.tags     self.package.tags
-          xml.name     self.package.name
-          xml.version  self.package.version
-          xml.slot     self.package.slot
-          xml.revision self.package.revision
+  def to_yaml
+    <<-PACKAGE.gsub(/^ {6}/, '')
+      ---
+      package:
+        tags:     #{package.tags}
+        name:     #{package.name}
+        version:  #{package.version}
+        slot:     #{package.slot}
+        revision: #{package.revision}
 
-          xml.description self.package.description
-          xml.homepage    self.package.homepage
-          xml.license     self.package.license
+        descripion: #{package.description.inspect}
+        homepage:   #{package.homepage.inspect}
+        license:    #{package.license.inspect}
 
-          xml.flavor   self.package.flavor
-          xml.features self.package.features
+        maintainer: #{package.maintainer.inspect}
 
-          xml.environment {
-            self.package.environment.each {|name, value|
-              xml.variable({ name: name }, value)
-            }
-          }
+        flavor:   #{package.flavor}
+        features: #{package.features}
 
-          xml.exports Base64.encode64(Marshal.dump(self.package.exports))
-        }
+        environment: #{package.environment.map {|(name, value)|
+          "\n    #{name}: #{value.to_s.inspect}"
+        }.join}
 
-        xml.dependencies {
-          self.dependencies.each {|dependency|
-            xml.dependency({ type: dependency.type }, dependency.to_s)
-          }
-        }
+        exports: #{Base64.encode64(Marshal.dump(package.exports)).gsub("\n", '')}
 
-        xml.blockers {
-          self.blockers.each {|blocker|
-            xml.blocker({ type: blocker.type }, blocker.to_s)
-          }
-        }
+      dependencies: #{dependencies.map {|dependency|
+        "\n  - #{dependency.to_s.inspect}"
+      }.join}
 
-        xml.selectors {
-          self.selectors.each {|selector|
-            xml.selector({ name: selector.name, description: selector.description }, selector.path)
-          }
-        }
-      }
-    }
+      blockers: #{blockers.map {|blocker|
+        "\n  - #{blocker.to_s.inspect}"
+      }.join}
+
+      selectors:
+      #{selectors.map {|selector|
+        <<-SELECTOR.gsub(/^ {8}/, '')
+          - name:        #{selector.name.to_s.inspect}
+            description: #{selector.description.to_s.inspect}
+            path:        #{selector.path.to_s.inspect}
+        SELECTOR
+      }.join("\n")}
+    PACKAGE
   end
 
   def save (to, options={})
-    File.write(to, self.to_s(options))
+    File.write(to, self.to_s)
   end
 
   def to_s (options={})
-    @builder.to_xml({ indent: 4 }.merge(options))
+    to_yaml
   end
 end
 

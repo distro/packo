@@ -67,36 +67,35 @@ module Packo
     files = {}
 
     if package
-      if File.exists?("#{path}/digest.xml") && (digest = Nokogiri::XML.parse(File.read("#{path}/digest.xml", encoding: 'utf-8')))
-        features = digest.xpath("//build[@version = '#{package.version}'][@slot = '#{package.slot}']/features").first
+      if File.exists?("#{path}/digest.yml") && (digest = YAML.parse_file("#{path}/digest.yml").transform)
+        pkg = digest['packages'].find {|pkg|
+          pkg['version'] == package.version && (!package.slot || pkg['slot'] == package.slot)
+        }
 
-        if features
-          features.text.split(' ').each {|feature|
-            next if RBuild::Features::Default[feature.to_sym]
+        if pkg
+          if pkg['features']
+            pkg['features'].split(' ').each {|feature|
+              next if RBuild::Features::Default[feature.to_sym]
 
-            (package.environment || Environment.new).profiles.each {|profile|
-              begin
-                Packo.load "#{profile.features}/#{feature}", options
-              rescue LoadError
-              rescue Exception => e
-                CLI.warn "Something went wrong while loading #{feature} feature." if System.env[:VERBOSE]
-                Packo.debug e
-              end
+              (package.environment || Environment.new).profiles.each {|profile|
+                begin
+                  Packo.load "#{profile.features}/#{feature}", options
+                rescue LoadError
+                rescue Exception => e
+                  CLI.warn "Something went wrong while loading #{feature} feature." if System.env[:VERBOSE]
+                  Packo.debug e
+                end
+              }
             }
+          end
+
+          pkg['files'].each {|file|
+            tmp = OpenStruct.new(file)
+
+            files[file['name']] = tmp
+            files[file['url']]  = tmp
           }
         end
-
-        # FIXME: maybe check slot too?
-        digest.xpath("//build[@version = '#{package.version}']/files/file").each {|file|
-          tmp = OpenStruct.new(
-            name:   file['name'],
-            url:    file['url'],
-            digest: file.text
-          )
-
-          files[file['name']] = tmp
-          files[file['url']]  = tmp
-        }
       end
 
       begin
