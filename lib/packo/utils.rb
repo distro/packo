@@ -52,6 +52,7 @@ module Packo
       print "#{cmd.first} "
       cmd[1 .. cmd.length].each {|cmd|
         print cmd.shellescape
+        print ' '
       }
       print "\n"
     end

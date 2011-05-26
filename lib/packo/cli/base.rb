@@ -39,10 +39,6 @@ class Base < Thor
   method_option :depsonly,    type: :boolean, default: false,                     aliases: '-D', desc: 'Install only dependencies'
   method_option :repository,  type: :string,                                      aliases: '-r', desc: 'Set a specific repository'
   def install (*names)
-
-  end
-
-=begin
     type = names.last.is_a?(Symbol) ? names.pop : :both
 
     FileUtils.mkpath options[:destination] rescue nil
@@ -370,7 +366,6 @@ class Base < Thor
       }
     }
   end
-=end
 
   desc 'uninstall PACKAGE... [OPTIONS]', 'Uninstall packages'
   map '-C' => :uninstall, '-R' => :uninstall, 'remove' => :uninstall

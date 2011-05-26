@@ -190,12 +190,12 @@ class Build
         package.build
       }
 
-      data = YAML.parse_file('digest.yml') rescue {}
+      data = YAML.parse_file('digest.yml').transform rescue {}
 
       data['packages'] ||= []
 
       data['packages'].delete(data['packages'].find {|pkg|
-        package.version == pkg.version && (!package.slot || package.slot == pkg.slot)
+        package.version == pkg['version'] && (!package.slot || package.slot == pkg['slot'])
       })
 
       pkg = {}

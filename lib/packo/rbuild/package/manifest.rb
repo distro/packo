@@ -80,7 +80,7 @@ class Manifest
       flavor:   what.flavor,
       features: what.features,
 
-      environment: what.environment!.reject {|name, value|
+      environment: what.environment.reject {|name, value|
         [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, 
          :REPOSITORIES, :SELECTORS, :FETCHER,
          :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
