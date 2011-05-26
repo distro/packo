@@ -102,7 +102,7 @@ class Fetcher < Module
         )]
       }.compact]
 
-      package.stages.callbacks(:fetch).do(sources) {
+      package.callbacks(:fetch).do(sources) {
         sources.each {|name, (source, output, original)|
           package.distfiles[name] = OpenStruct.new(
             path: "#{package.fetchdir}/#{output || filename(source)}",
@@ -136,7 +136,7 @@ class Fetcher < Module
         end
       }.compact
 
-      package.stages.callbacks(:fetch).do(sources) {
+      package.callbacks(:fetch).do(sources) {
         sources.each {|(source, output, original)|
           package.distfiles << OpenStruct.new(
             path: "#{package.fetchdir}/#{output || filename(source)}",
@@ -159,7 +159,7 @@ class Fetcher < Module
   end
 
   def digest
-    package.stages.callbacks(:digest).do(package.distfiles) {
+    package.callbacks(:digest).do(package.distfiles) {
       package.distfiles.each {|name, file|
         file ||= name
 

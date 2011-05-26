@@ -144,7 +144,7 @@ class Package < Packo::Package
     self.tempdir   = "#{package.directory}/temp"
     self.fetchdir  = System.env[:FETCH_PATH] || self.tempdir
 
-    stages.callbacks(:initialize).do(self) {
+    callbacks(:initialize).do(self) {
       self.instance_exec(self, &block) if block
     }
 
@@ -168,7 +168,7 @@ class Package < Packo::Package
       end
     }
 
-    stages.callbacks(:initialized).do(self)
+    callbacks(:initialized).do(self)
 
     return self
   end
@@ -186,11 +186,11 @@ class Package < Packo::Package
   rescue; end
 
   def dependencies_check
-    stages.callbacks(:dependencies).do(self)
+    callbacks(:dependencies).do(self)
   end
 
   def blockers_check
-    stages.callbacks(:blockers).do(self)
+    callbacks(:blockers).do(self)
   end
 
   def build
@@ -199,7 +199,7 @@ class Package < Packo::Package
     @build_start_at = Time.now
 
     Do.cd {
-      stages.callbacks(:build).do(self) {
+      callbacks(:build).do(self) {
         stages.each {|stage|
           yield stage if block_given?
 

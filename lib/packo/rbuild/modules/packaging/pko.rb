@@ -40,7 +40,7 @@ Packager.register(:pack, '.pko') do |package, to=nil|
 
   Package::Manifest.new(package).save('manifest.xml')
 
-  package.stages.callbacks(:packing).do {
+  package.callbacks(:packing).do {
     Do.clean(package.distdir)
 
     pack.call(path, 'dist/', 'pre/', 'post/', 'selectors/', 'manifest.xml')

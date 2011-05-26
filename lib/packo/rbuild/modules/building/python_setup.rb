@@ -59,17 +59,17 @@ class PythonSetup < Module
   def configure
     @configuration = []
 
-    package.stages.callbacks(:configure).do(@configuration)
+    package.callbacks(:configure).do(@configuration)
   end
 
   def compile
-    package.stages.callbacks(:compile).do(@configuration) {
+    package.callbacks(:compile).do(@configuration) {
       package.setup.do :build
     }
   end
 
   def install
-    package.stages.callbacks(:install).do(@configuration)
+    package.callbacks(:install).do(@configuration)
   end
 end
 

@@ -292,7 +292,7 @@ class Autotools < Module
       @configuration.set 'target', package.target
     end
 
-    package.stages.callbacks(:configure).do(@configuration) {
+    package.callbacks(:configure).do(@configuration) {
       next if package.autotools.disabled?
 
       if !File.exists? @configuration.path
@@ -308,7 +308,7 @@ class Autotools < Module
   end
 
   def compile
-    package.stages.callbacks(:compile).do(@configuration) {
+    package.callbacks(:compile).do(@configuration) {
       next if package.autotools.disabled?
 
       package.autotools.make "-j#{package.environment['MAKE_JOBS']}"
@@ -316,7 +316,7 @@ class Autotools < Module
   end
 
   def install
-    package.stages.callbacks(:install).do(@configuration) {
+    package.callbacks(:install).do(@configuration) {
       next if package.autotools.disabled?
 
       package.autotools.install

@@ -55,7 +55,7 @@ class Unpacker < Module
   end
 
   def unpack
-    package.stages.callbacks(:unpack).do {
+    package.callbacks(:unpack).do {
       Unpacker.do((package.ditfiles.is_a?(Hash) ?
         package.distfiles[:default] :
         package.distfiles.first

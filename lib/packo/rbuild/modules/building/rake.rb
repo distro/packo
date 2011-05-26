@@ -69,17 +69,17 @@ class Rake < Module
   def configure
     @configuration = package.rake.configuration
 
-    package.stages.callbacks(:configure).do(@configuration)
+    package.callbacks(:configure).do(@configuration)
   end
 
   def compile
-    package.stages.callbacks(:compile).do(@configuration) {
+    package.callbacks(:compile).do(@configuration) {
       package.rake.do
     }
   end
 
   def install
-    package.stages.callbacks(:install).do(@configuration) {
+    package.callbacks(:install).do(@configuration) {
       package.rake.install
     }
   end

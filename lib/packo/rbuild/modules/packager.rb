@@ -61,7 +61,7 @@ class Packager < Module
   end
 
   def pack
-    package.stages.callbacks(:pack).do {
+    package.callbacks(:pack).do {
       Packager.pack(package)
     }
   end

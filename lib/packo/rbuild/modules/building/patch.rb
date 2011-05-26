@@ -59,7 +59,7 @@ class Patch < Module
   end
 
   def patch
-    package.stages.callbacks(:patch).do(package) {
+    package.callbacks(:patch).do(package) {
       package.filesystem.patches.each {|name, file|
         _patch(file)
       }

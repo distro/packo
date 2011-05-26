@@ -27,7 +27,7 @@ class Strip < Module
   end
 
   def strip
-    package.stages.callbacks(:strip).do {
+    package.callbacks(:strip).do {
       next if package.env[:NO_STRIP]
 
       Find.find(package.distdir) {|file|

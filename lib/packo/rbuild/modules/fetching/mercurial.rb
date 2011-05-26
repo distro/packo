@@ -57,7 +57,7 @@ class Mercurial < Module
   end
 
   def fetch
-    package.stages.callbacks(:fetch).do {
+    package.callbacks(:fetch).do {
       package.clean!
       package.create!
 
