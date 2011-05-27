@@ -44,17 +44,19 @@ commands.each {|command|
 
   through = []
 
-  if !trusted.include?(command.length > 1 ? command : command.first)
-    through << 'sandbox' if sandbox
+  if !trusted.include?(command.length > 1 ? command : command.first) && sandbox
+    through << 'sandbox'
+
+    ARGV.map! {|arg|
+      arg.shellescape
+    }
   end 
   
   through << 'fakeroot' if fakeroot
   
   through << "packo-repository-#{command.join('-')}"
 
-  exit Kernel.system(*(through + ARGV.map {|arg|
-    arg.shellescape
-  }))
+  exit Kernel.system(*(through + ARGV))
 }
 
 require 'rubygems' unless defined?(Gem)
@@ -67,7 +69,7 @@ commands.each {|command|
   command = command.shift
 
   Packo::CLI::Repository.class_eval %{
-    desc '#{command} [ARGUMENTS...]', '#{descriptions[[command]]}'
+    desc '#{command} [ARGUMENTS...]', '#{commands[[command]]}'
     def #{command} (*arguments)
     end
   }
