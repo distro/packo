@@ -17,7 +17,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-unless defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
   require 'ffi'
 end
 
