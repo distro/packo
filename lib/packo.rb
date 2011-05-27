@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -30,7 +30,7 @@ module Packo
       return
     end
 
-    output = "[#{Time.new}] From: #{caller[0, options[:deep] || 1].join("\n")}\n"
+    output = "[#{Time.new}] :From => #{caller[0, options[:deep] || 1].join("\n")}\n"
 
     if argument.is_a?(Exception)
       output << "#{argument.class}: #{argument.message}\n"
@@ -53,13 +53,13 @@ module Packo
 
   def self.loadPackage (path, package=nil)
     options = {
-      before: %{
+      :before => %{
         module ::Packo::RBuild
         include ::Packo::RBuild::Modules
         include ::Packo::RBuild::Behaviors
       },
 
-      after: %{
+      :after => %{
         end
       }
     }
@@ -101,7 +101,7 @@ module Packo
       begin
         Packo.load "#{path}/#{package.name}.rbuild", options
 
-        if (pkg = RBuild::Package.current) && (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
+        if (pkg = RBuild::Package.current) && (tmp = File.read("#{path}/#{package.name}.rbuild", :encoding => 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e
@@ -113,7 +113,7 @@ module Packo
       if RBuild::Package.current.name == package.name && RBuild::Package.current.version == package.version
         RBuild::Package.current.filesystem.include(pkg.filesystem)
 
-        if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
+        if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild", :encoding => 'utf-8').split(/^__END__$/)).length > 1
           RBuild::Package.current.filesystem.parse(tmp.last.lstrip)
         end
 
@@ -129,7 +129,7 @@ module Packo
       begin
         Packo.load path, options
 
-        if (pkg = RBuild::Package.current) && (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
+        if (pkg = RBuild::Package.current) && (tmp = File.read(path, :encoding => 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e

@@ -1,10 +1,10 @@
-# encoding: utf-8
+# :encoding => utf-8
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -25,7 +25,7 @@ module Packo; module CLI
 class Files < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'package PACKAGE', 'Get a file list of a given package'
   def package (name)
@@ -85,7 +85,7 @@ class Files < Thor
     path    = Path.new(file).realpath.to_s
     path[0] = ''
 
-    if content = Models::InstalledPackage::Content.first(path: path)
+    if content = Models::InstalledPackage::Content.first(:path => path)
       puts Package.wrap(content.installed_package).to_s
     else
       exit 1

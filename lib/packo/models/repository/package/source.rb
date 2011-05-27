@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -25,12 +25,12 @@ module Packo; module Models; class Repository; class Package
 class Source
   include DataMapper::Resource
 
-  belongs_to :package, key: true
+  belongs_to :package, :key => true
 
-  property :path, Text, default: ''
+  property :path, Text, :default => ''
 
-  has n, :features, constraint: :destroy
-  has n, :flavor,   constraint: :destroy
+  has n, :features, :constraint => :destroy
+  has n, :flavor,   :constraint => :destroy
 end
 
 end; end; end; end

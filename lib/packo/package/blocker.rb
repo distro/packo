@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -40,7 +40,7 @@ class Blocker < Package
       validity = nil
     end
 
-    parsed = Packo::Package.parse(text, only_parse: true)
+    parsed = Packo::Package.parse(text, :only_parse => true)
 
     self.new(parsed.to_hash, validity, type)
   end
@@ -48,7 +48,7 @@ class Blocker < Package
   attr_reader :type, :validity
 
   def initialize (data, validity=nil, type=nil)
-    super(data, only_parse: true)
+    super(data, :only_parse => true)
 
     @validity = validity
     @type     = type

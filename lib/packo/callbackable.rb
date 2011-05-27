@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -43,11 +43,11 @@ module Callbackable
   end
 
   def before (name, data=nil, &block)
-    register(:before, name, block, { binding: self }.merge(data || {}))
+    register(:before, name, block, { :binding => self }.merge(data || {}))
   end
 
   def after (name, data=nil, &block)
-    register(:after, name, block, { binding: self }.merge(data || {}))
+    register(:after, name, block, { :binding => self }.merge(data || {}))
   end
 
   def skip (*args)
@@ -90,12 +90,12 @@ class Callbacks
 
   def initialize (name)
     @name      = name
-    @callbacks = Hash[before: [], after: []]
+    @callbacks = Hash[:before => [], :after => []]
     @position  = 0
   end
 
   def register (chain, callback, data)
-    @callbacks[Chains.member?(chain) ? chain : :before] << Callback.new(callback, { position: @position += 1 }.merge(data))
+    @callbacks[Chains.member?(chain) ? chain : :before] << Callback.new(callback, { :position => @position += 1 }.merge(data))
   end
 
   def unregister (chain, name=nil)

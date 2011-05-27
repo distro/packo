@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -138,7 +138,7 @@ finalize
 begin
   auto_upgrade!
 rescue Exception => e
-  Packo::CLI.warn "Could not migrate the database: #{e.message}"
+  Packo::CLI.warn "Could not migrate the :database => #{e.message}"
 end
 
 end
@@ -183,7 +183,7 @@ module Models
     else
       Packo::Repository::Types.each {|t|
         if options[:type].nil? || options[:type] == 'all' || options[:type] == t
-          Models::Repository.all(type: t).each {|repository|
+          Models::Repository.all(:type => t).each {|repository|
             packages << repository.search(expression, options)
           }
         end
@@ -206,7 +206,7 @@ module Models
   end
 
   def self.exists? (path)
-    Models::InstalledPackage::Content.first(path: path, :type.not => :dir).package rescue false
+    Models::InstalledPackage::Content.first(:path => path, :type.not => :dir).package rescue false
   end
 end
 

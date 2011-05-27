@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -33,19 +33,19 @@ class Ram
       }.compact]
 
       return OpenStruct.new(
-        physical: OpenStruct.new(
-          total: result[:memtotal],
-          free:  result[:memfree]
+        :physical => OpenStruct.new(
+          :total => result[:memtotal],
+          :free =>  result[:memfree]
         ),
           
-        swap: OpenStruct.new(
-          total: result[:swaptotal],
-          free:  result[:swapfree]
+        :swap => OpenStruct.new(
+          :total => result[:swaptotal],
+          :free =>  result[:swapfree]
         ),
 
-        virtual: OpenStruct.new(
-          total: result[:memtotal] + result[:swaptotal],
-          free:  result[:memfree] + result[:swapfree]
+        :virtual => OpenStruct.new(
+          :total => result[:memtotal] + result[:swaptotal],
+          :free =>  result[:memfree] + result[:swapfree]
         )
       )
     end

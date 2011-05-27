@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -25,18 +25,18 @@ module Packo; module CLI
 class Select < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'add NAME DESCRIPTION PATH', 'Add a module to the database'
   def add (name, description, path)
-    Models::Selector.first_or_create(name: name).update(description: description, path: path)
+    Models::Selector.first_or_create(:name => name).update(:description => description, :path => path)
 
     CLI.info "#{name} added"
   end
 
   desc 'delete NAME', 'Delete a module from the database'
   def delete (name)
-    selector = Models::Selector.first(name: name)
+    selector = Models::Selector.first(:name => name)
 
     if !selector
       fatal "#{name} doesn't exist"

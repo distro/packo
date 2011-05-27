@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -49,9 +49,9 @@ class Fetcher < Module
     end
 
     Packo.sh System.env[:FETCHER].interpolate(OpenStruct.new(
-      source: Fetcher.url(url, self),
-      output: to
-    )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), silent: !System.env[:VERBOSE]
+      :source => Fetcher.url(url, self),
+      :output => to
+    )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), :silent => !System.env[:VERBOSE]
   end
 
   def self.filename (text)
@@ -63,8 +63,8 @@ class Fetcher < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :fetch,  self.method(:fetch),  after: :beginning
-    package.stages.add :digest, self.method(:digest), after: :fetch, strict: true
+    package.stages.add :fetch,  self.method(:fetch),  :after => :beginning
+    package.stages.add :digest, self.method(:digest), :after => :fetch, :strict => true
 
     after :initialize do |result, package|
       package.define_singleton_method :fetch, &Fetcher.method(:fetch)
@@ -91,7 +91,7 @@ class Fetcher < Module
       sources = Hash[package.source.map {|(name, source)|
         next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
 
-        url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
+        url = Fetcher.url(source, package) or fail "Failed to get the real URL :for => #{source}"
 
         [name, (
           if url.is_a?(Array) && url.length == 2
@@ -105,8 +105,8 @@ class Fetcher < Module
       package.callbacks(:fetch).do(sources) {
         sources.each {|name, (source, output, original)|
           package.distfiles[name] = OpenStruct.new(
-            path: "#{package.fetchdir}/#{output || filename(source)}",
-            url:  url(original)
+            :path => "#{package.fetchdir}/#{output || filename(source)}",
+            :url =>  url(original)
           )
 
           package.fetch source, package.distfiles[name].path
@@ -116,8 +116,8 @@ class Fetcher < Module
           next if package.distfiles[name]
 
           package.distfiles[name] = OpenStruct.new(
-            path: "#{package.fetchdir}/#{package.digests[url(source)].name}",
-            url:  url(source)
+            :path => "#{package.fetchdir}/#{package.digests[url(source)].name}",
+            :url =>  url(source)
           )
         }
       }
@@ -127,7 +127,7 @@ class Fetcher < Module
       sources = [package.source].flatten.compact.map {|source|
         next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
 
-        url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
+        url = Fetcher.url(source, package) or fail "Failed to get the real URL :for => #{source}"
 
         if url.is_a?(Array) && url.length == 2
           url + [source]
@@ -139,8 +139,8 @@ class Fetcher < Module
       package.callbacks(:fetch).do(sources) {
         sources.each {|(source, output, original)|
           package.distfiles << OpenStruct.new(
-            path: "#{package.fetchdir}/#{output || filename(source)}",
-            url:  url(original)
+            :path => "#{package.fetchdir}/#{output || filename(source)}",
+            :url =>  url(original)
           )
 
           package.fetch source, package.distfiles.last.path
@@ -150,8 +150,8 @@ class Fetcher < Module
           !!package.digests[url(source)]
         }.each {|source|
           package.distfiles << OpenStruct.new(
-            path: "#{package.fetchdir}/#{package.digests[url(source)].name}",
-            url:  url(source)
+            :path => "#{package.fetchdir}/#{package.digests[url(source)].name}",
+            :url =>  url(source)
           )
         }
       }

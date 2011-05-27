@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -31,8 +31,8 @@ class Process
         next unless (pid = ps[6 .. -1]).numeric?
 
         Process.new(pid.to_i,
-          name:    File.read(File.join(ps, 'comm')).strip,
-          command: File.read(File.join(ps, 'cmdline')).strip
+          :name =>    File.read(File.join(ps, 'comm')).strip,
+          :command => File.read(File.join(ps, 'cmdline')).strip
         ) rescue nil
       }.compact
     end
@@ -41,8 +41,8 @@ class Process
       return unless id.numeric? && File.directory?("/proc/#{id}")
 
       Process.new(id,
-        name:    File.read("/proc/#{id}/comm").strip,
-        command: File.read("/proc/#{id}/cmdline").strip
+        :name =>    File.read("/proc/#{id}/comm").strip,
+        :command => File.read("/proc/#{id}/cmdline").strip
       )
     end
   else

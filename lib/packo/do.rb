@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -64,10 +64,10 @@ class Do
 
     if type.include?('r')
       Do.dir(to)
-      FileUtils.cp_r(files, to, force: type.include?('f'), preserve: true)
+      FileUtils.cp_r(files, to, :force => type.include?('f'), :preserve => true)
     else
       Do.dir(File.dirname(to))
-      FileUtils.cp(files, to, preserve: true)
+      FileUtils.cp(files, to, :preserve => true)
     end
   end
 
@@ -77,10 +77,10 @@ class Do
 
     if files.length == 1
       Do.dir(File.dirname(to))
-      FileUtils.mv(files.first, to, force: true)
+      FileUtils.mv(files.first, to, :force => true)
     else
       Do.dir(to)
-      FileUtils.mv(files, to, force: true)
+      FileUtils.mv(files, to, :force => true)
     end
   end
 
@@ -170,8 +170,8 @@ class Do
   alias opt opts
 
   def dir (path)
-    FileUtils.mkpath "#{root}/#{path}", verbose: @verbose
-    FileUtils.chmod @opts || 0755, "#{root}/#{path}", verbose: @verbose
+    FileUtils.mkpath "#{root}/#{path}", :verbose => @verbose
+    FileUtils.chmod @opts || 0755, "#{root}/#{path}", :verbose => @verbose
   end
 
   def rm (*files)
@@ -192,8 +192,8 @@ class Do
     }.flatten(1).each {|(file, name)|
       path = Path.clean("#{root}/#{@relative || 'usr'}/#{File.basename(name || file)}")
 
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || 0644, path, verbose: @verbose
+      FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+      FileUtils.chmod @opts || 0644, path, :verbose => @verbose
     }
   end
 
@@ -204,8 +204,8 @@ class Do
       path = Path.clean("#{root}/#{@relative || '/'}/bin/#{File.basename(name || file)}")
 
       FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || 0755, path, verbose: @verbose
+      FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+      FileUtils.chmod @opts || 0755, path, :verbose => @verbose
     }
   end
 
@@ -216,8 +216,8 @@ class Do
       path = Path.clean("#{root}/#{@relative || '/'}/sbin/#{File.basename(name || file)}")
 
       FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || 0755, path, verbose: @verbose
+      FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+      FileUtils.chmod @opts || 0755, path, :verbose => @verbose
     }
   end
 
@@ -228,8 +228,8 @@ class Do
       path = Path.clean("#{root}/#{@relative || '/usr'}/lib/#{File.basename(name || file)}")
 
       FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), path, verbose: @verbose
+      FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+      FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), path, :verbose => @verbose
     }
   end
 
@@ -241,8 +241,8 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
+        FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+        FileUtils.chmod @opts || 0644, path, :verbose => @verbose
       }
     }
   end
@@ -255,8 +255,8 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
+        FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+        FileUtils.chmod @opts || 0644, path, :verbose => @verbose
       }
     }
   end
@@ -269,8 +269,8 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
+        FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+        FileUtils.chmod @opts || 0644, path, :verbose => @verbose
       }
     }
   end
@@ -283,9 +283,9 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
-        Packo.sh 'gzip', '-9', path, silent: !@verbose rescue nil
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
+        FileUtils.cp_r file, path, :preserve => true, :verbose => @verbose
+        Packo.sh 'gzip', '-9', path, :silent => !@verbose rescue nil
+        FileUtils.chmod @opts || 0644, path, :verbose => @verbose
       }
     }
   end
@@ -294,14 +294,14 @@ class Do
     path = Path.clean("#{root}/#{@relative}/#{to}")
 
     FileUtils.mkpath File.dirname(path)
-    FileUtils.ln_sf link, path, verbose: @verbose
+    FileUtils.ln_sf link, path, :verbose => @verbose
   end
 
   def hard (link, to)
     path = Path.clean("#{root}/#{@relative}/#{to}")
 
     FileUtils.mkpath File.dirname(path) 
-    FileUtils.ln_f link, path, verbose: @verbose
+    FileUtils.ln_f link, path, :verbose => @verbose
   end
 end
 

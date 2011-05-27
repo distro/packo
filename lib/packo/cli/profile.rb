@@ -1,10 +1,10 @@
-# encoding: utf-8
+# :encoding => utf-8
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -25,7 +25,7 @@ module Packo; module CLI
 class Profile < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 end
 
 end; end

@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -25,9 +25,9 @@ class Rake < Module
 
     package.avoid package.stages.owner_of(:compile)
 
-    package.stages.add :configure, self.method(:configure), after: :fetch
-    package.stages.add :compile,   self.method(:compile),   after: :configure
-    package.stages.add :install,   self.method(:install),   after: :compile
+    package.stages.add :configure, self.method(:configure), :after => :fetch
+    package.stages.add :compile,   self.method(:compile),   :after => :configure
+    package.stages.add :install,   self.method(:install),   :after => :compile
 
     package.after :initialize do
       package.environment[:RUBYOPT] = ''

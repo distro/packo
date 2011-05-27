@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -41,8 +41,8 @@ class Source < Repository
           CLI.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
 
           pkg = Packo::Package.new(
-            name:    File.basename(what),
-            version: version.match(/-(\d.*?)\.rbuild$/)[1]
+            :name =>    File.basename(what),
+            :version => version.match(/-(\d.*?)\.rbuild$/)[1]
           )
 
           begin
@@ -52,7 +52,7 @@ class Source < Repository
           end
 
           if !package || package.name != pkg.name || package.version != pkg.version
-            CLI.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
+            CLI.warn "Package not :found => #{pkg.name}" if System.env[:VERBOSE]
             next
           end
 

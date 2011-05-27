@@ -1,10 +1,10 @@
-# encoding: utf-8
+# :encoding => utf-8
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -27,11 +27,11 @@ module Packo; module CLI
 class Repository < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'add LOCATION...', 'Add repositories'
   map '-a' => :add
-  method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+  method_option :ignore, :type => :boolean, :default => true, :aliases => '-i', :desc => 'Do not add the packages of a virtual repository to the index'
   def add (*locations)
     locations.map {|location|
       Do::Repository::Remote.get(location) || Location.parse(location)
@@ -59,7 +59,7 @@ class Repository < Thor
         exit 20
       end
 
-      conditions        = Hash[name: repository.name]
+      conditions        = Hash[:name => repository.name]
       conditions[:type] = repository.type if repository.type
 
       repositories = Models::Repository.all(conditions)
@@ -85,8 +85,8 @@ class Repository < Thor
 
   desc 'update [REPOSITORY...]', 'Update installed repositories'
   map '-u' => :update
-  method_option :force,  type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
-  method_option :ignore, type: :boolean, default: true,  aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+  method_option :force,  :type => :boolean, :default => false, :aliases => '-f', :desc => 'Force the update'
+  method_option :ignore, :type => :boolean, :default => true,  :aliases => '-i', :desc => 'Do not add the packages of a virtual repository to the index'
   def update (*repositories)
     Models::Repository.all.map {|repository|
       Packo::Repository.wrap(repository)
@@ -116,10 +116,10 @@ class Repository < Thor
 
   desc 'search [EXPRESSION] [OPTIONS]', 'Search packages with the given expression'
   map '--search' => :search, '-Ss' => :search
-  method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
-  method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package'
-  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
+  method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
+  method_option :full,       :type => :boolean, :default => false, :aliases => '-F', :desc => 'Include the repository that owns the package'
+  method_option :type,       :type => :string,                  :aliases => '-t', :desc => 'The repository type'
+  method_option :repository, :type => :string,                  :aliases => '-r', :desc => 'Set a specific repository'
   def search (expression='')
     Models.search(expression, options).group_by {|package|
       "#{package.tags}/#{package.name}"
@@ -158,9 +158,9 @@ class Repository < Thor
 
   desc 'info [EXPRESSION] [OPTIONS]', 'Search packages with the given expression and return detailed informations about them'
   map '--info' => :info, '-I' => :info
-  method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
-  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
+  method_option :exact,      :type => :boolean, :default => false, :aliases => '-e', :desc => 'Search for the exact name'
+  method_option :type,       :type => :string,                  :aliases => '-t', :desc => 'The repository type'
+  method_option :repository, :type => :string,                  :aliases => '-r', :desc => 'Set a specific repository'
   def info (expression='')
     Models.search(expression, options).group_by {|package|
       package.name
@@ -254,7 +254,7 @@ class Repository < Thor
     if Packo::Repository::Types.member?(type.to_sym)
       CLI.info "Installed #{type} repositories:"
 
-      repositories = Models::Repository.all(type: type)
+      repositories = Models::Repository.all(:type => type)
       length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
 
       repositories.each {|repository|
@@ -297,8 +297,8 @@ class Repository < Thor
   end
 
   desc 'generate REPOSITORY.. [OPTIONS]', 'Generate a binary repository from sources'
-  method_option :repository, type: :string,                            aliases: '-r', desc: 'Specify a source repository from where to get packages'
-  method_option :output,     type: :string, default: System.env[:TMP], aliases: '-o', desc: 'Specify output directory'
+  method_option :repository, :type => :string,                            :aliases => '-r', :desc => 'Specify a source repository from where to get packages'
+  method_option :output,     :type => :string, :default => System.env[:TMP], :aliases => '-o', :desc => 'Specify output directory'
   def generate (*repositories)
     repositories.each {|repository|
       Do::Repository.generate(repository)

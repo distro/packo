@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -28,43 +28,43 @@ class Binary < Packo::Repository::Binary
   include Helpers::Repository
 
   def initialize (model)
-    super(model.to_hash.merge(model: model))
+    super(model.to_hash.merge(:model => model))
   end
 
   def populate
     self.packages.each {|package|
       pkg = model.packages.first_or_create(
-        repo: model,
+        :repo => model,
 
-        tags_hashed: package.tags.hashed,
-        name:        package.name,
-        version:     package.version,
-        slot:        package.slot,
-        revision:    package.revision
+        :tags_hashed => package.tags.hashed,
+        :name =>        package.name,
+        :version =>     package.version,
+        :slot =>        package.slot,
+        :revision =>    package.revision
       )
 
       pkg.update(
-        features: package.features,
+        :features => package.features,
 
-        description: package.description,
-        homepage:    package.homepage,
-        license:     package.license,
+        :description => package.description,
+        :homepage =>    package.homepage,
+        :license =>     package.license,
 
-        maintainer: package.maintainer
+        :maintainer => package.maintainer
       )
 
       package.tags.each {|tag|
-        pkg.tags << Tag.first_or_create(name: tag.to_s)
+        pkg.tags << Tag.first_or_create(:name => tag.to_s)
       }
 
       package.builds.each {|build|
         bld = pkg.data.builds.first_or_create(
-          flavor:   build.flavor,
-          features: build.features
+          :flavor =>   build.flavor,
+          :features => build.features
         )
 
         bld.update(
-          digest: build.digest
+          :digest => build.digest
         )
       }
 

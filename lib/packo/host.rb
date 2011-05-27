@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -114,10 +114,10 @@ class Host
     matches = text.match(/^([^-]+)(-([^-]+))?-([^-]+)(-([^-]+))?$/) or return
 
     Host.new(
-      ARCH:   matches[1],
-      VENDOR: matches[3],
-      KERNEL: matches[4],
-      MISC:   matches[6]
+      :ARCH =>   matches[1],
+      :VENDOR => matches[3],
+      :KERNEL => matches[4],
+      :MISC =>   matches[6]
     )
   end
 

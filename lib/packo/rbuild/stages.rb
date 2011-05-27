@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -44,7 +44,7 @@ class Stages
     end
 
     def inspect
-      "#<Stage: #{name} (#{@options.inspect})>"
+      "#<:Stage => #{name} (#{@options.inspect})>"
     end
   end
 
@@ -89,24 +89,24 @@ class Stages
     return if @sorted
 
     funcs = {
-      atom: lambda {
-        { stricts: [], normals: [] }
+      :atom => lambda {
+        { :stricts => [], :normals => [] }
       },
 
-      leaf: lambda {
+      :leaf => lambda {
         Hash[
-          after:  funcs[:atom].call,
-          before: funcs[:atom].call,
-          at:     funcs[:atom].call,
-          stage:  nil
+          :after =>  funcs[:atom].call,
+          :before => funcs[:atom].call,
+          :at =>     funcs[:atom].call,
+          :stage =>  nil
         ]
       },
 
-      type: lambda {|stage|
+      :type => lambda {|stage|
         stage.options[:strict] ? :stricts : :normals
       },
 
-      plain: lambda {|pi|
+      :plain => lambda {|pi|
         pi.sort {|a, b|
           pr = (a[:stage].options[:priority] || 0) <=> (b[:stage].options[:priority] || 0)
           pr.zero? ? a[:stage].name.to_s.downcase <=> b[:stage].name.to_s.downcase : pr
@@ -115,14 +115,14 @@ class Stages
         }.flatten
       },
 
-      flat: lambda {|leaf|
+      :flat => lambda {|leaf|
         funcs[:plain].call(leaf[:after][:normals]) + funcs[:plain].call(leaf[:after][:stricts]) +
           (leaf[:stage] ? [leaf[:stage]] : (funcs[:plain].call(leaf[:at][:stricts]) + funcs[:plain].call(leaf[:at][:normals]))) +
           funcs[:plain].call(leaf[:before][:stricts]) + funcs[:plain].call(leaf[:before][:normals])
       }
     }
 
-    tree = { beginning: funcs[:leaf].call, end: funcs[:leaf].call }
+    tree = { :beginning => funcs[:leaf].call, :end => funcs[:leaf].call }
 
     remained = @stages.dup
     prev_rem = @stages.size

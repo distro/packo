@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -32,20 +32,20 @@ class Repository
     end
 
     Repository.new(
-      type: type,
-      name: name
+      :type => type,
+      :name => name
     )
   end
 
   def self.wrap (model)
     Repository.const_get(model.type.capitalize).new(
-      type: model.type,
-      name: model.name,
+      :type => model.type,
+      :name => model.name,
 
-      location: model.location,
-      path:     model.path,
+      :location => model.location,
+      :path =>     model.path,
 
-      model: model
+      :model => model
     )
   end
 

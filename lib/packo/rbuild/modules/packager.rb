@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -53,7 +53,7 @@ class Packager < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :pack, self.method(:pack), at: :end, strict: true
+    package.stages.add :pack, self.method(:pack), :at => :end, :strict => true
   end
 
   def finalize

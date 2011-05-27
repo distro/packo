@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -26,8 +26,8 @@ class Remote
 
   property :id, Serial
 
-  property :type, String, unique_index: :a
-  property :name, String, unique_index: :a
+  property :type, String, :unique_index => :a
+  property :name, String, :unique_index => :a
 
   property :description, String
 

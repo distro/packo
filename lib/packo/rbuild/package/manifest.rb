@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -26,33 +26,33 @@ class Manifest
     data = YAML.parse(text).transform
 
     Manifest.new(OpenStruct.new(
-      maintainer: data['package']['maintainer'],
+      :maintainer => data['package']['maintainer'],
 
-      tags:    Packo::Package::Tags.parse(data['package']['tags']),
-      name:    data['package']['name'],
-      version: Versionomy.parse(data['package']['version']),
-      slot:    data['package']['slot'],
+      :tags =>    Packo::Package::Tags.parse(data['package']['tags']),
+      :name =>    data['package']['name'],
+      :version => Versionomy.parse(data['package']['version']),
+      :slot =>    data['package']['slot'],
 
-      exports: Marshal.load(Base64.decode64(data['package']['exports'])),
+      :exports => Marshal.load(Base64.decode64(data['package']['exports'])),
 
-      description: data['package']['description'],
-      homepage:    data['package']['homepage'].split(/\s+/),
-      license:     data['package']['license'].split(/\s+/),
+      :description => data['package']['description'],
+      :homepage =>    data['package']['homepage'].split(/\s+/),
+      :license =>     data['package']['license'].split(/\s+/),
 
-      flavor:   Packo::Package::Flavor.parse(data['package']['flavor'] || ''),
-      features: Packo::Package::Features.parse(data['package']['features'] || ''),
+      :flavor =>   Packo::Package::Flavor.parse(data['package']['flavor'] || ''),
+      :features => Packo::Package::Features.parse(data['package']['features'] || ''),
 
-      environment: data['package']['environment'],
+      :environment => data['package']['environment'],
 
-      dependencies: data['dependencies'].map {|dependency|
+      :dependencies => data['dependencies'].map {|dependency|
         Package::Dependency.parse(dependency)
       },
 
-      blockers: data['blockers'].map {|blocker|
+      :blockers => data['blockers'].map {|blocker|
         Package::Blocker.parse(blocker)
       },
 
-      selector: data['selectors']
+      :selector => data['selectors']
     ))
   end
 
@@ -64,23 +64,23 @@ class Manifest
 
   def initialize (what)
     @package = OpenStruct.new(
-      maintainer: what.maintainer,
+      :maintainer => what.maintainer,
 
-      tags:    what.tags,
-      name:    what.name,
-      version: what.version,
-      slot:    what.slot,
+      :tags =>    what.tags,
+      :name =>    what.name,
+      :version => what.version,
+      :slot =>    what.slot,
 
-      exports: what.exports,
+      :exports => what.exports,
 
-      description: what.description,
-      homepage:    [what.homepage].flatten.compact.join(' '),
-      license:     [what.license].flatten.compact.join(' '),
+      :description => what.description,
+      :homepage =>    [what.homepage].flatten.compact.join(' '),
+      :license =>     [what.license].flatten.compact.join(' '),
 
-      flavor:   what.flavor,
-      features: what.features,
+      :flavor =>   what.flavor,
+      :features => what.features,
 
-      environment: what.environment.reject {|name, value|
+      :environment => what.environment.reject {|name, value|
         [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, 
          :REPOSITORIES, :SELECTORS, :FETCHER,
          :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
@@ -96,7 +96,7 @@ class Manifest
       what.filesystem.selectors.each {|name, file|
         matches = file.content.match(/^#\s*(.*?):\s*(.*)([\n\s]*)?\z/) or next
 
-        @selectors << OpenStruct.new(name: matches[1], description: matches[2], path: name)
+        @selectors << OpenStruct.new(:name => matches[1], :description => matches[2], :path => name)
       }
     end
   end

@@ -1,10 +1,10 @@
-# encoding: utf-8
+# :encoding => utf-8
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -25,10 +25,10 @@ module Packo; module CLI
 class Environment < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'show', 'Show the current system environment'
-  method_option :modified, type: :boolean, default: false, aliases: '-m', desc: 'Show a modified environment'
+  method_option :modified, :type => :boolean, :default => false, :aliases => '-m', :desc => 'Show a modified environment'
   def show
     env    = (options[:modified] ? System.env : System.env!)
     length = env.map {|(name, value)| name.length}.max

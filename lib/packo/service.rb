@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -52,7 +52,7 @@ class Service
   end
 
   def self.started? (name)
-    !Packo.sh(Service.path(name), :status, catch: true).strip.end_with('stopped')
+    !Packo.sh(Service.path(name), :status, :catch => true).strip.end_with('stopped')
   end
 
   include Callbackable
@@ -105,7 +105,7 @@ class Service
       daemon = Daemon.pid(config['pid'] || Daemon.pid_file_for(what[:name]))
 
       CLI.message "Stopping #{what[:name]}..." do
-        daemon.stop || daemon.stop(force: true)
+        daemon.stop || daemon.stop(:force => true)
       end
     end
 

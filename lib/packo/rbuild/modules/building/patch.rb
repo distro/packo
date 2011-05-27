@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -29,11 +29,11 @@ class Patch < Module
         temp.write patch.to_s
         temp.flush
 
-        Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'", silent: options[:silent]
+        Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'", :silent => options[:silent]
 
         temp.close(true)
       else
-        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'", silent: options[:silent]
+        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'", :silent => options[:silent]
       end
     rescue Exception => e
       Packo.debug e unless options[:silent]
@@ -47,7 +47,7 @@ class Patch < Module
   def initialize (package)
     super(package)
 
-    package.stages.add :patch, self.method(:patch), after: :fetch, priority: -1
+    package.stages.add :patch, self.method(:patch), :after => :fetch, :priority => -1
 
     before :initialize do |package|
       package.define_singleton_method :patch, &Patch.method(:do)

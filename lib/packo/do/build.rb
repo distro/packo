@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -78,7 +78,7 @@ class Build
     package = RBuild::Package.define(package.name, package.version) {
       tags *package.tags
 
-      description "Built in: `#{Dir.pwd}` with `#{command}`"
+      description "Built :in => `#{Dir.pwd}` with `#{command}`"
       maintainer  env[:USER]
     }
 
@@ -106,7 +106,7 @@ class Build
     Packo.sh 'installwatch', "--logfile=#{package.tempdir}/newfiles.log", "--exclude=#{Dir.pwd}",
       "--root=#{package.workdir}", '--transl=yes', '--backup=no', tmp.path
 
-    package.before :pack, priority: -42 do
+    package.before :pack, :priority => -42 do
       files = File.new("#{tempdir}/newfiles", 'w')
 
       files.print File.new("#{tempdir}/newfiles.log", 'r').lines.map {|line| line.strip!
@@ -245,7 +245,7 @@ class Build
       if names.length == 0
         raise Exceptions::PackageNotFound.new "No package matches #{package}"
       elsif names.length > 1
-        raise Exceptions::MultiplePackages.new "More than one package matches: #{package}"
+        raise Exceptions::MultiplePackages.new "More than one package :matches => #{package}"
       end
 
       package = packages.select {|pkg|

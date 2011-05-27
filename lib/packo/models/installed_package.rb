@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -29,13 +29,13 @@ class InstalledPackage
   property :id, Serial
 
   property :repo, String
-  has n,   :tags, through: Resource, constraint: :destroy
+  has n,   :tags, :through => Resource, :constraint => :destroy
 
-  property :tags_hashed, String,  length: 40,   required: true, unique_index: :a
-  property :name,        String,  length: 255,  required: true, unique_index: :a
-  property :version,     Version,                  required: true
-  property :slot,        String,  default: '',                     unique_index: :a
-  property :revision,    Integer, default: 0
+  property :tags_hashed, String,  :length => 40,   :required => true, :unique_index => :a
+  property :name,        String,  :length => 255,  :required => true, :unique_index => :a
+  property :version,     Version,                  :required => true
+  property :slot,        String,  :default => '',                     :unique_index => :a
+  property :revision,    Integer, :default => 0
 
   property :flavor,  Text
   property :features, Text
@@ -46,15 +46,15 @@ class InstalledPackage
 
   property :maintainer, String
 
-  property :manual, Boolean,                       default: false
-  property :type,   Enum[:both, :runtime, :build], default: :both
+  property :manual, Boolean,                       :default => false
+  property :type,   Enum[:both, :runtime, :build], :default => :both
 
   property :destination, Text
 
   property :created_at, DateTime
 
-  has n, :dependencies, constraint: :destroy
-  has n, :contents,     constraint: :destroy
+  has n, :dependencies, :constraint => :destroy
+  has n, :contents,     :constraint => :destroy
 
   def self.search (expression, options={})
     if expression.start_with?('(') && expression.end_with?(')')
@@ -64,7 +64,7 @@ class InstalledPackage
 
       package = Packo::Package.parse(package || '')
 
-      conditions = { order: [:name.asc] }
+      conditions = { :order => [:name.asc] }
 
       if options[:exact]
         conditions[:name] = package.name if package.name

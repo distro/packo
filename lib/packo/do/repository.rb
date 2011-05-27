@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -80,7 +80,7 @@ class Repository
 
     path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
 
-    if Models::Repository.first(type: type, name: name)
+    if Models::Repository.first(:type => type, :name => name)
       CLI.fatal "#{type}/#{name} already exists, delete it first"
       exit 10
     end
@@ -96,11 +96,11 @@ class Repository
         ).read)
 
       when :source
-        FileUtils.rm_rf path, secure: true rescue nil
+        FileUtils.rm_rf path, :secure => true rescue nil
         FileUtils.mkpath path rescue nil
 
         if File.directory?("#{System.env[:TMP]}/.__packo.repo")
-          FileUtils.cp_r "#{System.env[:TMP]}/.__packo.repo/.", path, preserve: true
+          FileUtils.cp_r "#{System.env[:TMP]}/.__packo.repo/.", path, :preserve => true
         else
           Do::VCS.checkout(location, path)
         end
@@ -127,7 +127,7 @@ class Repository
     
     Do::Repository::Model.delete(repository.type, repository.name)
     
-    FileUtils.rm_rf path, secure: true
+    FileUtils.rm_rf path, :secure => true
   end
 
   def self.update (repository, options={})
@@ -193,7 +193,7 @@ class Repository
     }
   end
 
-  def self.generate (path, options={ output: System.env[:TMP] })
+  def self.generate (path, options={ :output => System.env[:TMP] })
     require 'packo/do/build'
 
     data = YAML.parse_file(path).transform
@@ -215,7 +215,7 @@ class Repository
         package.features = build['features'] if build['features']
 
         begin
-          result = Do::Build.build(package, env: { FLAVOR: package.flavor, FEATURES: package.features }) {|stage|
+          result = Do::Build.build(package, :env => { FLAVOR: package.flavor, :FEATURES => package.features }) {|stage|
             CLI.info "Executing #{stage.name}"
           }
 

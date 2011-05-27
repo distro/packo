@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -26,11 +26,11 @@ class Build
 
   property :id, Serial
 
-  property :binary_package_id, Integer,                 unique_index: :a
-  property :flavor,            Text,    default: '', unique_index: :a
-  property :features,          Text,    default: '', unique_index: :a
+  property :binary_package_id, Integer,                 :unique_index => :a
+  property :flavor,            Text,    :default => '', :unique_index => :a
+  property :features,          Text,    :default => '', :unique_index => :a
 
-  property :digest, Text, default: ''
+  property :digest, Text, :default => ''
 end
 
 end; end; end; end; end

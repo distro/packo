@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -33,19 +33,19 @@ class Repository
 
   property :id, Serial
 
-  property :type, Enum[:binary, :source, :virtual], required: true
-  property :name, String,                           required: true
+  property :type, Enum[:binary, :source, :virtual], :required => true
+  property :name, String,                           :required => true
 
-  property :location, Location, required: true
-  property :path,     Text,     required: true
+  property :location, Location, :required => true
+  property :path,     Text,     :required => true
 
-  has n, :packages, constraint: :destroy
+  has n, :packages, :constraint => :destroy
 
   after :create do |repo|
     case repo.type
-      when :binary;  Binary.create(repo: repo)
-      when :source;  Source.create(repo: repo)
-      when :virtual; Virtual.create(repo: repo)
+      when :binary;  Binary.create(:repo => repo)
+      when :source;  Source.create(:repo => repo)
+      when :virtual; Virtual.create(:repo => repo)
     end
   end
 
@@ -59,18 +59,18 @@ class Repository
 
   def data
      case type
-      when :binary;  Binary.first_or_create(repo: self)
-      when :source;  Source.first_or_create(repo: self)
-      when :virtual; Virtual.first_or_create(repo: self)
+      when :binary;  Binary.first_or_create(:repo => self)
+      when :source;  Source.first_or_create(:repo => self)
+      when :virtual; Virtual.first_or_create(:repo => self)
     end
   end
 
   def to_hash
     Hash[
-      type:     self.type,
-      name:     self.name,
-      location: self.location,
-      path:     self.path
+      :type =>     self.type,
+      :name =>     self.name,
+      :location => self.location,
+      :path =>     self.path
     ]
   end
 
@@ -90,7 +90,7 @@ class Repository
 
       package = Packo::Package.parse(package || '')
 
-      conditions = { order: [:name.asc] }
+      conditions = { :order => [:name.asc] }
 
       if options[:exact]
         conditions[:name] = package.name if package.name

@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -26,14 +26,14 @@ class Dependency
 
   property :id, Serial
 
-  property :tags,     Text,                   unique_index: :a
-  property :name,     String,                 unique_index: :a
-  property :version,  String,                 unique_index: :a
-  property :slot,     String,  default: ''
-  property :revision, Integer, default: 0
+  property :tags,     Text,                   :unique_index => :a
+  property :name,     String,                 :unique_index => :a
+  property :version,  String,                 :unique_index => :a
+  property :slot,     String,  :default => ''
+  property :revision, Integer, :default => 0
 
-  property :flavor,   Text, default: ''
-  property :features, Text, default: ''
+  property :flavor,   Text, :default => ''
+  property :features, Text, :default => ''
 end
 
 end; end; end

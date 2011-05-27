@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -45,7 +45,7 @@ class Binary < Repository
   def self.parse (data)
     data = YAML.parse(data).transform
 
-    repo = Binary.new(type: :binary, name: data['name'])
+    repo = Binary.new(:type => :binary, :name => data['name'])
     repo.generate(data)
     repo
   end
@@ -72,19 +72,19 @@ class Binary < Repository
 
       data['builds'].each {|build|
         pkg = Package.new(
-          tags:     package['tags'],
-          name:     package['name'],
-          version:  build['version'],
-          slot:     build['slot'],
-          revision: build['revision'],
+          :tags =>     package['tags'],
+          :name =>     package['name'],
+          :version =>  build['version'],
+          :slot =>     build['slot'],
+          :revision => build['revision'],
 
-          features: build['features'],
+          :features => build['features'],
 
-          description: data['description'],
-          homepage:    data['homepage'],
-          license:     data['license'],
+          :description => data['description'],
+          :homepage =>    data['homepage'],
+          :license =>     data['license'],
 
-          maintainer: data['maintainer']
+          :maintainer => data['maintainer']
         )
 
         if packages.member?(package)
@@ -94,9 +94,9 @@ class Binary < Repository
         end
 
         pkg.builds << Package::Build.new(
-          flavor:   (build['flavor']   || ''),
-          features: (build['features'] || ''),
-          digest:   build['digest']
+          :flavor =>   (build['flavor']   || ''),
+          :features => (build['features'] || ''),
+          :digest =>   build['digest']
         )
       }
 

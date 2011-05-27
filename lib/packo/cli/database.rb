@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -27,11 +27,11 @@ class Database < Thor
   include Thor::Actions
   include Database::Helpers
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, :type => :boolean, :desc => 'Show help usage'
 
   desc 'export TYPE [DATA...] [OPTIONS]', 'Export a database'
   map '-e' => :export
-  method_option :output, type: :string, aliases: '-o', desc: 'Output to a file instead of stdout'
+  method_option :output, :type => :string, :aliases => '-o', :desc => 'Output to a file instead of stdout'
   def export (type, *data)
     exported = Definition.new(type, *data).export
 

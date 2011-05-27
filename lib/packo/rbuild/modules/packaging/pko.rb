@@ -3,7 +3,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -20,7 +20,7 @@
 module Packo; module RBuild; module Modules; module Packaging
 
 pack = lambda do |name, *files|
-  Packo.sh 'tar', 'cJf', name, *files, '--preserve', silent: true
+  Packo.sh 'tar', 'cJf', name, *files, '--preserve', :silent => true
 end
 
 unpack = lambda do |name, to|
