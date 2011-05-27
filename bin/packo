@@ -74,6 +74,8 @@ commands.each {|command|
   }))
 }
 
+require 'rubygems' unless defined?(Gem)
+
 require 'packo/cli/base'
 
 class Application < Packo::CLI::Base

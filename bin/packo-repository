@@ -63,6 +63,8 @@ commands.each {|command|
   }))
 }
 
+require 'rubygems' unless defined?(Gem)
+
 require 'packo/cli/repository'
 
 commands.each {|command|

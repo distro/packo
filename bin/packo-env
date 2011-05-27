@@ -18,5 +18,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'rubygems' unless defined?(Gem)
+
 require 'packo/cli/environment'
 Packo::CLI::Environment.start(ARGV)
