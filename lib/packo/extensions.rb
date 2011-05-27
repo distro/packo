@@ -19,6 +19,7 @@
 
 require 'ostruct'
 require 'pathname'
+require 'yaml'
 require 'memoized'
 require 'shellwords'
 require 'open-uri'

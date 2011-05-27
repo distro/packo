@@ -26,6 +26,5 @@ Gem::Specification.new {|s|
     s.add_dependency('fffs', '>= 0.0.9')
     s.add_dependency('memoized')
 
-
     s.add_dependency('ffi')
 }

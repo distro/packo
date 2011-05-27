@@ -19,6 +19,8 @@
 
 require 'packo/models'
 
+require 'packo/do/repository/repository'
+
 module Packo; class Do; class Repository; module Helpers
 
 class Binary < Packo::Repository::Binary

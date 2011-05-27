@@ -17,54 +17,20 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'uri'
-
 require 'packo'
 
 require 'packo/do/vcs'
-require 'packo/do/repository/helpers'
+
+require 'packo/do/repository/model'
+require 'packo/do/repository/remote'
+
+require 'packo/do/repository/binary'
+require 'packo/do/repository/source'
+require 'packo/do/repository/virtual'
 
 module Packo; class Do
   
 class Repository
-  class Model
-    def self.add (type, name, location, path, populate=true)
-      require 'packo/models'
-
-      repo = Helpers::Repository.wrap(Models::Repository.create(
-        type: type,
-        name: name,
-
-        location: location,
-        path:     path
-      ))
-
-      repo.populate if populate
-
-      repo
-    end
-
-    def self.delete (type, name)
-      require 'packo/models'
-
-      Models::Repository.first(name: name, type: type).destroy
-    end
-  end
-
-  class Remote
-    def self.add (uri)
-      uri = URI.parse(uri)
-    end
-
-    def self.delete (name)
-
-    end
-
-    def self.get (name)
-      Models.remote(name).location rescue nil
-    end
-  end
-
   def self.add (location)
     data, type, name = nil
 

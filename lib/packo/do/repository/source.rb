@@ -20,6 +20,8 @@
 require 'packo/models'
 require 'packo/rbuild'
 
+require 'packo/do/repository/repository'
+
 module Packo; class Do; class Repository; module Helpers
 
 class Source < Packo::Repository::Source

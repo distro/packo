@@ -17,6 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/models'
+
+require 'packo/do/repository/repository'
+
+
 module Packo; class Do; class Repository; module Helpers
 
 class Virtual < Packo::Repository::Virtual

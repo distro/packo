@@ -17,4 +17,30 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/do/repository/repository'
+module Packo; class Do; class Repository
+
+class Model
+  def self.add (type, name, location, path, populate=true)
+    require 'packo/models'
+
+    repo = Helpers::Repository.wrap(Models::Repository.create(
+      type: type,
+      name: name,
+
+      location: location,
+      path:     path
+    ))
+
+    repo.populate if populate
+
+    repo
+  end
+
+  def self.delete (type, name)
+    require 'packo/models'
+
+    Models::Repository.first(name: name, type: type).destroy
+  end
+end
+
+end; end; end
