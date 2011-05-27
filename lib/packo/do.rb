@@ -56,9 +56,11 @@ class Do
     FileUtils.touch(path) rescue nil
   end
 
-  def self.cp (*files, to)
+  def self.cp (*files)
     files.flatten!
     files.compact!
+
+    to = files.pop
 
     type = (files.first.is_a?(Symbol) ? files.shift : :f).to_s
 
@@ -71,9 +73,11 @@ class Do
     end
   end
 
-  def self.mv (*files, to)
+  def self.mv (*files)
     files.flatten!
     files.compact!
+
+    to = files.pop
 
     if files.length == 1
       Do.dir(File.dirname(to))

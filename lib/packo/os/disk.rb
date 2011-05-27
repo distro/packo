@@ -18,7 +18,6 @@
 #++
 
 require 'packo/system'
-require 'ffi'
 
 module Packo; module OS
 

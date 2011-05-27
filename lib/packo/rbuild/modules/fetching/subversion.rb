@@ -34,11 +34,11 @@ class Subversion < Module
     end
 
     if location.tag
-      Subversion.do :checkout, *options, "#{location.repository}/tags/#{location.tag}", path
+      Subversion.do :checkout, *(options + ["#{location.repository}/tags/#{location.tag}", path])
     elsif location.branch
-      Subversion.do :checkout, *options, "#{location.repository}/branches/#{location.branch}", path
+      Subversion.do :checkout, *(options + ["#{location.repository}/branches/#{location.branch}", path])
     else
-      Subversion.do :checkout, *options, "#{location.repository}/trunk", path
+      Subversion.do :checkout, *(options + ["#{location.repository}/trunk", path])
     end
   end
 

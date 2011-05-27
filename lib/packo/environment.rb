@@ -63,7 +63,7 @@ class Environment < Hash
       :DATABASE => 'sqlite:///var/lib/packo/db',
 
       :REPOSITORIES => '/var/lib/packo/repositories',
-      :SELECTORS =>    '/var/lib/packo/selectors',
+      :SELECTORS =>    '/var/lib/packo/selectors'
     )
   else
     @@default.merge!(
@@ -73,7 +73,7 @@ class Environment < Hash
       :DATABASE => "sqlite://#{ENV['HOME']}/.packo/db",
 
       :REPOSITORIES => "#{ENV['HOME']}/.packo/repositories",
-      :SELECTORS =>    "#{ENV['HOME']}/.packo/selectors",
+      :SELECTORS =>    "#{ENV['HOME']}/.packo/selectors"
     )
   end
 

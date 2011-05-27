@@ -31,10 +31,10 @@ class Environment < Thor
   method_option :modified, :type => :boolean, :default => false, :aliases => '-m', :desc => 'Show a modified environment'
   def show
     env    = (options[:modified] ? System.env : System.env!)
-    length = env.map {|(name, value)| name.length}.max
+    length = env.map {|(name, value)| name.to_s.length}.max
 
     env.each {|(name, value)|
-      puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
+      puts "#{name}#{' ' * (1 + length - name.to_s.length)}= #{value}" if value && !value.to_s.empty?
     }
   end
 end

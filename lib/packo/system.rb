@@ -36,6 +36,13 @@ System = Class.new {
     @environmentClean = Environment.new(nil, true)
 
     @host = Host.new(env!) rescue Host.parse(RUBY_PLATFORM)
+
+    if env[:DEBUG] && env[:DEBUG] != '0'
+      begin
+        require 'ap'
+      rescue LoadError
+      end
+    end
   end
 
   def has? (package, options={})

@@ -20,7 +20,7 @@
 module Packo; module RBuild; module Modules; module Packaging
 
 pack = lambda do |name, *files|
-  Packo.sh 'tar', 'cJf', name, *files, '--preserve', :silent => true
+  Packo.sh 'tar', 'cJf', name, *(files + ['--preserve', { :silent => true }])
 end
 
 unpack = lambda do |name, to|
@@ -29,7 +29,9 @@ unpack = lambda do |name, to|
   Packo.sh 'tar', 'xJf', name, '-C', to, '--preserve', :silent => true
 end
 
-Packager.register(:pack, '.pko') do |package, to=nil|
+Packager.register(:pack, '.pko') do |package, *args|
+  to = args.first
+
   path = to || "#{package.to_s(:package)}.pko"
 
   Dir.chdir package.directory
@@ -49,7 +51,9 @@ Packager.register(:pack, '.pko') do |package, to=nil|
   path
 end
 
-Packager.register(:unpack, '.pko') do |package, to=nil|
+Packager.register(:unpack, '.pko') do |package, *args|
+  to = args.first
+
   unpack.call(package, to || "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(package)}")
 end
 

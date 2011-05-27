@@ -17,7 +17,9 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'ffi'
+unless defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+  require 'ffi'
+end
 
 require 'packo/os/ram'
 require 'packo/os/disk'

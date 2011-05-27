@@ -63,13 +63,13 @@ require 'rubygems' unless defined?(Gem)
 
 require 'packo/cli/repository'
 
-commands.each {|command|
+commands.each {|command, description|
   next if command.length > 1
 
   command = command.shift
 
   Packo::CLI::Repository.class_eval %{
-    desc '#{command} [ARGUMENTS...]', '#{commands[[command]]}'
+    desc '#{command} [ARGUMENTS...]', '#{description}'
     def #{command} (*arguments)
     end
   }

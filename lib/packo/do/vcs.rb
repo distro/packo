@@ -18,8 +18,7 @@
 #++
 
 require 'packo'
-
-require 'packo/do/repository/helpers'
+require 'packo/rbuild'
 
 module Packo; class Do
   
@@ -28,9 +27,10 @@ class VCS
     require 'packo/rbuild'
 
     location = Location.parse(location)
+    const    = location.type.to_s.capitalize
     
-    if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-      RBuild::Modules::Fetching.const_get(location.type.capitalize).fetch(location, path)
+    if RBuild::Modules::Fetching.const_defined?(const)
+      RBuild::Modules::Fetching.const_get(const).fetch(location, path)
     else
       raise ArgumentError.new "#{location.type} is an unsupported SCM"
     end
@@ -40,9 +40,10 @@ class VCS
     require 'packo/rbuild'
 
     location = Location.parse(location)
+    const    = location.type.to_s.capitalize
 
-    if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-      RBuild::Modules::Fetching.const_get(location.type.capitalize).update(path)
+    if RBuild::Modules::Fetching.const_defined?(const)
+      RBuild::Modules::Fetching.const_get(const).update(path)
     else
       raise ArgumentError.new "#{location.type} is an unsupported SCM"
     end

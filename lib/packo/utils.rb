@@ -50,8 +50,8 @@ module Packo
       options[:err] = w
     else
       print "#{cmd.first} "
-      cmd[1 .. cmd.length].each {|cmd|
-        print cmd.shellescape
+      cmd[1 .. -1].each {|c|
+        print c.shellescape
         print ' '
       }
       print "\n"
@@ -59,7 +59,7 @@ module Packo
 
     options.delete :silent
 
-    result = Kernel.system(options[:env] || {}, *cmd, options)
+    result = Kernel.system(options[:env] || {}, *(cmd + [options]))
     status = $?
 
     block.call(result, status)

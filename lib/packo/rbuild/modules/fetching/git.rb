@@ -32,7 +32,7 @@ class Git < Module
     options << '--branch' << location.branch if location.branch
     options << '--depth'  << '1' unless location.commit || location.tag
 
-    Git.do :clone, *options, location.repository, path
+    Git.do :clone, *(options + [location.repository, path])
 
     Do.cd path do
       if location.commit || location.tag

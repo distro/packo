@@ -48,7 +48,16 @@ require 'packo/os'
 module Packo
 
 class Requirements
-  def self.disk (path=nil, option)
+  def self.disk (*args)
+    if args.length == 1
+      path, options = nil, args.first
+    elsif args.length == 2
+      path, options = args
+    else
+      raise ArgumentError.new "wrong number of arguments (#{args.length} for 1..2)"
+    end
+
+
     return false if !(stat = OS::Filesystem.stat(path))
 
     return false if options[:free] && stat.free < options[:free]

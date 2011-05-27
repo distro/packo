@@ -215,7 +215,7 @@ class Repository
         package.features = build['features'] if build['features']
 
         begin
-          result = Do::Build.build(package, :env => { FLAVOR: package.flavor, :FEATURES => package.features }) {|stage|
+          result = Do::Build.build(package, :env => { :FLAVOR => package.flavor, :FEATURES => package.features }) {|stage|
             CLI.info "Executing #{stage.name}"
           }
 

@@ -29,7 +29,7 @@ Unpacker.register /\.((tar\.(bz2|gz|xz|lzma))|tgz)$/ do |path, to|
     options << '-C' << to
   end
 
-  Packo.sh 'tar', 'xf', path, *options, '-k'
+  Packo.sh 'tar', 'xf', path, *(options + ['-k'])
 end
 
 end; end; end; end

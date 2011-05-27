@@ -38,7 +38,7 @@ commands = {
 trusted = [:base, :select, :db, :profile]
 
 commands.each_key {|command|
-  next unless command.map {|p| p.to_s} == ARGV[0 .. command.length - 1]
+  next unless command.map { |p| p.to_s } == ARGV[0 .. command.length - 1]
 
   ARGV.shift(command.length)
 
@@ -84,13 +84,11 @@ class Application < Packo::CLI::Base
   end
 end
 
-commands.each_key {|command|
+commands.each {|command, description|
   next if command.length > 1
 
-  command = command.shift
-
   Application.class_eval %{
-    desc '#{command} [ARGUMENTS...]', '#{commands[[command]]}'
+    desc '#{command} [ARGUMENTS...]', '#{description}'
     def #{command} (*arguments)
     end
   }

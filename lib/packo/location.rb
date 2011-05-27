@@ -51,7 +51,9 @@ class Location < OpenStruct
     else
       data = {}
 
-      parts = text.split(/\s*(?<!\\);\s*/)
+      parts = text.scan(/\s*((?:\\;|.)*?)(;\s*|$)/).map {|p|
+        p.first
+      }
 
       if parts.first.split(/\s*=\s*/, 2).length == 1
         data[:type] = parts.shift

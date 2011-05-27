@@ -21,14 +21,16 @@ require 'net/http'
 
 module Packo; module RBuild; module Modules; module Fetching
 
-Fetcher.register :sourceforge, do |url, package|
+Fetcher.register :sourceforge do |url, package|
   whole, project, path = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a
 
   body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{project}/files/#{File.dirname(path)}/"))
 
-  urls = body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).select {|(url)|
+  urls = body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).select {|url|
     url.match(%r{((tar\.(lzma|xz|bz2|gz))|tgz|zip|rar)/download$})
-  }.map {|(url)| url}
+  }.map {|url|
+    url.first
+  }
 
   url = nil
   %w(xz lzma bz2 gz tgz zip rar).each {|compression|

@@ -17,6 +17,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo/fixes'
+
 require 'ostruct'
 require 'pathname'
 require 'yaml'
@@ -79,8 +81,10 @@ class Object
 
     old = self.method(meth) rescue Proc.new {}
 
-    define_singleton_method(meth) {|*args|
-      yield old, *args
+    (class << self; self; end).instance_eval {
+      define_method(meth) {|*args|
+        yield old, *args
+      }
     }
   end
 end
