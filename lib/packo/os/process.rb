@@ -81,7 +81,7 @@ class Process
   end
 
   def send (signal)
-    ::Process.kill(signal)
+    ::Process.kill(signal, @id)
   end
 end
 
