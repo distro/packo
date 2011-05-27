@@ -20,14 +20,8 @@
 
 require 'shellwords'
 
-commands = Dir.glob('/usr/bin/packo-repository-*').map {|path|
-  File.basename(path).sub('packo-repository-', '').split('-').map {|part|
-    part.to_sym
-  }
-}
-
-descriptions = {
-  :remote => 'Manage remote repositories',
+commands = {
+  [:remote] => 'Manage remote repositories',
 }
 
 trusted = []
@@ -73,7 +67,7 @@ commands.each {|command|
   command = command.shift
 
   Packo::CLI::Repository.class_eval %{
-    desc '#{command} [ARGUMENTS...]', '#{descriptions[command]}'
+    desc '#{command} [ARGUMENTS...]', '#{descriptions[[command]]}'
     def #{command} (*arguments)
     end
   }

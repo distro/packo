@@ -21,29 +21,23 @@
 
 require 'shellwords'
 
-commands = Dir.glob('/usr/bin/packo-*').map {|path|
-  File.basename(path).sub('packo-', '').split('-').map {|part|
-    part.to_sym
-  }
-}
+commands = {
+  [:base]   => 'Manage packages in the system',
+  [:files]  => 'Manage various informations about package contents',
+  [:build]  => 'Manage packø building system',
+  [:select] => 'Manage various configurations',
 
-descriptions = {
-  :base   => 'Manage packages in the system',
-  :files  => 'Manage various informations about package contents',
-  :build  => 'Manage packø building system',
-  :select => 'Manage various configurations',
-
-  :repository => 'Manage packø repositories',
+  [:repository] => 'Manage packø repositories',
     [:repository, :remote] => 'Manage remote repositories',
 
-  :env     => 'Manage packø environment',
-  :db      => 'Manage packø databases',
-  :profile => 'Manage packø profiles',
+  [:env]     => 'Manage packø environment',
+  [:db]      => 'Manage packø databases',
+  [:profile] => 'Manage packø profiles',
 }
 
 trusted = [:base, :select, :db, :profile]
 
-commands.each {|command|
+commands.each_key {|command|
   next unless command.map {|p| p.to_s} == ARGV[0 .. command.length - 1]
 
   ARGV.shift(command.length)
@@ -88,13 +82,13 @@ class Application < Packo::CLI::Base
   end
 end
 
-commands.each {|command|
+commands.each_key {|command|
   next if command.length > 1
 
   command = command.shift
 
   Application.class_eval %{
-    desc '#{command} [ARGUMENTS...]', '#{descriptions[command]}'
+    desc '#{command} [ARGUMENTS...]', '#{descriptions[[command]]}'
     def #{command} (*arguments)
     end
   }
