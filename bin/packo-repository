@@ -4,7 +4,7 @@
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -20,14 +20,8 @@
 
 require 'shellwords'
 
-commands = Dir.glob('/usr/bin/packo-repository-*').map {|path|
-  File.basename(path).sub('packo-repository-', '').split('-').map {|part|
-    part.to_sym
-  }
-}
-
-descriptions = {
-  :remote => 'Manage remote repositories',
+commands = {
+  [:remote] => 'Manage remote repositories',
 }
 
 trusted = []
@@ -50,28 +44,32 @@ commands.each {|command|
 
   through = []
 
-  if !trusted.include?(command.length > 1 ? command : command.first)
-    through << 'sandbox' if sandbox
+  if !trusted.include?(command.length > 1 ? command : command.first) && sandbox
+    through << 'sandbox'
+
+    ARGV.map! {|arg|
+      arg.shellescape
+    }
   end 
   
   through << 'fakeroot' if fakeroot
   
   through << "packo-repository-#{command.join('-')}"
 
-  exit Kernel.system(*(through + ARGV.map {|arg|
-    arg.shellescape
-  }))
+  exit Kernel.system(*(through + ARGV))
 }
+
+require 'rubygems' unless defined?(Gem)
 
 require 'packo/cli/repository'
 
-commands.each {|command|
+commands.each {|command, description|
   next if command.length > 1
 
   command = command.shift
 
   Packo::CLI::Repository.class_eval %{
-    desc '#{command} [ARGUMENTS...]', '#{descriptions[command]}'
+    desc '#{command} [ARGUMENTS...]', '#{description}'
     def #{command} (*arguments)
     end
   }
