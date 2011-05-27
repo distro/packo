@@ -87,6 +87,8 @@ end
 commands.each {|command, description|
   next if command.length > 1
 
+  command = command.first
+
   Application.class_eval %{
     desc '#{command} [ARGUMENTS...]', '#{description}'
     def #{command} (*arguments)
