@@ -37,6 +37,8 @@ commands.each {|command|
   ENV['PATH'].split(':').each {|folder|
     sandbox  ||= File.executable?("#{folder}/sandbox")
     fakeroot ||= File.executable?("#{folder}/fakeroot")
+
+    break if sandbox && fakeroot
   }
   
   warn "sandbox isn't installed"  if !sandbox
