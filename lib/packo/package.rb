@@ -187,7 +187,7 @@ class Package
   end
 
   def version= (value)
-    @data[:version] = ((value.is_a?(Versionomy::Value)) ? value : Versionomy.parse(value.to_s)) if value
+    @data[:version] = ((value.is_a?(Versionub::Type::Instance)) ? value : Versionub.parse(value.to_s)) if value
   end
 
   def slot= (value)

@@ -22,16 +22,77 @@ require 'uri'
 module Packo; class Do; class Repository
 
 class Remote
-  def self.add (uri)
-    uri = URI.parse(uri)
+  module Model
+    def self.add (name, uri, path)
+      require 'packo/models'
+
+      remote = Models::Repository::Remote.first_or_create(name: name)
+      remote.update(
+        uri:  uri,
+        path: path
+      )
+
+      YAML.parse_file(path).transform['repositories'].each {|type, data|
+        data.each {|piece|
+          remote.pieces.first_or_create(type: type, name: piece['name']).update(
+            description: piece['description'],
+            location:    piece['location']
+          )
+        }
+      }
+
+      remote
+    end
+
+    def self.delete (name)
+      Models::Repository::Remote.first(name: name).destroy
+    end
   end
 
-  def self.delete (name)
+  def self.add (uri)
+    uri = URI.parse(uri)
 
+    if uri.scheme.nil? || uri.scheme == 'file'
+      uri = URI.parse(File.realpath(uri.path))
+    end
+
+    path = "#{System.env[:REPOSITORIES]}/remotes/#{File.basename(uri.path)}"
+
+    FileUtils.mkpath(File.dirname(path))
+
+    content = open(uri.to_s).read
+    data    = YAML.parse(content).transform
+
+    Models.transaction {
+      File.write(path, content)
+
+      Model.add(data['name'], uri, path)
+    }
+  end
+
+  def self.delete (remote)
+    FileUtils.rm_rf remote.path, secure: true
+
+    Models.transaction {
+      Model.delete(remote.name)
+    }
+  end
+
+  def self.update (remote)
+    uri = remote.uri.to_s
+
+    return false if (content = open(uri).read) == File.read(remote.path)
+
+    delete(remote)
+    add(uri)
   end
 
   def self.get (name)
-    Models.remote(name).location rescue nil
+    require 'packo/models'
+
+    what = Packo::Repository.parse(name)
+
+    Models::Repository::Remote::Piece.first(type: what.type, name: what.name) rescue nil
   end
 end
 

@@ -30,7 +30,7 @@ class Manifest
 
       tags:    Packo::Package::Tags.parse(data['package']['tags']),
       name:    data['package']['name'],
-      version: Versionomy.parse(data['package']['version']),
+      version: Versionub.parse(data['package']['version']),
       slot:    data['package']['slot'],
 
       exports: Marshal.load(Base64.decode64(data['package']['exports'])),

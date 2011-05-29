@@ -19,7 +19,7 @@
 
 require 'packo'
 
-require 'packo/do/repository/helpers'
+require 'packo/rbuild'
 
 module Packo; class Do
   

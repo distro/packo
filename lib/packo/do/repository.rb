@@ -34,7 +34,7 @@ class Repository
   def self.add (location)
     data, type, name = nil
 
-    Do.rm("#{System.env[:TMP]}/.__packo.repo")
+    FileUtils.rm_rf("#{System.env[:TMP]}/.__packo.repo", secure: true)
 
     if location.type == :file
       if location.path.end_with?('.rb')
@@ -116,10 +116,8 @@ class Repository
     end
 
     Models.transaction {
-      repository = Do::Repository::Model.add type, name, location, path, !(type == :virtual && options[:ignore])
+      Do::Repository::Model.add type, name, location, path, !(type == :virtual && options[:ignore])
     }
-
-    repository
   end
 
   def self.delete (repository)

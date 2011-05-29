@@ -34,7 +34,7 @@ class Repository < Thor
   method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
   def add (*locations)
     locations.map {|location|
-      Do::Repository::Remote.get(location) || Location.parse(location)
+      (Do::Repository::Remote.get(location).location rescue nil) || Location.parse(location)
     }.each {|location|
       begin
         repository = Do::Repository.add(location)

@@ -26,7 +26,9 @@ commands = {
 
 trusted = []
 
-commands.each {|command|
+commands.keys.sort {|a, b|
+  a.length <=> b.length
+}.each {|command|
   next unless command.map {|p| p.to_s} == ARGV[0 .. command.length - 1]
 
   ARGV.shift(command.length)

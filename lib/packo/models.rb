@@ -64,7 +64,7 @@ class Property
     end
 
     def primitive? (value)
-      value.is_a?(Versionomy::Value)
+      value.is_a?(Versionub::Type::Instance)
     end
 
     def valid? (value, negated = false)
@@ -76,13 +76,13 @@ class Property
 
       whole, version, format = value.to_s.match(/^(.+?):([^:]+)$/).to_a
 
-      Versionomy.parse(version, format)
+      Versionub.parse(version, format)
     end
 
     def dump (value)
       return unless value
 
-      "#{value}:#{Versionomy::Format.canonical_name_for(value.format)}"
+      "#{value}:#{value.type}"
     end
 
     def typecast_to_primitive (value)
@@ -131,6 +131,7 @@ end
 
 require 'packo/models/installed_package'
 require 'packo/models/repository'
+require 'packo/models/repository/remote'
 require 'packo/models/selector'
 
 finalize
@@ -157,7 +158,7 @@ module Models
     Models.transactions << transaction
 
     begin
-      transaction.within &block
+      result = transaction.within &block
     rescue Exception => e
       transaction.rollback unless transaction.rollback?
 
@@ -165,6 +166,8 @@ module Models
     end
 
     transaction.commit
+
+    result
   end
 
   def self.search (expression, options={})

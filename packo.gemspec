@@ -16,15 +16,15 @@ Gem::Specification.new {|s|
     s.add_dependency('thor')
     s.add_dependency('colorb')
 
+    s.add_dependency('versionub')
+    s.add_dependency('fffs', '>= 0.0.9')
+    s.add_dependency('memoized')
+
     s.add_dependency('datamapper')
     s.add_dependency('dm-transactions')
     s.add_dependency('dm-timestamps')
     s.add_dependency('dm-types')
     s.add_dependency('dm-constraints')
-
-    s.add_dependency('versionomy', '>= 0.4.1')
-    s.add_dependency('fffs', '>= 0.0.9')
-    s.add_dependency('memoized')
 
     s.add_dependency('ffi')
 }

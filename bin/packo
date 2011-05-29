@@ -37,7 +37,9 @@ commands = {
 
 trusted = [:base, :select, :db, :profile]
 
-commands.each_key {|command|
+commands.keys.sort {|a, b|
+  b.length <=> a.length
+}.each {|command|
   next unless command.map { |p| p.to_s } == ARGV[0 .. command.length - 1]
 
   ARGV.shift(command.length)

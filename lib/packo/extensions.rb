@@ -25,7 +25,7 @@ require 'yaml'
 require 'memoized'
 require 'shellwords'
 require 'open-uri'
-require 'versionomy'
+require 'versionub'
 require 'fffs'
 require 'find'
 

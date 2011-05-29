@@ -32,20 +32,72 @@ class Remote < Thor
   desc 'add URI...', 'Add remote sets'
   map '-a' => :add
   def add (*uris)
+    uris.each {|uri|
+      begin
+        remote = Do::Repository::Remote.add(uri)
+
+        CLI.info "Added #{remote.name}"
+      rescue Exception => e
+        CLI.fatal "Failed to add #{uri}"
+
+        Packo.debug e
+      end
+    }
   end
 
   desc 'delete NAME...', 'Delete installed remote sets'
   map '-d' => :delete, '-R' => :delete
   def delete (*names)
+    names.each {|name|
+      begin
+        Do::Repository::Remote.delete(Modules::Repository::Remote.first(name: name))
+      rescue Exception => e
+        CLI.fatal "Failed to add #{uri}"
+
+        Packo.debug e
+      end
+    }
   end
 
   desc 'update [NAME...]', 'Update installed remote sets'
   map '-u' => :update
   def update (*names)
+    if names.empty?
+      names = Models::Repository::Remote.all.map {|remote|
+        remote.name
+      }
+    end
+
+    names.each {|name|
+      begin
+        if Do::Repository::Remote.update(Models::Repository::Remote.first(name: name))
+          CLI.info "Updated #{name}"
+        else
+          CLI.info "#{name} already up to date"
+        end
+      rescue Exception => e
+        CLI.fatal "Failed to update #{name}"
+
+        Packo.debug e
+      end
+    }
   end
 
   desc 'list [NAME]', 'List available remotes'
   def list (name=nil)
+    if name
+      [Models::Repository::Remote.first(name: name)]
+    else
+      Models::Repository::Remote.all
+    end.each {|remote|
+      puts "#{remote.name.to_s.green}:"
+
+      remote.pieces.each {|piece|
+        puts "    #{piece.type}/#{piece.name}"
+      }
+      
+      puts ''
+    }
   end
 end
 
