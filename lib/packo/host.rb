@@ -34,8 +34,10 @@ class Host
     def == (value)
       if value.is_a?(Regexp)
         !!@value.to_s.match(value)
+      elsif value.is_a?(String)
+        @value == self.class.normalize(value)
       else
-        @value == self.class.normalize(value.to_s)
+        super(value)
       end
     end
 

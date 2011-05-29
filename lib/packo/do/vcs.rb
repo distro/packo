@@ -27,7 +27,7 @@ class VCS
   def self.checkout (location, path)
     require 'packo/rbuild'
 
-    location = Location.parse(location)
+    location = Location[location]
     
     if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
       RBuild::Modules::Fetching.const_get(location.type.capitalize).fetch(location, path)
@@ -39,7 +39,7 @@ class VCS
   def self.update (location, path)
     require 'packo/rbuild'
 
-    location = Location.parse(location)
+    location = Location[location]
 
     if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
       RBuild::Modules::Fetching.const_get(location.type.capitalize).update(path)

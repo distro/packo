@@ -46,7 +46,7 @@ class Autotools < Module
         if value === true || value === false
           @with[name.to_s] = value
         else
-          @with[name.to_s] = value || true
+          @with[name.to_s] = value ? value.to_s : true
         end
       }
     end
@@ -66,7 +66,7 @@ class Autotools < Module
         if value === true || value === false
           @enable[name.to_s] = value
         else
-          @enable[name.to_s] = value || true
+          @enable[name.to_s] = value ? value.to_s : true
         end
       }
     end
@@ -159,13 +159,17 @@ class Autotools < Module
       package.slot = slot
     end
 
-    if Environment[:CROSS]
+    if package.env[:CROSS]
       package.host = Host.new(System.env!)
     else
       package.host = Host.new(package.environment)
     end
 
-    package.target = Host.new(package.environment)
+    if package.env[:TARGET]
+      package.target = Host.parse(package.env[:TARGET]) 
+    else
+      package.target = Host.new(package.environment) 
+    end
 
     package.environment[:CHOST]   = package.host.to_s
     package.environment[:CTARGET] = package.target.to_s

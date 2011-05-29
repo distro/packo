@@ -76,7 +76,7 @@ module Packo
       raise LoadError.new("no such file to load -- #{path}")
     end
 
-    eval("#{options[:before]}#{File.read(path, encoding: 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1)
+    eval("#{options[:before]}#{File.read(path, encoding: 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1 - (options[:before] || '').lines.to_a.length)
   end
 
   def self.digest (path)
