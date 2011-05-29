@@ -1,20 +1,13 @@
 packø - The "pacco" package manager.
 ====================================
-
 packø is a package manager inspired by FreeBSD ports and Gentoo Portage which aims
 to be even more flexible and easy to work with.
 
-These environment variables are needed for testing.
-
-    export PACKO_DATABASE=sqlite:///tmp/packo_database
-    export PACKO_SELECTORS=/tmp/packo_selectors
-    export PACKO_REPOSITORIES=/tmp/packo_repositories
-    export PACKO_VERBOSE=true
-
 Then you can start doing some things.
 
-    $ packo repository add git://github.com/distro/source-universe.git
-    $ packo repository add https://github.com/distro/binary-universe/raw/master/core2.xml
+    $ packo repository remote add https://github.com/distro/remotes/raw/master/official.yml
+    $ packo repository add source/universe
+    $ packo repository add binary/universe/linux/core2
 
 This adds two repositories and gives you some packages.
 
@@ -50,12 +43,12 @@ If you have a local .pko file you can install it directly:
 
 How to install
 --------------
-
 To install packo just clone the repo, build the gem and install it.
 
     $ git clone git://github.com/distro/packo.git
-    $ gem build packo/*spec
-    $ gem install packo/*gem
+    $ cd packo
+    $ gem build *spec
+    # gem install *gem
 
 And then install the adapter you want to use, to get a list of adapters do
 
@@ -68,17 +61,15 @@ and `fakeroot` which is developed by Debian devs.
 
 Common problems
 ---------------
+* If you get a huge error message about `sandbox` it means it tried to access some place it wasn't supposed
+  to, so sandbox killed the process to prevent damages, if you're sure you wanted it to access that place configure
+  `sandbox` to be able to do so. Read `sandbox`'s documentation to know how.
 
-*   If you get a huge error message about `sandbox` it means it tried to access some place it wasn't supposed
-    to, so sandbox killed the process to prevent damages, if you're sure you wanted it to access that place configure
-    `sandbox` to be able to do so. Read `sandbox`'s documentation to know how.
-
-*   If you can't install `sandbox` and `fakeroot` you can use packo anyway, just don't use the protected syntax (packo <command>) but use
-    packo-<command> which is the not secure way. I suggest getting `sandbox` and `fakeroot` anyway because packages could do something harmful by mistake or on purpose, you can never know.
+* If you can't install `sandbox` and `fakeroot` you can use packo anyway, just don't use the protected syntax (packo `<command>`) but use
+  `packo-<command>` which is the not secure way. I suggest getting `sandbox` and `fakeroot` anyway because packages could do something harmful by mistake or on purpose, you can never know.
 
 It's slow as hell :(
 --------------------
-
 Actually it isn't, it's slow at starting because it has to require lot of stuff and the models have to be checked when required,
 so majority of the time is spent there. I'll probably implement a server/client thingy to speed things up.
 
