@@ -25,7 +25,8 @@ module Packo; module CLI
 class Files < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, type: :boolean,
+    desc: 'Show help usage'
 
   desc 'package PACKAGE', 'Get a file list of a given package'
   def package (name)

@@ -27,11 +27,15 @@ module Packo; module CLI
 class Repository < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help,
+    type: :boolean, desc: 'Show help usage'
 
   desc 'add LOCATION...', 'Add repositories'
-  map '-a' => :add
-  method_option :ignore, type: :boolean, default: true, aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+    map '-a' => :add
+    
+    method_option :ignore, aliases: '-i', type: :boolean, default: true,
+      desc: 'Do not add the packages of a virtual repository to the index'
+
   def add (*locations)
     locations.map {|location|
       (Do::Repository::Remote.get(location).location rescue nil) || Location.parse(location)
@@ -49,7 +53,8 @@ class Repository < Thor
   end
 
   desc 'delete REPOSITORY...', 'Delete installed repositories'
-  map '-d' => :delete, '-R' => :delete
+    map '-d' => :delete, '-R' => :delete
+
   def delete (*names)
     names.each {|name|
       repository = Packo::Repository.parse(name)
@@ -84,9 +89,14 @@ class Repository < Thor
   end
 
   desc 'update [REPOSITORY...]', 'Update installed repositories'
-  map '-u' => :update
-  method_option :force,  type: :boolean, default: false, aliases: '-f', desc: 'Force the update'
-  method_option :ignore, type: :boolean, default: true,  aliases: '-i', desc: 'Do not add the packages of a virtual repository to the index'
+    map '-u' => :update
+    
+    method_option :force, aliases: '-f', type: :boolean, default: false,
+      desc: 'Force the update'
+    
+    method_option :ignore, aliases: '-i', type: :boolean, default: true,
+      desc: 'Do not add the packages of a virtual repository to the index'
+
   def update (*repositories)
     Models::Repository.all.map {|repository|
       Packo::Repository.wrap(repository)
@@ -115,11 +125,20 @@ class Repository < Thor
   end
 
   desc 'search [EXPRESSION] [OPTIONS]', 'Search packages with the given expression'
-  map '--search' => :search, '-Ss' => :search
-  method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
-  method_option :full,       type: :boolean, default: false, aliases: '-F', desc: 'Include the repository that owns the package'
-  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
+    map '--search' => :search, '-Ss' => :search
+    
+    method_option :exact, aliases: '-e', type: :boolean, default: false,
+      desc: 'Search for the exact name'
+    
+    method_option :full, aliases: '-F', type: :boolean, default: false,
+      desc: 'Include the repository that owns the package'
+    
+    method_option :type, aliases: '-t', type: :string,
+      desc: 'The repository type'
+    
+    method_option :repository, aliases: '-r', type: :string,
+      desc: 'Set a specific repository'
+
   def search (expression='')
     Models.search(expression, options).group_by {|package|
       "#{package.tags}/#{package.name}"
@@ -157,10 +176,17 @@ class Repository < Thor
   end
 
   desc 'info [EXPRESSION] [OPTIONS]', 'Search packages with the given expression and return detailed informations about them'
-  map '--info' => :info, '-I' => :info
-  method_option :exact,      type: :boolean, default: false, aliases: '-e', desc: 'Search for the exact name'
-  method_option :type,       type: :string,                  aliases: '-t', desc: 'The repository type'
-  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific repository'
+    map '--info' => :info, '-I' => :info
+
+    method_option :exact, aliases: '-e', type: :boolean, default: false,
+      desc: 'Search for the exact name'
+
+    method_option :type, aliases: '-t', type: :string,
+      desc: 'The repository type'
+    
+    method_option :repository, aliases: '-r', type: :string,
+      desc: 'Set a specific repository'
+
   def info (expression='')
     Models.search(expression, options).group_by {|package|
       package.name
@@ -297,14 +323,40 @@ class Repository < Thor
   end
 
   desc 'generate REPOSITORY.. [OPTIONS]', 'Generate a binary repository from sources'
-  method_option :repository, type: :string,                            aliases: '-r', desc: 'Specify a source repository from where to get packages'
-  method_option :output,     type: :string, default: System.env[:TMP], aliases: '-o', desc: 'Specify output directory'
+    method_option :repository, aliases: '-r', type: :string,
+      desc: 'Specify a source repository from where to get packages'
+
+    method_option :output, aliases: '-o', type: :string, default: "#{System.env[:TMP]}/generated",
+      desc: 'Specify output directory'
+
+    method_option :wipe, aliases: '-w', type: :boolean, default: false,
+      desc: 'Overwrite already generated packages'
+
   def generate (*repositories)
     repositories.each {|repository|
-      Do::Repository.generate(repository)
+      data = Do::Repository.generate(repository, options)
+
+      path = repository.sub(/(\..*?)$/, '.generated\1')
+
+      if File.writable?(path)
+        File.write(path, data)
+      else
+        path = "#{System.env[:TMP]}/#{File.basename(path)}"
+
+        File.write(path, data)
+
+        CLI.info "You can find the generate repository here: #{path}"
+      end
     }
   rescue Errno::EACCES
     CLI.fatal 'Try to use packo-repository instead.'
+  end
+
+  def initialize (*args)
+    FileUtils.mkpath(System.env[:TMP])
+    File.umask 022
+
+    super(*args)
   end
 end
 

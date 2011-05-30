@@ -25,7 +25,8 @@ module Packo; module CLI
 class Select < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, type: :boolean,
+    desc: 'Show help usage'
 
   desc 'add NAME DESCRIPTION PATH', 'Add a module to the database'
   def add (name, description, path)
@@ -50,12 +51,11 @@ class Select < Thor
 end
 
 Models::Selector.all.each {|selector|
-  Select.class_eval %{
-    desc '#{selector.name} [ARGUMENTS...]', '#{selector.description}'
-    def #{selector.name} (*arguments)
-      system(*(['#{selector.path}'] + ARGV[1, ARGV.length]).compact)
-    end
-  }
+  Select.desc "#{selector.name} [ARGUMENTS...]", selector.description
+
+  Select.define_method selector.name do |*arguments|
+    system(*(['#{selector.path}'] + ARGV[1 .. -1]).compact)
+  end
 }
 
 end; end

@@ -1,10 +1,10 @@
-# encoding: utf-8
+#! /usr/bin/env ruby
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
 # This file is part of packo.
 #
-# packo is free software: you can redistribute it and/or modify
+# packo is free :software => you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -18,28 +18,23 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'rubygems' unless defined?(Gem)
+
+require 'packo'
 require 'packo/cli'
+require 'packo/models'
 
-module Packo; module CLI
-
-class Environment < Thor
+application = Class.new(Thor) {
+  include Packo
   include Thor::Actions
+}
 
-  class_option :help, type: :boolean,
-    desc: 'Show help usage'
+application.instance_eval(File.read(ARGV.first), ARGV.first)
 
-  desc 'show', 'Show the current system environment'
-    method_option :modified, aliases: '-m', type: :boolean, default: false,
-      desc: 'Show a modified environment'
+begin
+  application.run(ARGV[1 .. -1])
+rescue Exception => e
+  CLI.fatal e.message
 
-  def show
-    env    = (options[:modified] ? System.env : System.env!)
-    length = env.map {|(name, value)| name.length}.max
-
-    env.each {|(name, value)|
-      puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
-    }
-  end
+  Packo.debug e
 end
-
-end; end

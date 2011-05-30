@@ -26,13 +26,22 @@ module Packo; module CLI
 class Build < Thor
   include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+  class_option :help, type: :boolean,
+    desc: 'Show help usage'
 
   desc 'package PACKAGE... [OPTIONS]', 'Create packages of the matching names'
-  method_option :wipe,       type: :boolean, default: false, aliases: '-w', desc: 'Wipes the package directory before building it'
-  method_option :ask,        type: :boolean, default: false, aliases: '-a', desc: 'Prompt the user if he want to continue building or not'
-  method_option :nodeps,     type: :boolean, default: false, aliases: '-N', desc: 'Ignore blockers and dependencies'
-  method_option :repository, type: :string,                  aliases: '-r', desc: 'Set a specific source repository'
+    method_option :wipe, aliases: '-w', type: :boolean, default: false,
+      desc: 'Wipes the package directory before building it'
+    
+    method_option :ask, aliases: '-a', type: :boolean, default: false,
+      desc: 'Prompt the user if he want to continue building or not'
+    
+    method_option :nodeps, aliases: '-N', type: :boolean, default: false,
+      desc: 'Ignore blockers and dependencies'
+    
+    method_option :repository, aliases: '-r', type: :string,
+      desc: 'Set a specific source repository'
+
   def package (*packages)
     packages.map {|package|
       begin
@@ -81,8 +90,12 @@ class Build < Thor
   end
 
   desc 'command PACKAGE COMMAND', 'Build package from an executed command'
-  method_option :bump,    type: :boolean, default: true,  aliases: '-b', desc: 'Bump revision when creating a package from command if package is installed'
-  method_option :inspect, type: :boolean, default: false, aliases: '-i', desc: 'Inspect the list of files that will be included in the package in EDITOR'
+    method_option :bump, aliases: '-b', type: :boolean, default: true,
+      desc: 'Bump revision when creating a package from command if package is installed'
+
+    method_option :inspect, aliases: '-i', type: :boolean, default: false,
+      desc: 'Inspect the list of files that will be included in the package in EDITOR'
+
   def command (package, command)
     if Packo.protected?
       CLI.warn "`packo build -x` may not work properly, try with `packo-build -x` if it fails.\n\n"
@@ -105,7 +118,9 @@ class Build < Thor
   end
 
   desc 'clean PACKAGE... [OPTIONS]', 'Clean packages'
-  method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific source repository'
+    method_option :repository, aliases: '-r', type: :string,
+      desc: 'Set a specific source repository'
+
   def clean (*packages)
     packages.map {|package|
       begin
@@ -170,7 +185,9 @@ class Build < Thor
   end
 
   desc 'manifest PACKAGE [OPTIONS]', 'Output the manifest of the given package'
-  method_option :repository, type: :string, aliases: '-r', desc: 'Set a specific source repository'
+    method_option :repository, aliases: '-r', type: :string,
+      desc: 'Set a specific source repository'
+
   def manifest (package)
     begin  
       puts Do::Build.manifest(package)
