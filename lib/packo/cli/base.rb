@@ -66,7 +66,7 @@ class Base < Thor
   def uninstall (*names)
   end
 
-  desc 'update [PACKAGE...] [OPTIONS]'
+  desc 'update [PACKAGE...] [OPTIONS]', 'Update installed packages'
     map '-U' => :update, '--update' => :update
     
     method_option :force, aliases: '-f', type: :boolean, default: false,
@@ -163,12 +163,14 @@ class Base < Thor
     }
   end
 
-  def initialize (*args)
-    FileUtils.mkpath(System.env[:TMP])
-    File.umask 022
+  no_tasks {
+    def initialize (*args)
+      FileUtils.mkpath(System.env[:TMP])
+      File.umask 022
 
-    super(*args)
-  end
+      super(*args)
+    end
+  }
 end
 
 end; end

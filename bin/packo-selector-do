@@ -27,6 +27,8 @@ require 'packo/models'
 application = Class.new(Thor) {
   include Packo
   include Thor::Actions
+
+  class_option :help, type: :boolean, desc: 'Show help usage'
 }
 
 application.instance_eval(File.read(ARGV.first), ARGV.first)

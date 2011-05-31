@@ -271,12 +271,14 @@ class Build < Thor
     print "\n"
   end
 
-  def initialize (*args)
-    FileUtils.mkpath(System.env[:TMP])
-    File.umask 022
+  no_tasks {
+    def initialize (*args)
+      FileUtils.mkpath(System.env[:TMP])
+      File.umask 022
 
-    super(*args)
-  end
+      super(*args)
+    end
+  }
 end
 
 end; end

@@ -72,9 +72,10 @@ commands.each {|command, description|
 
   command = command.first
 
-  Packo::CLI::Repository.desc "#{command} [ARGUMENTS...]", description
-  Packo::CLI::Repository.define_method command do
-  end
+  Packo::CLI::Repository.class_eval {
+    desc "#{command} [ARGUMENTS...]", description
+    define_method command do end
+  }
 }
 
 Packo::CLI::Repository.start(ARGV)

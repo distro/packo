@@ -93,10 +93,11 @@ commands.each {|command, description|
 
   command = command.first
 
-  Application.desc "#{command} [ARGUMENTS...]", description
+  Application.class_eval {
+    desc "#{command} [ARGUMENTS...]", description
 
-  Application.define_method command do
-  end
+    define_method command do end
+  }
 }
 
 Application.start(ARGV)

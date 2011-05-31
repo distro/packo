@@ -54,7 +54,7 @@ Models::Selector.all.each {|selector|
   Select.desc "#{selector.name} [ARGUMENTS...]", selector.description
 
   Select.define_method selector.name do |*arguments|
-    system(*(['#{selector.path}'] + ARGV[1 .. -1]).compact)
+    system(*([selector.path] + (ARGV[1 .. -1] || [])).compact)
   end
 }
 
