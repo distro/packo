@@ -19,7 +19,9 @@
 
 require 'packo'
 
-require 'datamapper'
+%w[core aggregates constraints migrations transactions serializer timestamps types].each {|name|
+  require "dm-#{name}"
+}
 
 module DataMapper
 

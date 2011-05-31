@@ -18,37 +18,7 @@
 #++
 
 require 'packo'
-
-require 'thor'
 require 'colorb'
-
-class Thor
-  class << self
-    def help(shell, subcommand = false)
-      list = printable_tasks(true, subcommand)
-      Thor::Util.thor_classes_in(self).each do |klass|
-        list += klass.printable_tasks(false)
-      end
-
-      shell.say 'Commands:'
-      shell.print_table(list, ident: 2, truncate: true)
-      shell.say
-      class_options_help(shell)
-    end
-  end
-
-  module Base
-    module ClassMethods
-      def handle_no_task_error(task) #:nodoc:
-        if $thor_runner
-          raise UndefinedTaskError, "Could not find command #{task.inspect} in #{namespace.inspect} namespace."
-        else
-          raise UndefinedTaskError, "Could not find command #{task.inspect}."
-        end
-      end
-    end
-  end
-end
 
 module Packo
 
@@ -70,11 +40,57 @@ module CLI
       puts "#{'*'.red} #{line.strip}"
     }
   end
+
+  def self.confirm? (query, default=true)
+    $stdout.print "#{query} [#{default ? 'YES/no' : 'yes/NO'}] "
+
+    case $stdin.gets.strip
+      when /^(true|y(es)?|1)$/i then true
+      when /^(false|no?|0)$/i   then false
+      else                           !!default
+    end
+  end
+
+  def self.choice (list=nil, query='The choice is yours')
+    array = if list.is_a?(Array)
+      list = Hash[list.each_with_index.map {|v, i|
+        [i + 1, v]
+      }]
+
+      true
+    else
+      false
+    end
+
+    if list.is_a?(Hash)
+      list = Hash[list.map {|i, v| [i.to_s, v] }]
+    else
+      return nil
+    end
+
+    max = list.keys.map {|x|
+      x.to_s.size
+    }.max
+
+    $stdout.puts "#{query}:"
+    list.each {|index, value|
+      $stdout.puts "  #{index.rjust(max)}: #{value}"
+    }
+    $stdout.print "Choice: "
+
+    choice = $stdin.gets.strip
+
+    if list.keys.include?(choice)
+      array ? choice.to_i - 1 : choice
+    else
+      nil
+    end
+  end
 end
 
 end
 
-['INT', 'QUIT', 'ABRT', 'TERM', 'TSTP'].each {|sig|
+[:INT, :QUIT, :ABRT, :TERM, :TSTP].each {|sig|
   trap sig do
     if defined?(Packo::Models)
       Packo::Models.transactions.each {|t| t.rollback}
@@ -82,6 +98,6 @@ end
 
     puts 'Aborting.'
 
-    Process.exit! 0
+    Process.exit! 1
   end
 }

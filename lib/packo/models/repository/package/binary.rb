@@ -26,8 +26,6 @@ class Binary
 
   belongs_to :package, key: true
 
-  property :features, Text, default: ''
-
   has n, :builds, constraint: :destroy
 end
 

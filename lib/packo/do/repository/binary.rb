@@ -44,8 +44,6 @@ class Binary < Packo::Repository::Binary
       )
 
       pkg.update(
-        features: package.features,
-
         description: package.description,
         homepage:    package.homepage,
         license:     package.license,

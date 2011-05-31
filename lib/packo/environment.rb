@@ -57,23 +57,19 @@ class Environment < Hash
 
   if Process.euid == 0 && ENV['USER'] == 'root'
     @@default.merge!(
+      MAIN_PATH:    '/var/lib/packo',
       CONFIG_PATH:  '/etc/packo',
       INSTALL_PATH: '/',
 
       DATABASE: 'sqlite:///var/lib/packo/db',
-
-      REPOSITORIES: '/var/lib/packo/repositories',
-      SELECTORS:    '/var/lib/packo/selectors',
     )
   else
     @@default.merge!(
+      MAIN_PATH:    "#{ENV['HOME']}/.packo",
       CONFIG_PATH:  "#{ENV['HOME']}/.packo",
       INSTALL_PATH: "#{ENV['HOME']}/.packo/disk",
 
       DATABASE: "sqlite://#{ENV['HOME']}/.packo/db",
-
-      REPOSITORIES: "#{ENV['HOME']}/.packo/repositories",
-      SELECTORS:    "#{ENV['HOME']}/.packo/selectors",
     )
   end
 

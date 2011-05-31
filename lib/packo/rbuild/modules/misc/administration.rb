@@ -19,7 +19,7 @@
 
 module Packo; module RBuild; module Modules; module Misc
 
-class Administration
+class Administration < Module
   def initialize (package)
     super(package)
 

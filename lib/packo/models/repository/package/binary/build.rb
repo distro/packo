@@ -26,7 +26,7 @@ class Build
 
   property :id, Serial
 
-  property :binary_package_id, Integer,                 unique_index: :a
+  property :binary_package_id, Integer,              unique_index: :a
   property :flavor,            Text,    default: '', unique_index: :a
   property :features,          Text,    default: '', unique_index: :a
 

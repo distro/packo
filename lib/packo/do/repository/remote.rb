@@ -56,7 +56,7 @@ class Remote
       uri = URI.parse(File.realpath(uri.path))
     end
 
-    path = "#{System.env[:REPOSITORIES]}/remotes/#{File.basename(uri.path)}"
+    path = "#{System.env[:MAIN_PATH]}/repositories/remotes/#{File.basename(uri.path)}"
 
     FileUtils.mkpath(File.dirname(path))
 

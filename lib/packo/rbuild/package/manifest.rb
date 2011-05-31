@@ -81,8 +81,7 @@ class Manifest
       features: what.features,
 
       environment: what.environment.reject {|name, value|
-        [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, 
-         :REPOSITORIES, :SELECTORS, :FETCHER,
+        [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, :MAIN_PATH, :INSTALL_PATH, :FETCHER,
          :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
         ].member?(name.to_sym)
       }

@@ -78,7 +78,7 @@ class Repository
     type = data['type'].to_sym if !type && data
     name = data['name']        if !name && data
 
-    path = "#{System.env[:REPOSITORIES]}/#{type}/#{name}"
+    path = "#{System.env[:MAIN_PATH]}/repositories/#{type}/#{name}"
 
     if Models::Repository.first(type: type, name: name)
       CLI.fatal "#{type}/#{name} already exists, delete it first"
@@ -191,16 +191,19 @@ class Repository
     }
   end
 
-  def self.generate (path, options={ output: System.env[:TMP] })
+  def self.generate (path, options={ output: "#{System.env[:TMP]}/generated" })
     require 'packo/do/build'
 
-    data = YAML.parse_file(path).transform
+    data       = YAML.parse_file(path).transform
+    repository = data['name'].gsub('/', '-')
 
     data['packages'].each {|name, data|
       CLI.info "Generating #{name}".bold if System.env[:VERBOSE]    
 
       data['builds'].each {|build|
         package = Package.parse(name)
+
+        next if File.exists?("#{options[:output]}/#{repository}/#{package.tags.to_s(true)}") && !options[:wipe]
 
         package.version = build['version'] if build['version']
         package.slot    = build['slot']    if build['slot']
@@ -219,15 +222,15 @@ class Repository
 
           build['digest'] = Packo.digest(result)
 
-          FileUtils.mkpath "#{options[:output]}/#{data['name']}/#{package.tags.to_s(true)}"
-          FileUtils.mv result, "#{options[:output]}/#{data['name']}/#{package.tags.to_s(true)}"
+          FileUtils.mkpath "#{options[:output]}/#{repository}/#{package.tags.to_s(true)}"
+          FileUtils.cp result, "#{options[:output]}/#{repository}/#{package.tags.to_s(true)}"
         rescue Exception => e
           Packo.debug e
         end
       }
     }
 
-    File.write(path.sub(/(\..*?)$/, '.generated\1'), data.to_yaml)
+    data.to_yaml
   end
 
   def self.has (package, env)

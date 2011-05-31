@@ -31,7 +31,7 @@ class Source < Repository
   end
 
   def location
-    Location[YAML.parse_file("#{self.path}/repository.yml")['location'].transform]
+    Location[YAML.parse_file("#{self.path}/repository.yml").transform['location']]
   end
 
   def each_package (what=[self.path], root=self.path, &block)

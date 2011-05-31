@@ -18,7 +18,8 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/cli'
+require 'packo/cli/thor'
+
 require 'packo/do/build'
 
 module Packo; module CLI

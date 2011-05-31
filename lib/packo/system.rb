@@ -35,6 +35,10 @@ System = Class.new {
     @environment      = Environment.new
     @environmentClean = Environment.new(nil, true)
 
+    if env[:DEBUG].to_i > 0
+      begin; require 'ap'; rescue LoadError; end
+    end
+
     @host = Host.new(env!) rescue Host.parse(RUBY_PLATFORM)
   end
 

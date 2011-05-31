@@ -46,7 +46,9 @@ class Service
   end
 
   def self.start (name, options={})
-    Packo.sh Service.path(name), :start, options
+    service = Service.path(name) or return false
+
+    Packo.sh service, :start, options
 
     started?(name)
   end
@@ -86,31 +88,31 @@ class Service
     args.empty? ? (@needs || []) : @needs = args
   end
 
-  def is (what)
+  def is (name, what={})
     start do
-      CLI.warn "#{what[:name]} is already started" and next if started?
+      CLI.warn "#{name} is already started" and next if started?
 
       daemon = Daemon.new(what[:command].shellsplit.first) {|d|
-        d.pid = config['pid'] || Daemon.pid_file_for(what[:name])
+        d.pid = config['pid'] || Daemon.pid_file_for(name)
       }
 
-      CLI.message "Starting #{what[:name]}..." do
+      CLI.message "Starting #{name}..." do
         daemon.start(*what[:command].shellsplit[1 .. -1].compact, what[:options] || {})
       end
     end
 
     stop do
-      CLI.warn "#{what[:name]} is already stopped" and next if stopped?
+      CLI.warn "#{name} is already stopped" and next if stopped?
 
-      daemon = Daemon.pid(config['pid'] || Daemon.pid_file_for(what[:name]))
+      daemon = Daemon.pid(config['pid'] || Daemon.pid_file_for(name))
 
-      CLI.message "Stopping #{what[:name]}..." do
+      CLI.message "Stopping #{name}..." do
         daemon.stop || daemon.stop(force: true)
       end
     end
 
     status do
-      daemon = Daemon.pid(config['pid'] || Daemon.pid_file_for(what[:name]))
+      daemon = Daemon.pid(config['pid'] || Daemon.pid_file_for(name))
 
       if daemon
         puts "started"

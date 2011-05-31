@@ -17,31 +17,11 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'colorb'
+require 'packo/cli'
 
 module Packo
 
-class Service
-
 module CLI
-  def self.info (text)
-    text.strip.lines.each {|line|
-      puts "#{'*'.green.bold} #{line.strip}"
-    }
-  end
-
-  def self.warn (text)
-    text.strip.lines.each {|line|
-      puts "#{'*'.yellow.bold} #{line.strip}"
-    }
-  end
-
-  def self.fatal (text)
-    text.strip.lines.each {|line|
-      puts "#{'*'.red} #{line.strip}"
-    }
-  end
-
   def self.message (text, options={})
     case options[:type] || :info
       when :info  then print "#{'*'.green} "
@@ -72,8 +52,6 @@ module CLI
       false
     end
   end
-end
-
 end
 
 end

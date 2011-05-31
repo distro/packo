@@ -27,9 +27,6 @@ class Base
   def self.install (name)
     type = names.last.is_a?(Symbol) ? names.pop : :both
 
-    FileUtils.mkpath options[:destination] rescue nil
-    FileUtils.mkpath System.env[:SELECTORS] rescue nil
-
     binary = false
 
     if names.last === true
