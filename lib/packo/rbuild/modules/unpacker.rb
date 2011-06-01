@@ -56,7 +56,7 @@ class Unpacker < Module
 
   def unpack
     package.callbacks(:unpack).do {
-      Unpacker.do((package.ditfiles.is_a?(Hash) ?
+      Unpacker.do((package.distfiles.is_a?(Hash) ?
         package.distfiles[:default] :
         package.distfiles.first
       ).path, "#{package.directory}/work")
