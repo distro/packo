@@ -16,7 +16,7 @@ Gem::Specification.new {|s|
     s.add_dependency('thor')
     s.add_dependency('colorb')
 
-    s.add_dependency('versionub', '>= 0.0.5')
+    s.add_dependency('versionub', '>= 0.0.6')
     s.add_dependency('fffs', '>= 0.0.12')
     s.add_dependency('memoized')
 
