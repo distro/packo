@@ -42,12 +42,16 @@ module Callbackable
     end
   end
 
-  def before (name, data=nil, &block)
-    register(:before, name, block, { binding: self }.merge(data || {}))
+  def before (name, data={}, &block)
+    register(:before, name, block, { binding: self }.merge(data))
   end
 
-  def after (name, data=nil, &block)
-    register(:after, name, block, { binding: self }.merge(data || {}))
+  def after (name, data={}, &block)
+    register(:after, name, block, { binding: self }.merge(data))
+  end
+  
+  def on (name, data={}, &block)
+    register(:on, name, block, { binding: self }.merge(data))
   end
 
   def skip (*args)
@@ -95,11 +99,11 @@ class Callbacks
   end
 
   def register (chain, callback, data)
-    @callbacks[Chains.member?(chain) ? chain : :before] << Callback.new(callback, { position: @position += 1 }.merge(data))
+    @callbacks[Chains.member?(chain) ? chain : :on] << Callback.new(callback, { position: @position += 1 }.merge(data))
   end
 
   def unregister (chain, name=nil)
-    @callbacks[Chains.member?(chain) ? chain : :before].delete_if {|callback|
+    @callbacks[Chains.member?(chain) ? chain : :on].delete_if {|callback|
       callback.name == name || name.nil?
     }
   end
@@ -121,6 +125,10 @@ class Callbacks
 
     catch(:halt) do
       @callbacks[:before].each {|c|
+        c.call(*args)
+      }
+
+      @callbacks[:on].each {|c|
         c.call(*args)
       }
 

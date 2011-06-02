@@ -62,6 +62,8 @@ class Packager < Module
 
   def pack
     package.callbacks(:pack).do {
+      package.filesystem.files.save(package.distdir)
+
       Packager.pack(package)
     }
   end
