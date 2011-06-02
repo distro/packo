@@ -27,15 +27,19 @@ class Unpacker < Module
   end
 
   def self.do (path, to=nil)
+    path = path.strip
+
     block = @@formats.find {|regexp, block|
       path.match(regexp)
     }.last rescue nil
 
     if block
       FileUtils.mkpath(to) rescue nil
+
       block.call(path, to)
     else
       Packo.debug 'Archive format unsupported'
+
       path
     end
   end
