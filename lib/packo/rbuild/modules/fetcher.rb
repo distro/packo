@@ -104,9 +104,9 @@ class Fetcher < Module
 
       package.callbacks(:fetch).do(sources) {
         sources.each {|name, (source, output, original)|
-          package.distfiles[name] = OpenStruct.new(
-            path: "#{package.fetchdir}/#{output || filename(source)}",
-            url:  url(original)
+          package.distfiles[name] = Distfile.new(
+            "#{package.fetchdir}/#{output || filename(source)}",
+            url(original)
           )
 
           package.fetch source, package.distfiles[name].path
@@ -115,9 +115,8 @@ class Fetcher < Module
         package.source.each {|name, source|
           next if package.distfiles[name]
 
-          package.distfiles[name] = OpenStruct.new(
-            path: "#{package.fetchdir}/#{package.digests[url(source)].name}",
-            url:  url(source)
+          package.distfiles[name] = Distfile.new(
+            "#{package.fetchdir}/#{package.digests[url(source)].name}", url(source)
           )
         }
       }
@@ -138,9 +137,8 @@ class Fetcher < Module
 
       package.callbacks(:fetch).do(sources) {
         sources.each {|(source, output, original)|
-          package.distfiles << OpenStruct.new(
-            path: "#{package.fetchdir}/#{output || filename(source)}",
-            url:  url(original)
+          package.distfiles << Distfile.new(
+            "#{package.fetchdir}/#{output || filename(source)}", url(original)
           )
 
           package.fetch source, package.distfiles.last.path
@@ -149,9 +147,8 @@ class Fetcher < Module
         [package.source].flatten.compact.select {|source|
           !!package.digests[url(source)]
         }.each {|source|
-          package.distfiles << OpenStruct.new(
-            path: "#{package.fetchdir}/#{package.digests[url(source)].name}",
-            url:  url(source)
+          package.distfiles << Distfile.new(
+            "#{package.fetchdir}/#{package.digests[url(source)].name}", url(source)
           )
         }
       }

@@ -27,7 +27,7 @@ class Unpacker < Module
   end
 
   def self.do (path, to=nil)
-    path = path.strip
+    path = path.to_s.strip
 
     block = @@formats.find {|regexp, block|
       path.match(regexp)
