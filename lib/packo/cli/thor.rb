@@ -10,6 +10,10 @@ class Thor
         list += klass.printable_tasks(false)
       end
 
+      list.map! {|(cmd, desc)|
+        [cmd.sub(/^.*?(\s|$)/, ''), desc]
+      }
+
       shell.say 'Commands:'
       shell.print_table(list, ident: 2, truncate: true)
       shell.say

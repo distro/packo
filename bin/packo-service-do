@@ -59,7 +59,7 @@ service.instance_eval(File.read(ARGV.first), ARGV.first)
 begin
   service.run(ARGV[1 .. -1])
 rescue Exception => e
-  Packo::Service::CLI.fatal e.message
+  Packo::CLI.fatal e.message
 
   Packo.debug e
 end

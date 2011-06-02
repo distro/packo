@@ -21,8 +21,10 @@
 require 'rubygems' unless defined?(Gem)
 
 require 'packo'
-require 'packo/cli'
+require 'packo/cli/thor'
 require 'packo/models'
+
+$0 = ARGV.shift
 
 application = Class.new(Thor) {
   include Packo
@@ -31,12 +33,12 @@ application = Class.new(Thor) {
   class_option :help, type: :boolean, desc: 'Show help usage'
 }
 
-application.instance_eval(File.read(ARGV.first), ARGV.first)
+application.class_eval(File.read($0), $0)
 
 begin
-  application.run(ARGV[1 .. -1])
+  application.start(ARGV)
 rescue Exception => e
-  CLI.fatal e.message
+  Packo::CLI.fatal e.message
 
   Packo.debug e
 end
