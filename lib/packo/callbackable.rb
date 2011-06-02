@@ -52,7 +52,7 @@ module Callbackable
   
   def on (name, data={}, &block)
     register(:on, name, block, { binding: self }.merge(data))
-  end
+  end; alias during on
 
   def skip (*args)
     if args.empty?
