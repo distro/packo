@@ -89,7 +89,7 @@ class Host
         when 'windows'      then 'cygwin'
         when 'mac', 'macos' then 'darwin'
 
-        when 'linux', 'cygwin', 'darwin' then value
+        when 'freebsd', 'openbsd', 'netbsd', 'linux', 'cygwin', 'darwin' then value
 
         else raise ArgumentError.new('Kernel not supported')
       end
