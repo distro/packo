@@ -20,11 +20,11 @@
 require 'packo/system'
 require 'ffi'
 
-FFI.typedef :ulong, :size_t unless (FFI.find_type(:size_t) rescue false)
+FFI.find_type(:size_t) rescue FFI.typedef(:ulong, :size_t)
 
 module Packo; module OS
 
-class Filesystem
+class Cpu
   if Packo::System.host.kernel == 'linux' || Packo::System.host.kernel == 'windows'
     extend FFI::Library
 
