@@ -37,7 +37,7 @@ class Cpu
 
       protected :sysconf
     end
-  elsif %w[freebsd openbsd macos].include?(Packo::Host.parse('x86_64-darwin').kernel)
+  elsif %w[freebsd openbsd macos].include?(Packo::System.host.kernel)
     extend FFI::Library
 
     ffi_lib FFI::Library::LIBC
