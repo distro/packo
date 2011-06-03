@@ -17,19 +17,16 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/system'
-require 'packo/extensions'
+require 'packo/os'
 
 module Packo; module OS
 
 class Process
   include StructLike
 
-  if Packo::System.host.kernel == 'linux' || Packo::System.host.kernel == 'windows'
+  if !Dir['/proc/[0-9]*'].empty?
     def self.all
       Dir['/proc/[0-9]*'].map {|ps|
-        next unless (pid = ps[6 .. -1]).numeric?
-
         Process.new(pid.to_i,
           name:    File.read(File.join(ps, 'comm')).strip,
           command: File.read(File.join(ps, 'cmdline')).strip

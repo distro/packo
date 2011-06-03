@@ -17,10 +17,13 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'packo'
+
 unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
   require 'ffi'
 end
 
 require 'packo/os/ram'
-require 'packo/os/disk'
+require 'packo/os/filesystem'
 require 'packo/os/process'
+require 'packo/os/cpu'
