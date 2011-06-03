@@ -86,8 +86,9 @@ class Host
   class Kernel < Part
     def self.normalize (value)
       case value
-        when 'windows'      then 'cygwin'
-        when 'mac', 'macos' then 'darwin'
+        when 'windows'          then 'cygwin'
+        when 'mac', 'macos'     then 'darwin'
+        when /^openbsd(\d\.\d)/ then 'openbsd'
 
         when 'freebsd', 'openbsd', 'netbsd', 'linux', 'cygwin', 'darwin' then value
 
