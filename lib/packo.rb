@@ -22,13 +22,9 @@ require 'packo/extensions'
 
 module Packo
   def self.debug (argument, options={})
-    if !Packo.const_defined?(:System) || (!System.env[:DEBUG] && !options[:force])
-      return
-    end
+    return if !Packo.const_defined?(:System) || (!System.env[:DEBUG] && !options[:force])
 
-    if System.env[:DEBUG].to_i < (options[:level] || 1) && !options[:force]
-      return
-    end
+    return if System.env[:DEBUG].to_i < (options[:level] || 1) && !options[:force]
 
     output = "[#{Time.new}] From: #{caller[0, options[:deep] || 1].join("\n")}\n"
 

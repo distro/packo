@@ -19,26 +19,12 @@
 
 require 'packo/os'
 
-FFI.find_type(:size_t) rescue FFI.typedef(:ulong, :size_t)
-
 module Packo; module OS
 
 class CPU
-  extend FFI::Library
-
-  ffi_lib FFI::Library::LIBC
-
-  if (attach_function('sysconf', [:int], :long) rescue nil) && sysconf(84) != -1
+  if OS.respond_to? :sysctl
     def self.cores
-      sysconf(84)
-    end
-  elsif (attach_function('sysctlbyname', [:string, :pointer, :pointer, :pointer, :size_t], :int) rescue nil)
-    def self.cores
-      count = FFI::MemoryPointer.new(:int)
-      size  = FFI::MemoryPointer.new(:size_t).put_int(0, count.size)
-
-      self.sysctlbyname('hw.ncpu', count, size, nil, 0)
-      count.get_int(0)
+      OS.sysctl('hw.ncpu')
     end
   else
     fail 'Unsupported platform, contact the developers please.'

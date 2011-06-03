@@ -23,6 +23,8 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
   require 'ffi'
 end
 
+require 'packo/os/helpers'
+
 require 'packo/os/ram'
 require 'packo/os/filesystem'
 require 'packo/os/process'

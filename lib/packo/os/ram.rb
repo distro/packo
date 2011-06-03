@@ -49,6 +49,29 @@ class Ram
         )
       )
     end
+  elsif OS.respond_to? :sysctl
+    def self.status
+      return OpenStruct.new(
+        physical: OpenStruct.new(
+          total: OS.sysctl('hw.physmem'),
+          free:  OS.sysctl('vm.stats.vm.v_free_count')     * OS.sysctl('hw.pagesize') +
+                 OS.sysctl('vm.stats.vm.v_inactive_count') * OS.sysctl('hw.pagesize') +
+                 OS.sysctl('vm.stats.vm.v_cache_count')    * OS.sysctl('hw.pagesize')
+        ),
+
+        swap: OpenStruct.new(
+          total: 0,
+          free:  0
+        ),
+
+        virtual: OpenStruct.new(
+          total: OS.sysctl('hw.physmem'),
+          free:  OS.sysctl('vm.stats.vm.v_free_count')     * OS.sysctl('hw.pagesize') +
+                 OS.sysctl('vm.stats.vm.v_inactive_count') * OS.sysctl('hw.pagesize') +
+                 OS.sysctl('vm.stats.vm.v_cache_count')    * OS.sysctl('hw.pagesize')
+        )
+      )
+    end
   else
     fail 'Unsupported platform, contact the developers please.'
   end

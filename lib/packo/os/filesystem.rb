@@ -57,7 +57,7 @@ class Filesystem
         path: path,
 
         total: fs[:f_blocks] * fs[:f_frsize],
-        free:  fs[:f_bfree] * fs[:f_bsize]
+        free:  fs[:f_bfree]  * fs[:f_bsize]
       )
     end
   else
