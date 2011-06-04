@@ -26,6 +26,10 @@ class Packager < Module
     (@@formats[type] ||= {})[of] = block
   end
 
+  def self.supports? (name)
+    !!@@formats[name.to_sym]
+  end
+
   def self.pack (package, to=nil)
     block = @@formats.find {|extension, block|
       (to || '.pko').end_with?(extension)

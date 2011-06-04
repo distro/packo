@@ -20,12 +20,12 @@
 module Packo
 
 class Distfile
-  attr_reader :path, :uri
+  attr_reader :path, :url
 
-  def initialize (path, uri=nil)
+  def initialize (path, url=nil)
     @path = path
 
-    @uri = URI.parse(uri) if uri
+    @url = URI.parse(url) if url
   end
 
   def to_s

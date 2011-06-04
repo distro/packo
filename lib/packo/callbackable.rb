@@ -94,7 +94,7 @@ class Callbacks
 
   def initialize (name)
     @name      = name
-    @callbacks = Hash[before: [], after: []]
+    @callbacks = Hash[before: [], after: [], on: []]
     @position  = 0
   end
 
