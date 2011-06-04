@@ -3,13 +3,36 @@ packø - The "pacco" package manager.
 packø is a package manager inspired by FreeBSD ports and Gentoo Portage which aims
 to be even more flexible and easy to work with.
 
-Then you can start doing some things.
+How to install
+--------------
+To install packo just clone the repo, build the gem and install it.
+
+    $ git clone git://github.com/distro/packo.git
+    $ cd packo
+    $ gem build *spec
+    # gem install *gem
+
+And then install the adapter you want to use, to get a list of adapters do
+
+    $ gem list --remote "dm-.*-adapter"
+
+Then modify the `PACKO_DATABASE` env variable and you're ready to use packo.
+
+At this point you should install `sandbox` which is developed by Gentoo devs
+and `fakeroot` which is developed by Debian devs.
+
+How to setup
+------------
 
     $ packo repository remote add https://github.com/distro/remotes/raw/master/official.yml
     $ packo repository add source/universe
     $ packo repository add binary/universe/linux/core2
 
 This adds two repositories and gives you some packages.
+
+How to use
+----------
+Let's start with some simple usage examples
 
     $ packo repository search "(library)"
 
@@ -41,23 +64,8 @@ If you have a local .pko file you can install it directly:
 
     $ packo install package.pko
 
-How to install
---------------
-To install packo just clone the repo, build the gem and install it.
-
-    $ git clone git://github.com/distro/packo.git
-    $ cd packo
-    $ gem build *spec
-    # gem install *gem
-
-And then install the adapter you want to use, to get a list of adapters do
-
-    $ gem list --remote "dm-.*-adapter"
-
-Then modify the `PACKO_DATABASE` env variable and you're ready to use packo.
-
-At this point you should install `sandbox` which is developed by Gentoo devs
-and `fakeroot` which is developed by Debian devs.
+Problems?
+=========
 
 Common problems
 ---------------
@@ -73,9 +81,9 @@ It's slow as hell :(
 Actually it isn't, it's slow at starting because it has to require lot of stuff and the models have to be checked when required,
 so majority of the time is spent there. I'll probably implement a server/client thingy to speed things up.
 
-Installation isn't slow, sqlite is slow at changing data in the db, so choose another adapter and you'll get it fast, remember
-that sqlite is fast at selecting, so searches of packages/files/whatever will be fast and updates/installations will be slow,
-choose the adapter that better suits your needs.
+Installation isn't slow, sqlite is slow at changing data in the db (mainly related to deletetion), so choose another adapter
+and you'll get it fast, remember that sqlite is fast at selecting, so searches of packages/files/whatever will be fast and
+updates/installations will be slow, choose the adapter that better suits your needs.
 
 _I've worked hard on improving speed so theoretically now it's a lot faster with all the data changing, as long as the 
 adapter supports transactions._
