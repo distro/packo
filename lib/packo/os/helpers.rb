@@ -17,6 +17,12 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
+  require 'ffi'
+end
+
+require 'memoized'
+
 module FFI
   module Library
     def has_function? (sym, libraries=[])
@@ -34,6 +40,35 @@ module FFI
         attach_function(*args, &block)
       rescue Exception => e
         false
+      end
+    end
+  end
+
+  class Type::Builtin
+    memoize
+    def name
+      Type::Builtin.constants.find {|name|
+        Type::Builtin.const_get(name) == self
+      }
+    end
+  end
+
+  class Pointer
+    def typecast (type)
+      if type.is_a?(Symbol)
+        type = FFI.find_type(type)
+      end
+
+      if type.is_a?(Struct)
+        type.new(self)
+      elsif type.is_a?(Type::Builtin)
+        if type.name == :STRING
+          read_string
+        else
+          send "read_#{type.name.downcase}"
+        end
+      else
+        ArgumentError.new "You have to pass a Struct, a Builtin type or a Symbol"
       end
     end
   end

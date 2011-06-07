@@ -42,6 +42,12 @@ class Process
         command: File.read("/proc/#{id}/cmdline").strip
       )
     end
+
+    def self.from_name (name)
+      self.all.select {|process|
+        process.name.match(name)
+      }
+    end
   else
     fail 'Unsupported platform, contact the developers please.'
   end
