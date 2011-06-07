@@ -24,7 +24,18 @@ require 'packo/do/build'
 module Packo; class Do
 
 class Base
-  def self.install (name)
+  def self.install (name, options={}, &block)
+    if !RBuild::Modules::Packager.supports?(File.extname(name)) && System.env[:FLAVOR].include?('binary')
+      packages = Models.search(name, options[:repository], :binary)
+
+      if packages.empty?
+        binary = true
+      end
+    end
+
+    dependencies_for(name)
+
+=begin
     type = names.last.is_a?(Symbol) ? names.pop : :both
 
     binary = false
@@ -348,10 +359,11 @@ class Base
         end
       }
     }
-
+=end
   end
 
   def self.uninstall (name)
+=begin
     names.each {|name|
       packages = Models.search_installed(name)
 
@@ -402,9 +414,18 @@ class Base
         }
       }
     }
+=end
   end
 
   def self.update (name)
+
+  end
+
+  def self.dependencies_for (name)
+
+  end
+
+  def self.package (name)
 
   end
 end

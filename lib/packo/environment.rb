@@ -110,8 +110,8 @@ class Environment < Hash
     end
   end
 
-  def self.[]= (name, value)
-    ENV["PACKO_#{name}"] = value.to_s rescue ''
+  def self.[]= (name, specific=true, value)
+    ENV[specific ? "PACKO_#{name}" : "#{name}"] = value.to_s rescue ''
   end
 
   def self.each (limit=true)

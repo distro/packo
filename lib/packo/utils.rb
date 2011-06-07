@@ -39,16 +39,18 @@ module Packo
       show_command = show_command[0, 42] + '...' unless $trace
 
       block = lambda {|ok, status|
+        next if Environment[:IGNORE] || options[:throw] == false
+
         ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}] in {#{Dir.pwd}}"
       }
     end
 
-    if options[:silent] || options[:catch]
+    if options[:silent] || options[:catch] || (Environment[:SILENT] && options[:silent] != false)
       r, w = IO.pipe
 
       options[:out] = w
       options[:err] = w
-    else
+    elsif options[:echo] != false
       print "#{cmd.first} "
       cmd[1 .. cmd.length].each {|cmd|
         print cmd.shellescape
@@ -57,9 +59,11 @@ module Packo
       print "\n"
     end
 
-    options.delete :silent
+    result = Kernel.system(options[:env] || {}, *cmd, {
+      out: options[:out],
+      err: options[:err]
+    })
 
-    result = Kernel.system(options[:env] || {}, *cmd, options)
     status = $?
 
     block.call(result, status)
@@ -69,6 +73,12 @@ module Packo
     else
       status
     end
+  end
+
+  def self.sh! (*cmd)
+    options = (Hash === cmd.last) ? cmd.pop : {}
+
+    sh(*cmd, options.merge(echo: false)) rescue false
   end
 
   def self.load (path, options={})

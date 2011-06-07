@@ -23,6 +23,12 @@ require 'colorb'
 module Packo
 
 module CLI
+  def self.echo (text)
+    text.strip.lines.each {|line|
+      puts line.strip
+    }
+  end
+
   def self.info (text)
     text.strip.lines.each {|line|
       puts "#{'*'.green.bold} #{line.strip}"

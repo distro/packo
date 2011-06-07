@@ -29,7 +29,35 @@ module Packo
 class Service
   Paths = ['/sbin/rc.d', '/sbin/init.d', '/etc/init.d']
 
+  def self.all
+    Paths.map {|path|
+      Dir["#{path}/*"]
+    }.flatten.map {|service|
+      path = Service.path(service)
+
+      Class.new {
+        attr_reader :path
+
+        def initialize (path)
+          @path = path
+        end
+
+        def method_missing (id, *args, &block)
+          if id.to_s.end_with?('?')
+            Packo.sh(path, :status, catch: true).strip.include?(id.to_s[0 .. -2])
+          elsif id.to_s.end_with?('!')
+            Packo.sh(path, id.to_s[0 .. -2], *args)
+          else
+            super
+          end
+        end
+      }.new(path)
+    }
+  end
+
   def self.path (name)
+    return if name.start_with?('/') && File.executable(name)
+
     path = Paths.find {|path|
       File.executable?("#{path}/#{name}")
     } or return
@@ -53,8 +81,20 @@ class Service
     started?(name)
   end
 
+  def self.stop (name)
+    service = Service.path(name) or return false
+
+    Packo.sh service, :stop
+
+    stopped?(name)
+  end
+
   def self.started? (name)
-    !Packo.sh(Service.path(name), :status, catch: true).strip.end_with('stopped')
+    Packo.sh(Service.path(name), :status, catch: true).strip.end_with('started')
+  end
+
+  def self.stopped? (name)
+    Packo.sh(Service.path(name), :status, catch: true).strip.end_with('stopped')
   end
 
   include Callbackable
