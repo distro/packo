@@ -19,12 +19,12 @@ Gem::Specification.new {|s|
     s.add_dependency('versionub', '>= 0.0.6')
     s.add_dependency('fffs', '>= 0.0.12')
     s.add_dependency('memoized')
+    s.add_dependency('sysctl')
+    s.add_dependency('ffi')
 
     s.add_dependency('datamapper')
     s.add_dependency('dm-transactions')
     s.add_dependency('dm-timestamps')
     s.add_dependency('dm-types')
     s.add_dependency('dm-constraints')
-
-    s.add_dependency('ffi')
 }

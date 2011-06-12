@@ -21,7 +21,7 @@ unless defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
   require 'ffi'
 end
 
-require 'memoized'
+require 'sysctl'
 
 module FFI
   module Library
@@ -59,46 +59,13 @@ module FFI
         type = FFI.find_type(type)
       end
 
-      if type.is_a?(Struct)
+      if type.is_a?(Class) && type.ancestors.member?(FFI::Struct)
         type.new(self)
       elsif type.is_a?(Type::Builtin)
-        if type.name == :STRING
-          read_string
-        else
-          send "read_#{type.name.downcase}"
-        end
+        send "read_#{type.name.downcase}"
       else
         ArgumentError.new "You have to pass a Struct, a Builtin type or a Symbol"
       end
     end
   end
 end
-
-module Packo; module OS
-
-FFI.find_type(:size_t) rescue FFI.typedef(:ulong, :size_t)
-
-module Functions
-  extend FFI::Library
-
-  ffi_lib FFI::Library::LIBC
-
-  attach_function!('sysconf', [:int], :long)
-
-  attach_function!('sysctl', [:pointer, :uint, :pointer, :pointer, :size_t], :int)
-
-  attach_function!('sysctlbyname', [:string, :pointer, :pointer, :pointer, :size_t], :int)
-end
-
-if Functions.respond_to?(:sysconf) || Functions.respond_to?(:sysctl) || Functions.respond_to?(:sysctlbyname)
-  # TODO: implement it, use all the available options
-  def self.sysctl (name)
-    # count = FFI::MemoryPointer.new(:int)
-    # size  = FFI::MemoryPointer.new(:size_t).put_int(0, count.size)
-
-    # Functions.sysctlbyname('hw.ncpu', count, size, nil, 0)
-    # count.get_int(0)
-  end
-end
-
-end; end

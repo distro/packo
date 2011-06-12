@@ -32,10 +32,6 @@ class Build
   def self.build (package, options={}, &block)
     package = self.package(package, options)
 
-    if !System.env[:ARCH] || !System.env[:KERNEL] || !System.env[:LIBC] || !System.env[:COMPILER]
-      raise Exceptions::IncompleteEnviroment.new 'You have to set ARCH, KERNEL, LIBC and COMPILER to build packages.'
-    end
-
     output = nil
     pwd    = Dir.pwd
 
