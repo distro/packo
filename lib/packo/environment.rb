@@ -30,8 +30,8 @@ class Environment < Hash
   @@default = {
     ARCH:     nil,
     KERNEL:   nil,
-    LIBC:     nil,
-    COMPILER: nil,
+    LIBC:     'glibc',
+    COMPILER: 'gcc',
 
     CFLAGS:    '-Os -pipe',
     CXXFLAGS:  '-Os -pipe',
