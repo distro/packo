@@ -50,9 +50,9 @@ class Remote < Thor
   def delete (*names)
     names.each {|name|
       begin
-        Do::Repository::Remote.delete(Modules::Repository::Remote.first(name: name))
+        Do::Repository::Remote.delete(Models::Repository::Remote.first(name: name))
       rescue Exception => e
-        CLI.fatal "Failed to add #{uri}"
+        CLI.fatal "Failed to delete #{uri}"
 
         Packo.debug e
       end
