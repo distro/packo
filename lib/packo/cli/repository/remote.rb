@@ -85,11 +85,7 @@ class Remote < Thor
 
   desc 'list [NAME]', 'List available remotes'
   def list (name=nil)
-    if name
-      [Models::Repository::Remote.first(name: name)]
-    else
-      Models::Repository::Remote.all
-    end.each {|remote|
+    (name ? [Models::Repository::Remote.first(name: name)] : Models::Repository::Remote.all).each {|remote|
       print remote.name.to_s.green
       print ", #{remote.description}" if remote.description
       puts ':'
