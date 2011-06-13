@@ -46,7 +46,7 @@ class Source < Repository
           )
 
           begin
-            package = Packo.loadPackage(what, pkg)
+            package = RBuild::Package.load(what, pkg)
           rescue LoadError => e
             CLI.warn e.to_s if System.env[:VERBOSE]
           end

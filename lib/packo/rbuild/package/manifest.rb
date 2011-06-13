@@ -44,13 +44,9 @@ class Manifest
 
       environment: data['package']['environment'],
 
-      dependencies: data['dependencies'].map {|dependency|
+      dependencies: Package::Dependencies.new(data['dependencies'].map {|dependency|
         Package::Dependency.parse(dependency)
-      },
-
-      blockers: data['blockers'].map {|blocker|
-        Package::Blocker.parse(blocker)
-      },
+      }),
 
       selector: data['selectors']
     ))
@@ -60,7 +56,7 @@ class Manifest
     Manifest.parse(File.read(path))
   end
 
-  attr_reader :package, :dependencies, :blockers, :selectors
+  attr_reader :package, :dependencies, :selectors
 
   def initialize (what)
     @package = OpenStruct.new(
@@ -88,7 +84,6 @@ class Manifest
     )
 
     @dependencies = what.dependencies
-    @blockers     = what.blockers
     @selectors    = [what.selector].flatten.compact.map {|selector| OpenStruct.new(selector)}
 
     if (what.filesystem.selectors rescue false)
@@ -104,7 +99,6 @@ class Manifest
     data = {
       'package'      => {},
       'dependencies' => [],
-      'blockers'     => [],
       'selectors'    => []
     }
 
@@ -124,10 +118,6 @@ class Manifest
 
     dependencies.each {|dependency|
       data['dependencies'] << dependency.to_s
-    }
-
-    blockers.each {|blocker|
-      data['blockers'] << blocker.to_s
     }
 
     selectors.each {|selector|

@@ -47,7 +47,7 @@ class Base < Thor
       desc: 'Ignore the installation and do not add the package to the database'
     
     method_option :nodeps, aliases: '-N', type: :boolean, default: false,
-      desc: 'Ignore blockers and dependencies'
+      desc: 'Ignore dependencies'
     
     method_option :depsonly, aliases: '-D', type: :boolean, default: false,
       desc: 'Install only dependencies'

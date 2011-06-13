@@ -258,7 +258,7 @@ class Build
       path = "#{package.repository.path}/#{package.model.data.path}"
     end
 
-    package      = Packo.loadPackage(path, package)
+    package      = RBuild::Package.load(path, package)
     package.path = path
 
     package

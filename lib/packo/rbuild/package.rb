@@ -36,9 +36,82 @@ class Package < Packo::Package
     @current = Package.new(name, version, slot, revision, &block)
   end
 
+  def self.load (path, package=nil)
+    options = {
+      before: %{
+        module ::Packo::RBuild
+        include ::Packo::RBuild::Modules
+        include ::Packo::RBuild::Behaviors
+      },
+
+      after: %{
+        end
+      }
+    }
+
+    files = {}
+
+    if package
+      if File.exists?("#{path}/digest.yml") && (digest = YAML.parse_file("#{path}/digest.yml").transform)
+        pkg = digest['packages'].find {|pkg|
+          pkg['version'] == package.version && (!package.slot || pkg['slot'] == package.slot)
+        }
+
+        if pkg && pkg['files']
+          pkg['files'].each {|file|
+            tmp = OpenStruct.new(file)
+
+            files[file['name']] = tmp
+            files[file['url']]  = tmp
+          }
+        end
+      end
+
+      begin
+        Packo.load "#{path}/#{package.name}.rbuild", options
+
+        if (pkg = RBuild::Package.current) && (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
+          pkg.filesystem.parse(tmp.last.lstrip)
+        end
+      rescue Exception => e
+        Packo.debug e
+      end
+
+      Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
+
+      if RBuild::Package.current.name == package.name && RBuild::Package.current.version == package.version
+        RBuild::Package.current.filesystem.include(pkg.filesystem)
+
+        if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
+          RBuild::Package.current.filesystem.parse(tmp.last.lstrip)
+        end
+
+        if File.directory?("#{path}/data")
+          RBuild::Package.current.filesystem.load("#{path}/data")
+        end
+
+        RBuild::Package.current.digests = files
+
+        return RBuild::Package.current
+      end
+    else
+      begin
+        Packo.load path, options
+
+        if (pkg = RBuild::Package.current) && (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
+          pkg.filesystem.parse(tmp.last.lstrip)
+        end
+      rescue Exception => e
+        Packo.debug e
+      end
+
+      return RBuild::Package.current
+    end
+  end
+
   include Callbackable
 
-  attr_reader :parent, :do, :modules, :dependencies, :blockers, :stages, :filesystem
+  attr_reader :parent, :do, :modules, :dependencies, :stages, :filesystem
 
   def initialize (name, version=nil, slot=nil, revision=nil, &block)
     super(
@@ -70,12 +143,10 @@ class Package < Packo::Package
     @stages       = Stages.new(self)
     @do           = Do.new(self)
     @dependencies = Dependencies.new(self)
-    @blockers     = Blockers.new(self)
     @features     = Features.new(self)
     @flavor       = Flavor.new(self)
 
     @stages.add :dependencies, self.method(:dependencies_check), at: :beginning
-    @stages.add :blockers,     self.method(:blockers_check),     at: :beginning
 
     use      Modules::Fetcher, Modules::Unpacker, Modules::Packager
     behavior Behaviors::Default
@@ -185,10 +256,6 @@ class Package < Packo::Package
 
   def dependencies_check
     callbacks(:dependencies).do(self)
-  end
-
-  def blockers_check
-    callbacks(:blockers).do(self)
   end
 
   def build

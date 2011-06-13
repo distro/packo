@@ -22,19 +22,50 @@ require 'packo/package/dependency'
 module Packo; class Package
 
 class Dependencies < Array
+  Types = [:runtime, :build, :build_and_runtime,
+           :recommends, :suggests,
+           :breaks, :conflicts,
+           :enhances, :replaces, :provides]
+
   attr_reader :package
 
   def initialize (package)
-    @package = package
+    if package.is_a?(Array)
+      super(package)
+    else
+      @package = package
+    end
   end
 
   def push (dependency)
     super(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
+
     self.compact!
+    self.uniq!
     self
   end
 
   alias << push
+
+  def set (&block)
+    self.instance_eval block
+  end
+
+  def depends (text)
+    push Dependency.parse(text)
+  end; alias depends_on depends
+
+  Types.each {|name|
+    define_method name do |text=nil|
+      if text
+        push Dependency.parse(text, name)
+      else
+        select {|dep|
+          dep.type == name
+        }
+      end
+    end
+  }
 end
 
 end; end

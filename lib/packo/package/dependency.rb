@@ -20,17 +20,23 @@
 module Packo; class Package
 
 class Dependency < Package
-  def self.parse (text)
+  def self.parse (text, type=nil)
     text = text.dup
 
     if text.end_with? '!!'
       text[-2, 2] = ''
-      type = :runtime
+
+      type ||= :runtime
     elsif text.end_with? '!'
       text[-1] = ''
-      type = :build
+
+      type ||= :build
+    elsif matches = text.match(/#(.*?)$/)
+      text.sub!(/#.*?$/, '')
+
+      type ||= matches[1]
     else
-      type = :both
+      type ||= :build_and_runtime
     end
 
     if matches = text.match(/^([<>~]?=?)/)
@@ -47,16 +53,20 @@ class Dependency < Package
 
   attr_reader :type, :validity
 
-  def initialize (data, validity=nil, type=nil)
+  def initialize (data, validity=nil, type=:build_and_runtime)
     super(data, only_parse: true)
 
     @validity = validity
     @type     = type
   end
-
-  def runtime?; [:runtime, :both].member?(@type) end
-  def build?;   [:build,   :both].member?(@type) end
-  def both?;    @type == :both                   end
+  
+  def method_missing (id, *args, &block)
+    if id.to_s.end_with?('?')
+      @type == id.to_s[0 .. -2].to_sym
+    else
+      super
+    end
+  end
 
   def in? (package)
     return false if package.name != name || package.tags != tags
@@ -76,7 +86,7 @@ class Dependency < Package
   def to_s (type=:normal)
     case type
       when :short
-        "#{tags}/#{name}#{"-#{version}" if version}"
+        "#{validity}#{tags}/#{name}#{"-#{version}" if version}##{type}"
 
       else
         features = features.to_a.sort {|a, b|
@@ -92,7 +102,7 @@ class Dependency < Package
           f.name.to_s
         }.sort
 
-        "#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
+        "#{validity}#{tags}/#{name}#{"-#{version}" if version}##{type}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
     end
   end
 end

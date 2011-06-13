@@ -38,7 +38,7 @@ class Build < Thor
       desc: 'Prompt the user if he want to continue building or not'
     
     method_option :nodeps, aliases: '-N', type: :boolean, default: false,
-      desc: 'Ignore blockers and dependencies'
+      desc: 'Ignore dependencies'
     
     method_option :repository, aliases: '-r', type: :string,
       desc: 'Set a specific source repository'
@@ -202,9 +202,9 @@ class Build < Thor
   desc 'info FILE', 'Get informations about an rbuild'
   def info (file)
     if File.basename(file).match(/.*?-\d/)
-      package = Packo.loadPackage(File.dirname(file), Package.parse(File.basename(file).sub(/\.rbuild$/, '')))
+      package = RBuild::Package.load(File.dirname(file), Package.parse(File.basename(file).sub(/\.rbuild$/, '')))
     else
-      package = Packo.loadPackage(file)
+      package = RBuild::Package.load(file)
     end
 
     print package.name.bold

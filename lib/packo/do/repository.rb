@@ -255,7 +255,7 @@ class Repository
     tmp = Models.search(package.to_s, options)
 
     RBuild::Package::Manifest.new(
-      Packo.loadPackage("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
+      RBuild::Package.load("#{tmp.last.repository.path}/#{tmp.last.model.data.path}", tmp.last)
     ).to_s
   end
 end

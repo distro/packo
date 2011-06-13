@@ -17,24 +17,10 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/package/blocker'
+require 'packo'
 
-module Packo; class Package
+require 'packo/do/vcs'
 
-class Blockers < Array
-  attr_reader :package
-
-  def initialize (package)
-    @package = package
-  end
-
-  def push (blocker)
-    super(blocker.is_a?(Blocker) ? blocker : Blocker.parse(blocker))
-    self.compact!
-    self
-  end
-
-  alias << push
-end
+module Packo; class Do
 
 end; end
