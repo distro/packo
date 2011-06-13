@@ -23,13 +23,14 @@ module Packo; class Do; class Repository
 
 class Remote
   module Model
-    def self.add (name, uri, path)
+    def self.add (name, uri, path, description=nil)
       require 'packo/models'
 
       remote = Models::Repository::Remote.first_or_create(name: name)
       remote.update(
         uri:  uri,
-        path: path
+        path: path,
+        description: description
       )
 
       YAML.parse_file(path).transform['repositories'].each {|type, data|
@@ -66,7 +67,7 @@ class Remote
     Models.transaction {
       File.write(path, content)
 
-      Model.add(data['name'], uri, path)
+      Model.add(data['name'], uri, path, data['description'])
     }
   end
 

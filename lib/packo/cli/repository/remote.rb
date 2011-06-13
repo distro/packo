@@ -18,7 +18,7 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'packo/cli'
+require 'packo/cli/thor'
 require 'packo/models'
 require 'packo/do/repository'
 
@@ -90,7 +90,7 @@ class Remote < Thor
     else
       Models::Repository::Remote.all
     end.each {|remote|
-      puts "#{remote.name.to_s.green}:"
+      puts "#{remote.name.to_s.green}, #{remote.description}:"
 
       remote.pieces.each {|piece|
         puts "    #{piece.type}/#{piece.name}"
