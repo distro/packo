@@ -27,8 +27,8 @@ class Remote
 
     property :id, Serial
 
-    property :type, Text
-    property :name, Text
+    property :type, Text, :unique_index => :a
+    property :name, Text, :unique_index => :a
 
     property :description, Text
     property :location,    Location
@@ -38,7 +38,8 @@ class Remote
   
   property :id, Serial
 
-  property :name, String, required: true
+  property :name,        String, required: true, :unique => true
+  property :description, Text
 
   property :uri,  URI
   property :path, Text

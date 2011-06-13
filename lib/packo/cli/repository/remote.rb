@@ -90,10 +90,19 @@ class Remote < Thor
     else
       Models::Repository::Remote.all
     end.each {|remote|
-      puts "#{remote.name.to_s.green}, #{remote.description}:"
+      print remote.name.to_s.green
+      print ", #{remote.description}" if remote.description
+      puts ':'
+
+      length = remote.pieces.map {|piece|      
+        "#{piece.type}/#{piece.name}".length
+      }.max
 
       remote.pieces.each {|piece|
-        puts "    #{piece.type}/#{piece.name}"
+        print '    '
+        print "#{piece.type}/#{piece.name}".bold
+        print ' ' * (4 + length - "#{piece.type}/#{piece.name}".length)
+        puts  piece.description
       }
       
       puts ''
