@@ -21,9 +21,7 @@ module Packo; class Do; class Repository; module Helpers
 
 module Repository
   def self.wrap (model)
-    unless model
-      raise ArgumentError.new('You passed a nil model.')
-    end
+    raise ArgumentError.new('You passed a nil model.') unless model
 
     model.save
 

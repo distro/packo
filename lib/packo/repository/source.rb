@@ -34,7 +34,7 @@ class Source < Repository
     Location[YAML.parse_file("#{self.path}/repository.yml").transform['location']]
   end
 
-  def each_package (what=[self.path], root=self.path, &block)
+  def each_package (what=[self.path], &block)
     what.select {|what| File.directory? what}.each {|what|
       if File.file? "#{what}/#{File.basename(what)}.rbuild"
         Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
@@ -60,11 +60,11 @@ class Source < Repository
 
           block.call(package)
         }
-      else
-        each_package(Dir.entries(what).map {|e|
-          "#{what}/#{e}" if e != '.' && e != '..'
-        }.compact, root, &block)
       end
+
+      each_package(Dir.entries(what).map {|e|
+        "#{what}/#{e}" if e != '.' && e != '..' && e != 'data'
+      }.compact, &block)
     }
   end
 end
