@@ -198,10 +198,6 @@ class Build
       pkg['version'] = package.version.to_s
       pkg['slot']    = package.slot if package.slot
 
-      pkg['features'] = package.features.to_a.map {|f|
-        f.name
-      }.join(' ')
-      
       pkg['files'] = package.distfiles.to_a.map {|(name, file)|
         file ||= name
 
