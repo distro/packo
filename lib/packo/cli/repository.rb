@@ -45,6 +45,8 @@ class Repository < Thor
         repository = Do::Repository.add(location)
 
         CLI.info "Added #{repository}"
+      rescue Do::Repository::Exceptions::AlreadyExists => e
+        CLI.fatal e.message
       rescue Exception => e
         CLI.fatal "Failed to add #{location}"
 

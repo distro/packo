@@ -31,6 +31,10 @@ require 'packo/do/repository/virtual'
 module Packo; class Do
   
 class Repository
+  module Exceptions
+    AlreadyExists = Class.new(Exception)
+  end
+
   def self.add (location)
     data, type, name = nil
 
@@ -81,8 +85,7 @@ class Repository
     path = "#{System.env[:MAIN_PATH]}/repositories/#{type}/#{name}"
 
     if Models::Repository.first(type: type, name: name)
-      CLI.fatal "#{type}/#{name} already exists, delete it first"
-      exit 10
+      raise Exceptions::AlreadyExists.new("#{type}/#{name} already exists, delete it first")
     end
 
     case type
