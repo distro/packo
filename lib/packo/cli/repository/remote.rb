@@ -36,9 +36,9 @@ class Remote < Thor
       begin
         remote = Do::Repository::Remote.add(uri)
 
-        CLI.info "Added #{remote.name}"
+        CLI.info "Added #{remote.name.to_s.bold}"
       rescue Exception => e
-        CLI.fatal "Failed to add #{uri}"
+        CLI.fatal "Failed to add #{uri.to_s.bold}"
 
         Packo.debug e
       end
@@ -51,8 +51,10 @@ class Remote < Thor
     names.each {|name|
       begin
         Do::Repository::Remote.delete(Models::Repository::Remote.first(name: name))
+
+        CLI.info "Deleted #{name.to_s.bold}"
       rescue Exception => e
-        CLI.fatal "Failed to delete #{uri}"
+        CLI.fatal "Failed to delete #{uri.to_s.bold}"
 
         Packo.debug e
       end
@@ -71,12 +73,12 @@ class Remote < Thor
     names.each {|name|
       begin
         if Do::Repository::Remote.update(Models::Repository::Remote.first(name: name))
-          CLI.info "Updated #{name}"
+          CLI.info "Updated #{name.to_s.bold}"
         else
-          CLI.info "#{name} already up to date"
+          CLI.info "#{name.to_s.bold} already up to date"
         end
       rescue Exception => e
-        CLI.fatal "Failed to update #{name}"
+        CLI.fatal "Failed to update #{name.to_s.bold}"
 
         Packo.debug e
       end

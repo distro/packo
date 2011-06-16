@@ -75,7 +75,7 @@ class Remote
     FileUtils.rm_rf remote.path, secure: true
 
     Models.transaction {
-      Model.delete(remote.name)
+      remote.destroy
     }
   end
 
