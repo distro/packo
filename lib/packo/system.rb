@@ -39,7 +39,7 @@ System = Class.new {
       begin; require 'ap'; rescue LoadError; end
     end
 
-    @host = Host.new(env!) rescue Host.parse(RUBY_PLATFORM)
+    @host = Host.new(env!)
   end
 
   def has? (package, options={})

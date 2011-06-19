@@ -133,9 +133,9 @@ class Host
   attr_reader :arch, :vendor, :kernel, :misc
 
   def initialize (data)
-    @arch   = Arch.new(data[:ARCH])
+    @arch   = Arch.new(data[:ARCH]) rescue Host.parse(RUBY_PLATFORM).arch
     @vendor = Vendor.new(data[:VENDOR])
-    @kernel = Kernel.new(data[:KERNEL])
+    @kernel = Kernel.new(data[:KERNEL]) rescue Host.parse(RUBY_PLATFORM).kernel
     @misc   = Misc.new(data[:MISC])
 
     if !self.misc && data[:LIBC] == 'glibc' && (self.kernel == 'linux')
