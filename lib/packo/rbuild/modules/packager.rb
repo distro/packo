@@ -24,6 +24,22 @@ class Packager < Module
     Unsupported = Class.new(Exception)
   end
 
+  class Manifest
+    def self.open (path)
+      self.parse(File.read(path))
+    end
+
+    attr_reader :package
+
+    def initialize (package)
+      @package = package
+    end
+
+    def save (to, options={})
+      File.write(to, to_s(options))
+    end
+  end
+
   class Format
     attr_reader :type
 
@@ -51,7 +67,7 @@ class Packager < Module
 
     def manifest (&block)
       if block
-        @manifest = Class.new(&block)
+        @manifest = Class.new(Manifest, &block)
       else
         @manifest
       end
@@ -110,7 +126,7 @@ class Packager < Module
     package.callbacks(:pack).do {
       package.filesystem.files.save(package.distdir)
 
-      Packager.pack(package)
+      Packager.pack(package, "#{package.to_s :package}.#{package.extension || '.pko'}")
     }
   end
 end

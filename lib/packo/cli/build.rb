@@ -43,6 +43,9 @@ class Build < Thor
     method_option :repository, aliases: '-r', type: :string,
       desc: 'Set a specific source repository'
 
+    method_option :extension, aliases: '-e', type: :string,
+      desc: 'Set the package extension to create'
+
   def package (*packages)
     packages.map {|package|
       begin

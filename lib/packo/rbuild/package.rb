@@ -20,7 +20,6 @@
 require 'packo/rbuild/stages'
 require 'packo/rbuild/features'
 require 'packo/rbuild/flavor'
-require 'packo/rbuild/package/manifest'
 
 require 'packo/rbuild/modules'
 require 'packo/rbuild/behaviors'
@@ -29,11 +28,11 @@ module Packo; module RBuild
 
 class Package < Packo::Package
   def self.current
-    @current
+    @@current
   end
 
   def self.define (name, version=nil, slot=nil, revision=nil, &block)
-    @current = Package.new(name, version, slot, revision, &block)
+    @@current = self.new(name, version, slot, revision, &block)
   end
 
   def self.load (path, package=nil)
@@ -70,7 +69,7 @@ class Package < Packo::Package
       begin
         Packo.load "#{path}/#{package.name}.rbuild", options
 
-        if (pkg = RBuild::Package.current) && (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
+        if (pkg = self.current) && (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e
@@ -79,34 +78,32 @@ class Package < Packo::Package
 
       Packo.load "#{path}/#{package.name}-#{package.version}.rbuild", options
 
-      if RBuild::Package.current.name == package.name && RBuild::Package.current.version == package.version
-        RBuild::Package.current.filesystem.include(pkg.filesystem)
+      if self.current.name == package.name && self.current.version == package.version
+        self.current.filesystem.include(pkg.filesystem)
 
         if (tmp = File.read("#{path}/#{package.name}-#{package.version}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
-          RBuild::Package.current.filesystem.parse(tmp.last.lstrip)
+          self.current.filesystem.parse(tmp.last.lstrip)
         end
 
         if File.directory?("#{path}/data")
-          RBuild::Package.current.filesystem.load("#{path}/data")
+          self.current.filesystem.load("#{path}/data")
         end
 
-        RBuild::Package.current.digests = files
-
-        return RBuild::Package.current
+        self.current.digests = files
       end
     else
       begin
         Packo.load path, options
 
-        if (pkg = RBuild::Package.current) && (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
+        if (pkg = self.current) && (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
           pkg.filesystem.parse(tmp.last.lstrip)
         end
       rescue Exception => e
         Packo.debug e
       end
-
-      return RBuild::Package.current
     end
+
+    self.current
   end
 
   include Callbackable
@@ -152,7 +149,7 @@ class Package < Packo::Package
     behavior Behaviors::Default
 
     if (@parent = Package.current)
-      self.do(&@parent.instance_eval('@block'))
+      self.apply(&@parent.instance_eval('@block'))
     end
 
     flavor {
@@ -214,7 +211,7 @@ class Package < Packo::Package
     self.fetchdir  = System.env[:FETCH_PATH] || self.tempdir
 
     callbacks(:initialize).do(self) {
-      self.do(&block)
+      self.apply(&block)
     }
 
     self.envify!
@@ -238,15 +235,6 @@ class Package < Packo::Package
     }
 
     callbacks(:initialized).do(self)
-
-    return self
-  end
-
-  def do (text=nil, &block)
-    self.instance_exec(self, text)   if text
-    self.instance_exec(self, &block) if block
-
-    self
   end
 
   def create!
@@ -284,10 +272,10 @@ class Package < Packo::Package
   end
 
   def built?
-    Hash[
+    OpenStruct.new(
       start: @build_start_at,
       end:   @build_end_at
-    ] if @build_start_at
+    )
   end
 
   def use (*modules)
@@ -324,6 +312,26 @@ class Package < Packo::Package
     else
       @flavor.instance_eval &block
     end
+  end
+
+  def selectors
+    filesystem.selectors.map {|name, file|
+      matches = file.content.match(/^#\s*(.*?):\s*(.*)([\n\s]*)?\z/) or next
+
+      OpenStruct.new(name: matches[1], description: matches[2], path: name)
+    }.compact
+  end
+
+  def size
+    result = 0
+
+    Find.find(distdir) {|path|
+      next unless File.file?(path)
+
+      result += File.size(path) rescue nil
+    }
+
+    result
   end
 
   def package; self end

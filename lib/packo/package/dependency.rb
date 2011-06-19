@@ -21,6 +21,8 @@ module Packo; class Package
 
 class Dependency < Package
   def self.parse (text, type=nil)
+    return text if text.is_a?(Dependency)
+
     text = text.dup
 
     if text.end_with? '!!'

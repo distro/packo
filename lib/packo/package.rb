@@ -111,7 +111,7 @@ class Package
   alias env  environment
   alias env! environment!
 
-  def initialize (data, options={})
+  def initialize (data={}, options={}, &block)
     @options = options
 
     @data   = {}
@@ -130,7 +130,14 @@ class Package
       @environmentClean = Environment.new(self, true)
     end
 
-    yield self if block_given?
+    self.do(&block)
+  end
+
+  def apply (text=nil, &block)
+    self.instance_exec(self, text)   if text
+    self.instance_exec(self, &block) if block
+
+    self
   end
 
   def envify!
@@ -205,6 +212,10 @@ class Package
 
   def features= (value)
     @data[:features] = ((value.is_a?(Features)) ? value : Features.parse(value.to_s))
+  end
+
+  def dependencies= (value)
+    @data[:dependencies] = Dependencies.new(value)
   end
 
   def == (package)

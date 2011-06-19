@@ -30,7 +30,8 @@ class Build
   end
 
   def self.build (package, options={}, &block)
-    package = self.package(package, options)
+    package           = self.package(package, options)
+    package.extension = options[:extension] || '.pko'
 
     output = nil
     pwd    = Dir.pwd

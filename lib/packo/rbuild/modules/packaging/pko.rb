@@ -19,7 +19,7 @@
 
 module Packo; module RBuild; module Modules; module Packaging
 
-Packager.register('.pko') {
+Packager.register('pko') {
   pack do |package, to=nil|
     path = to || "#{package.to_s(:package)}.pko"
 
@@ -34,7 +34,7 @@ Packager.register('.pko') {
     package.callbacks(:packing).do {
       Do.clean(package.distdir)
 
-      Packo.sh 'tar', 'cJf', path, *['dist/', 'pre/', 'post/', 'selectors/', 'manifest.yml'], '--preserve', silent: true
+      Packo.sh 'tar', 'cJf', path, *['dist/', 'pre/', 'post/', 'selectors/', 'manifest.yml'], '--preserve-permissions', silent: true
     }
 
     path
@@ -52,69 +52,44 @@ Packager.register('.pko') {
     def self.parse (text)
       data = YAML.parse(text).transform
 
-      self.new(OpenStruct.new(
-        maintainer: data['package']['maintainer'],
+      self.new(Package.new(
+        maintainer: data['maintainer'],
 
-        tags:     Packo::Package::Tags.parse(data['package']['tags']),
-        name:     data['package']['name'],
-        version:  Versionub.parse(data['package']['version']),
-        slot:     data['package']['slot'],
-        revision: data['package']['revision'],
+        tags:     Packo::Package::Tags.parse(data['tags']),
+        name:     data['name'],
+        version:  Versionub.parse(data['version']),
+        slot:     data['slot'],
+        revision: data['revision'],
 
-        exports: Marshal.load(Base64.decode64(data['package']['exports'])),
+        size: data['size'],
 
-        description: data['package']['description'],
-        homepage:    data['package']['homepage'].split(/\s+/),
-        license:     data['package']['license'].split(/\s+/),
+        exports: Marshal.load(Base64.decode64(data['exports'])),
 
-        flavor:   Packo::Package::Flavor.parse(data['package']['flavor'] || ''),
-        features: Packo::Package::Features.parse(data['package']['features'] || ''),
+        description: data['description'],
+        homepage:    data['homepage'].split(/\s+/),
+        license:     data['license'].split(/\s+/),
 
-        environment: data['package']['environment'],
+        flavor:   Packo::Package::Flavor.parse(data['flavor'] || ''),
+        features: Packo::Package::Features.parse(data['features'] || ''),
 
-        dependencies: Package::Dependencies.new(data['dependencies'].map {|dependency|
-          Package::Dependency.parse(dependency)
-        }),
+        environment: data['environment'],
 
-        selector: data['selectors']
+        dependencies: data['dependencies'],
+
+        selectors: data['selectors']
       ))
     end
 
-    def self.open (path)
-      self.parse(File.read(path))
-    end
+    def to_yaml (options={})
+      data = {}
 
-    attr_reader :package, :dependencies, :selectors
-
-    def initialize (package)
-      @package = package 
-
-      @dependencies = what.dependencies
-      @selectors    = [what.selector].flatten
-
-      if (what.filesystem.selectors rescue false)
-        what.filesystem.selectors.each {|name, file|
-          matches = file.content.match(/^#\s*(.*?):\s*(.*)([\n\s]*)?\z/) or next
-
-          @selectors << OpenStruct.new(name: matches[1], description: matches[2], path: name)
-        }
-      end
-    end
-
-    def to_yaml
-      data = {
-        'package'      => {},
-        'dependencies' => [],
-        'selectors'    => []
-      }
-
-      data['package'].merge!(Hash[package.to_hash.map {|name, value|
+      data.merge!(Hash[package.to_hash.map {|name, value|
         next if value.nil?
 
         [name.to_s, value.to_s]
       }.compact])
 
-      data['package']['environment'] = package.environment.reject {|name, value|
+      data['environment'] = package.env!.reject {|name, value|
         [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, :MAIN_PATH, :INSTALL_PATH, :FETCHER,
          :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
         ].member?(name.to_sym)
@@ -124,26 +99,21 @@ Packager.register('.pko') {
         [name.to_s, value.to_s]
       }.compact
 
-      data['package']['exports'] = Base64.encode64(Marshal.dump(package.exports))
+      data['size']    = package.size
+      data['exports'] = Base64.encode64(Marshal.dump(package.exports))
 
-      dependencies.each {|dependency|
-        data['dependencies'] << dependency.to_s
+      data['dependencies'] = package.dependencies.map {|dependency|
+        dependency.to_s
       }
 
-      selectors.each {|selector|
-        data['selectors'] << selector.to_hash
+      data['selectors'] = selectors.map {|selector|
+        selector.to_hash
       }
 
       data.to_yaml
     end
 
-    def save (to, options={})
-      File.write(to, self.to_s)
-    end
-
-    def to_s (options={})
-      to_yaml
-    end
+    alias to_s to_yaml
   end
 }
 

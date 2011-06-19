@@ -31,14 +31,16 @@ class Dependencies < Array
 
   def initialize (package)
     if package.is_a?(Array)
-      super(package)
+      package.each {|dep|
+        push dep
+      }
     else
       @package = package
     end
   end
 
   def push (dependency)
-    super(dependency.is_a?(Dependency) ? dependency : Dependency.parse(dependency))
+    super(Dependency.parse(dependency))
 
     self.compact!
     self.uniq!
