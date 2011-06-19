@@ -203,7 +203,7 @@ class Build
 
         Hash[
           'name'   => File.basename(file.path),
-          'url'    => file.url,
+          'url'    => file.url.to_s,
           'digest' => Packo.digest(file.path)
         ]
       }

@@ -60,8 +60,8 @@ module Packo
     end
 
     result = Kernel.system(options[:env] || {}, *cmd, {
-      out: options[:out],
-      err: options[:err]
+      out: options[:out] || STDOUT,
+      err: options[:err] || STDERR
     })
 
     status = $?

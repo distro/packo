@@ -41,7 +41,7 @@ Fetcher.register :sourceforge, do |url, package|
 
   next unless url
 
-  URI.decode(Net::HTTP.get(URI.parse(url)).match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
+  CGI.unescapeHTML(Net::HTTP.get(URI.parse(url)).match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
 end
 
 end; end; end; end
