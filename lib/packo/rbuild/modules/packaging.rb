@@ -20,3 +20,4 @@
 require 'packo/rbuild/modules/packager'
 
 require 'packo/rbuild/modules/packaging/pko'
+require 'packo/rbuild/modules/packaging/pkg'

@@ -20,38 +20,80 @@
 module Packo; module RBuild; module Modules
 
 class Packager < Module
-  @@formats = {}
+  module Exceptions
+    Unsupported = Class.new(Exception)
+  end
 
-  def self.register (of, type, &block)
-    (@@formats[type] ||= {})[of] = block
+  class Format
+    attr_reader :type
+
+    def initialize (type, &block)
+      @type = type
+
+      self.instance_eval(&block)
+    end
+
+    def pack (*args, &block)
+      if block
+        @pack = block
+      else
+        @pack.call(*args)
+      end
+    end
+
+    def unpack (*args, &block)
+      if block
+        @unpack = block
+      else
+        @unpack.call(*args)
+      end
+    end
+
+    def manifest (&block)
+      if block
+        @manifest = Class.new(&block)
+      else
+        @manifest
+      end
+    end
+  end
+
+  @@formats = []
+
+  def self.register (type, &block)
+    @@formats << Format.new(type, &block)
+
+    @@formats.sort! {|a, b|
+      a.type <=> b.type
+    }
   end
 
   def self.supports? (name)
-    !!@@formats[name.to_sym]
+    !!@@formats[name.to_s]
   end
 
   def self.pack (package, to=nil)
-    block = @@formats.find {|extension, block|
-      (to || '.pko').end_with?(extension)
-    }.last[:pack] rescue nil
+    format = @@formats.find {|format|
+      (to || '.pko').end_with?(format.type)
+    } or raise Exceptions::Unsupported.new('Package fromat unsupported')
 
-    if block
-      block.call(package, to)
-    else
-      Packo.debug 'Package format unsupported'
-    end
+    format.pack(package, to)
   end
 
   def self.unpack (package, to=nil)
-    block = @@formats.find {|extension, block|
-      (to || '.pko').end_with?(extension)
-    }.last[:unpack] rescue nil
+    format = @@formats.find {|format|
+      (to || '.pko').end_with?(format.type)
+    } or raise Exceptions::Unsupported.new('Package fromat unsupported')
 
-    if block
-      block.call(package, to)
-    else
-      Packo.debug 'Package format unsupported'
-    end
+    format.unpack(package, to)
+  end
+
+  def self.manifest (package, to=nil)
+    format = @@formats.find {|format|
+      (to || '.pko').end_with?(format.type)
+    } or raise Exceptions::Unsupported.new('Package fromat unsupported')
+
+    format.manifest
   end
 
   def initialize (package)

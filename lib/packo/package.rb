@@ -129,6 +129,8 @@ class Package
       @environment      = Environment.new(self)
       @environmentClean = Environment.new(self, true)
     end
+
+    yield self if block_given?
   end
 
   def envify!
@@ -239,7 +241,7 @@ class Package
   def to_s (type=:whole)
     case type
       when :whole; "#{self.to_s(:name)}#{"-#{version}" if version}#{"%#{slot}" if slot}"
-      when :name;  "#{tags}/#{name}"
+      when :name;  "#{"#{tags}/" unless tags.empty?}#{name}"
     end
   end
 end

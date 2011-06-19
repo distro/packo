@@ -152,7 +152,7 @@ class Package < Packo::Package
     behavior Behaviors::Default
 
     if (@parent = Package.current)
-      self.instance_exec(self, &@parent.instance_eval('@block'))
+      self.do(&@parent.instance_eval('@block'))
     end
 
     flavor {
@@ -214,7 +214,7 @@ class Package < Packo::Package
     self.fetchdir  = System.env[:FETCH_PATH] || self.tempdir
 
     callbacks(:initialize).do(self) {
-      self.instance_exec(self, &block) if block
+      self.do(&block)
     }
 
     self.envify!
@@ -240,6 +240,13 @@ class Package < Packo::Package
     callbacks(:initialized).do(self)
 
     return self
+  end
+
+  def do (text=nil, &block)
+    self.instance_exec(self, text)   if text
+    self.instance_exec(self, &block) if block
+
+    self
   end
 
   def create!

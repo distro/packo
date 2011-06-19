@@ -21,20 +21,20 @@ module Packo; module RBuild; module Modules; module Packaging
 
 Packager.register('.pko') {
   pack do |package, to=nil|
-    path = to || "#{package.to_s(:package)}.pko"
+    path = to || "#{package.to_s(:package)}.pkg"
 
     Dir.chdir package.directory
 
-    package.filesystem.pre.save("#{package.directory}/pre", 0755)
-    package.filesystem.post.save("#{package.directory}/post", 0755)
-    package.filesystem.selectors.save("#{package.directory}/selectors", 0755)
+    # TODO: convert pre/post scripts to arch's *.install
 
-    manifest.new(package).save('manifest.yml')
+    manifest.new(package).save('dist/.PKGINFO')
 
     package.callbacks(:packing).do {
       Do.clean(package.distdir)
 
-      Packo.sh 'tar', 'cJf', path, *['dist/', 'pre/', 'post/', 'selectors/', 'manifest.yml'], '--preserve', silent: true
+      Do.cd 'dist' do
+        Packo.sh 'tar', 'cJf', path, '.', '--preserve', silent: true
+      end
     }
 
     path
@@ -47,19 +47,20 @@ Packager.register('.pko') {
   end
 
   manifest do
-    require 'base64'
-
     def self.parse (text)
-      data = YAML.parse(text).transform
+      data = {}
 
-      self.new(OpenStruct.new(
+      text.lines.each {|line|
+      }
+
+      self.new(OpenStruct.new(data)
+=begin
         maintainer: data['package']['maintainer'],
 
-        tags:     Packo::Package::Tags.parse(data['package']['tags']),
-        name:     data['package']['name'],
-        version:  Versionub.parse(data['package']['version']),
-        slot:     data['package']['slot'],
-        revision: data['package']['revision'],
+        tags:    Packo::Package::Tags.parse(data['package']['tags']),
+        name:    data['package']['name'],
+        version: Versionub.parse(data['package']['version']),
+        slot:    data['package']['slot'],
 
         exports: Marshal.load(Base64.decode64(data['package']['exports'])),
 
@@ -78,6 +79,7 @@ Packager.register('.pko') {
 
         selector: data['selectors']
       ))
+=end
     end
 
     def self.open (path)
@@ -86,11 +88,36 @@ Packager.register('.pko') {
 
     attr_reader :package, :dependencies, :selectors
 
-    def initialize (package)
-      @package = package 
+    def initialize (what)
+      @package = OpenStruct.new(
+        maintainer: what.maintainer,
+
+        tags:     what.tags,
+        name:     what.name,
+        version:  what.version,
+        slot:     what.slot,
+        revision: what.revision,
+
+        exports: what.exports,
+
+        description: what.description,
+        homepage:    [what.homepage].flatten.compact.join(' '),
+        license:     [what.license].flatten.compact.join(' '),
+
+        flavor:   what.flavor,
+        features: what.features,
+
+        size: what.size,
+
+        environment: what.environment.reject {|name, value|
+          [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, :MAIN_PATH, :INSTALL_PATH, :FETCHER,
+           :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
+          ].member?(name.to_sym)
+        }
+      )
 
       @dependencies = what.dependencies
-      @selectors    = [what.selector].flatten
+      @selectors    = [what.selector].flatten.compact.map {|selector| OpenStruct.new(selector)}
 
       if (what.filesystem.selectors rescue false)
         what.filesystem.selectors.each {|name, file|
@@ -101,48 +128,26 @@ Packager.register('.pko') {
       end
     end
 
-    def to_yaml
-      data = {
-        'package'      => {},
-        'dependencies' => [],
-        'selectors'    => []
-      }
-
-      data['package'].merge!(Hash[package.to_hash.map {|name, value|
-        next if value.nil?
-
-        [name.to_s, value.to_s]
-      }.compact])
-
-      data['package']['environment'] = package.environment.reject {|name, value|
-        [:DATABASE, :FLAVORS, :PROFILES, :CONFIG_PATH, :MAIN_PATH, :INSTALL_PATH, :FETCHER,
-         :NO_COLORS, :DEBUG, :VERBOSE, :TMP, :SECURE
-        ].member?(name.to_sym)
-      }.map {|name, value|
-        next if value.nil?
-
-        [name.to_s, value.to_s]
-      }.compact
-
-      data['package']['exports'] = Base64.encode64(Marshal.dump(package.exports))
-
-      dependencies.each {|dependency|
-        data['dependencies'] << dependency.to_s
-      }
-
-      selectors.each {|selector|
-        data['selectors'] << selector.to_hash
-      }
-
-      data.to_yaml
-    end
-
     def save (to, options={})
       File.write(to, self.to_s)
     end
 
     def to_s (options={})
-      to_yaml
+      data = {}
+
+      data[:pkgname] = package.name
+      data[:pkgver]  = "#{package.version}-#{package.revision || 1}"
+
+      data[:pkgdesc]   = package.description
+      data[:url]       = package.homepage
+      data[:builddate] = 0
+      data[:size]      = package.size || 0
+
+      data.map {|name, value|
+        [value].flatten.compact.map {|value|
+          "#{name} = #{value}"
+        }.join("\n")
+      }.join("\n")
     end
   end
 }
