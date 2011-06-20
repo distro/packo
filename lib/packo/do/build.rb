@@ -59,10 +59,12 @@ class Build
         File.write("#{package.directory}/.build", package.to_s(:everything)) rescue nil
       end
 
-      options[:transforms].each {|transform|
-        next unless File.readable?(transform)
-        package.apply(File.read(transform))
-      }
+      if options[:transforms].respond_to? :each
+        options[:transforms].each {|transform|
+          next unless File.readable?(transform)
+          package.apply(File.read(transform))
+        }
+      end
 
       package.build &block
     }

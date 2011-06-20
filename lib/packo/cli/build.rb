@@ -46,7 +46,7 @@ class Build < Thor
     method_option :transforms, aliases: '-t', type: :array,
       desc: 'Set transformations to pass the package through'
 
-    method_option :extension, aliases: '-e', type: :string, default: [],
+    method_option :extension, aliases: '-e', type: :string,
       desc: 'Set the package extension to create'
 
   def package (*packages)
