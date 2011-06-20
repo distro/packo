@@ -126,7 +126,7 @@ class Packager < Module
     package.callbacks(:pack).do {
       package.filesystem.files.save(package.distdir)
 
-      Packager.pack(package, "#{package.to_s :package}.#{package.extension || '.pko'}")
+      Packager.pack(package, "#{package.directory}/#{package.to_s :package}.#{package.extension || '.pko'}")
     }
   end
 end

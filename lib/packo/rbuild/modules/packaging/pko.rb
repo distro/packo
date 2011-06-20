@@ -20,9 +20,7 @@
 module Packo; module RBuild; module Modules; module Packaging
 
 Packager.register('pko') {
-  pack do |package, to=nil|
-    path = to || "#{package.to_s(:package)}.pko"
-
+  pack do |package, to|
     Dir.chdir package.directory
 
     package.filesystem.pre.save("#{package.directory}/pre", 0755)
@@ -34,10 +32,10 @@ Packager.register('pko') {
     package.callbacks(:packing).do {
       Do.clean(package.distdir)
 
-      Packo.sh 'tar', 'cJf', path, *['dist/', 'pre/', 'post/', 'selectors/', 'manifest.yml'], '--preserve-permissions', silent: true
+      Packo.sh 'tar', 'cJf', to, *['dist/', 'pre/', 'post/', 'selectors/', 'manifest.yml'], '--preserve-permissions', silent: true
     }
 
-    path
+    to
   end
 
   unpack do |package, to=nil|
