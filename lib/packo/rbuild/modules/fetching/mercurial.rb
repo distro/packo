@@ -24,13 +24,27 @@ class Mercurial < Module
     Packo.sh 'hg', *args
   end
 
+  def self.valid? (path)
+    Do.cd path do
+      Mercurial.do(:status throw: false) == 0
+    end
+  end
+
   def self.fetch (location, path)
+    if Mercurial.valid?
+      Mercurial.update(path)
+
+      return
+    end
+
     Do.rm path
 
     Mercurial.do :clone, location.repository, path
   end
 
   def self.update (path)
+    raise ArgumentError.new 'The passed path is not a mercurial repository' unless Mercurial.valid?(path)
+
     Do.cd path do
       updated = !`hg pull`.include?('no changes found')
       
@@ -58,9 +72,6 @@ class Mercurial < Module
 
   def fetch
     package.callbacks(:fetch).do {
-      package.clean!
-      package.create!
-
       package.source.to_hash.each {|name, value|
         package.source[name] = value.to_s.interpolate(package)
       }

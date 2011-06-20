@@ -243,10 +243,13 @@ class Package < Packo::Package
     FileUtils.mkpath self.tempdir
   rescue; end
 
-  def clean!
-    FileUtils.rm_rf self.workdir, secure: true
+  def clean! (full=true)
     FileUtils.rm_rf self.distdir, secure: true
-    FileUtils.rm_rf self.tempdir, secure: true
+
+    if full
+      FileUtils.rm_rf self.workdir, secure: true
+      FileUtils.rm_rf self.tempdir, secure: true
+    end
   rescue; end
 
   def dependencies_check
@@ -275,7 +278,7 @@ class Package < Packo::Package
     OpenStruct.new(
       start: @build_start_at,
       end:   @build_end_at
-    )
+    ) if @build_start_at
   end
 
   def use (*modules)

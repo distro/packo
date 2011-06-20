@@ -24,7 +24,31 @@ class Git < Module
     Packo.sh 'git', *args
   end
 
+  def self.valid? (path)
+    Do.cd path do
+      Git.do(:status, silent: true, throw: false) == 0
+    end
+  end
+
   def self.fetch (location, path)
+    if Git.valid?(path)
+      Git.update(path)
+
+      Do.cd path do
+        return true if begin
+          if location.branch || location.commit || location.tag
+            Git.do :checkout, location.branch || location.commit || location.tag, silent: true
+          else
+            Git.do :checkout, :master, silent: true
+          end
+
+          true
+        rescue
+          false
+        end
+      end
+    end
+    
     Do.rm path
 
     options = []
@@ -36,17 +60,21 @@ class Git < Module
 
     Do.cd path do
       if location.commit || location.tag
-        Git.do 'checkout', location.commit || location.tag
+        Git.do :checkout, location.commit || location.tag, silent: true
       end
 
-      Git.do 'submodule', 'init'
-      Git.do 'submodule', 'update'
+      Git.do :submodule, :init throw: false
+      Git.do :submodule, :update, throw: false
     end
+
+    true
   end
 
   def self.update (path)
+    raise ArgumentError.new 'The passed path is not a git repository' unless Git.valid?(path)
+
     Do.cd path do
-      !!((`git reset --hard`) && (`git pull`.strip != 'Already up-to-date.'))
+      Git.do(:reset, '--hard', silent: true, throw: false) == 0 && Git.do(:pull, catch: true).strip != 'Already up-to-date.'
     end
   end
 
@@ -68,9 +96,6 @@ class Git < Module
 
   def fetch
     package.callbacks(:fetch).do {
-      package.clean!
-      package.create!
-
       package.source.to_hash.each {|name, value|
         package.source[name] = value.to_s.interpolate(package)
       }

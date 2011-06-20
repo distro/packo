@@ -24,7 +24,19 @@ class Bazaar < Module
     Packo.sh 'bzr', *args
   end
 
+  def self.valid? (path)
+    Do.cd path do
+      Bazaar.do(:status, silent: true, throw: false) == 0
+    end
+  end
+
   def self.fetch (location, path)
+    if Bazaar.valid?(path)
+      Bazaar.update(path)
+
+      return
+    end
+
     Do.rm path
 
     if location.repository && location.branch
@@ -35,6 +47,8 @@ class Bazaar < Module
   end
 
   def self.update (path)
+    raise ArgumentError.new 'The passed path is not a bzr repository' unless Bazaar.valid?(path)
+
     Do.cd path do
       !`bzr pull`.match(/^No revisions to pull\.$/)
     end
@@ -58,9 +72,6 @@ class Bazaar < Module
 
   def fetch
     package.callbacks(:fetch).do {
-      package.clean!
-      package.create!
-
       package.source.to_hash.each {|name, value|
         package.source[name] = value.to_s.interpolate(package)
       }

@@ -69,10 +69,14 @@ module Packo
     block.call(result, status)
 
     if options[:catch]
-      r.read
+      w.flush
+      r.read_all_nonblock
     else
       status
-    end
+    end.tap {
+      r.close if r
+      w.close if w
+    }
   end
 
   def self.sh! (*cmd)

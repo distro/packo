@@ -24,7 +24,27 @@ class Subversion < Module
     Packo.sh 'svn', *args
   end
 
+  def self.valid? (path)
+    Do.cd path do
+      Subversion.do(:info throw: false) == 0
+    end
+  end
+
   def self.fetch (location, path)
+    if Subversion.valid?
+      Subversion.update(path)
+
+      return true if begin
+        if location.revision
+          Subversion.do :checkout, '--revision', location.revision
+        end
+
+        true
+      rescue
+        false
+      end
+    end
+
     Do.rm path
 
     options = []
@@ -43,6 +63,8 @@ class Subversion < Module
   end
 
   def self.update (path)
+    raise ArgumentError.new 'The passed path is not a svn repository' unless Subversion.valid?(path)
+
     Do.cd path do
       !`svn update`.match(/^At revision \d+\.$/)
     end
@@ -66,9 +88,6 @@ class Subversion < Module
 
   def fetch
     package.callbacks(:fetch).do {
-      package.clean!
-      package.create!
-
       package.source.to_hash.each {|name, value|
         package.source[name] = value.to_s.interpolate(package)
       }

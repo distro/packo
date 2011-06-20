@@ -49,6 +49,8 @@ class Build
         output = path
       end
 
+      package.clean!(false)
+
       if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
         Build.clean(package)
 
