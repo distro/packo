@@ -71,7 +71,7 @@ Packager.register('pkg') {
       data = {}
 
       data[:pkgname]   = package.name
-      data[:pkgver]    = "#{package.version}-#{package.revision || 1}"
+      data[:pkgver]    = "#{package.version}-#{package.revision + 1}"
       data[:pkgdesc]   = package.description
       data[:license]   = package.license
       data[:url]       = package.homepage
