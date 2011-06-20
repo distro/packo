@@ -26,7 +26,7 @@ class Subversion < Module
 
   def self.valid? (path)
     Do.cd path do
-      Subversion.do(:info throw: false) == 0
+      Subversion.do(:info, throw: false) == 0
     end
   end
 

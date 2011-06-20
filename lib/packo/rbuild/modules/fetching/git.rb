@@ -63,7 +63,7 @@ class Git < Module
         Git.do :checkout, location.commit || location.tag, silent: true
       end
 
-      Git.do :submodule, :init throw: false
+      Git.do :submodule, :init, throw: false
       Git.do :submodule, :update, throw: false
     end
 

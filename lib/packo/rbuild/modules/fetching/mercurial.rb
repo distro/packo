@@ -26,7 +26,7 @@ class Mercurial < Module
 
   def self.valid? (path)
     Do.cd path do
-      Mercurial.do(:status throw: false) == 0
+      Mercurial.do(:status, throw: false) == 0
     end
   end
 
