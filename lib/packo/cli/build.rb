@@ -43,7 +43,10 @@ class Build < Thor
     method_option :repository, aliases: '-r', type: :string,
       desc: 'Set a specific source repository'
 
-    method_option :extension, aliases: '-e', type: :string,
+    method_option :transforms, aliases: '-t', type: :array,
+      desc: 'Set transformations to pass the package through'
+
+    method_option :extension, aliases: '-e', type: :string, default: [],
       desc: 'Set the package extension to create'
 
   def package (*packages)
