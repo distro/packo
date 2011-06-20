@@ -51,8 +51,14 @@ class Python < Module
   def initialize (package)
     super(package)
 
-    package.py = Class.new(Module::Helper) {
+    package.py = package.python = Class.new(Module::Helper) {
       include Functions
+
+      def version (value)
+        package.dependencies.set {
+          depends_on "python%#{value}"
+        }
+      end
     }.new(package)
   end
 

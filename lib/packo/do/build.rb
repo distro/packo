@@ -62,6 +62,7 @@ class Build
       if options[:transforms].respond_to? :each
         options[:transforms].each {|transform|
           next unless File.readable?(transform)
+
           package.apply(File.read(transform))
         }
       end

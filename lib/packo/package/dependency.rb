@@ -88,7 +88,7 @@ class Dependency < Package
   def to_s (type=:normal)
     case type
       when :short
-        "#{validity}#{tags}/#{name}#{"-#{version}" if version}##{type}"
+        "#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"%#{slot}" if slot}##{self.type}"
 
       else
         features = features.to_a.sort {|a, b|
@@ -104,7 +104,7 @@ class Dependency < Package
           f.name.to_s
         }.sort
 
-        "#{validity}#{tags}/#{name}#{"-#{version}" if version}##{type}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
+        "#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"%#{slot}" if slot}##{self.type}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
     end
   end
 end
