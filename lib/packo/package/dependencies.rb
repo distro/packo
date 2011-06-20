@@ -50,7 +50,7 @@ class Dependencies < Array
   alias << push
 
   def set (&block)
-    self.instance_eval block
+    self.instance_eval &block
   end
 
   def depends (text)

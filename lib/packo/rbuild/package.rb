@@ -237,6 +237,16 @@ class Package < Packo::Package
     callbacks(:initialized).do(self)
   end
 
+  def apply (text=nil, &block)
+    if text
+      if (tmp = text.split(/^__END__$/)).length > 1
+        filesystem.parse(tmp.last.lstrip)
+      end
+    end
+
+    super
+  end
+
   def create!
     FileUtils.mkpath self.workdir
     FileUtils.mkpath self.distdir

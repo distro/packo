@@ -134,8 +134,8 @@ class Package
   end
 
   def apply (text=nil, &block)
-    self.instance_exec(self, text)   if text
-    self.instance_exec(self, &block) if block
+    self.instance_eval(text)   if text
+    self.instance_exec(&block) if block
 
     self
   end
