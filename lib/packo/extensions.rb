@@ -21,6 +21,7 @@ require 'packo/fixes'
 
 require 'ostruct'
 require 'pathname'
+require 'fileutils'
 require 'yaml'
 require 'memoized'
 require 'shellwords'
@@ -201,4 +202,64 @@ class IO
 
     result
   end
+end
+
+module FileUtils
+  class Entry_
+    def copy!(dest)
+      case
+      when file?
+        copy_file dest
+      when directory?
+        if !File.exist?(dest) and /^#{Regexp.quote(path)}/ =~ File.dirname(dest)
+          raise ArgumentError, "cannot copy directory %s to itself %s" % [path, dest]
+        end
+        begin
+          FileUtils.mkdir_p dest
+        rescue
+          raise unless File.directory?(dest)
+        end
+      when File.symlink?(path)
+        FileUtils.ln_sf File.readlink(path), dest
+      when chardev?
+        raise "cannot handle device file" unless File.respond_to?(:mknod)
+        mknod dest, ?c, 0666, lstat().rdev
+      when blockdev?
+        raise "cannot handle device file" unless File.respond_to?(:mknod)
+        mknod dest, ?b, 0666, lstat().rdev
+      when socket?
+        raise "cannot handle socket" unless File.respond_to?(:mknod)
+        mknod dest, nil, lstat().mode, 0
+      when pipe?
+        raise "cannot handle FIFO" unless File.respond_to?(:mkfifo)
+        mkfifo dest, 0666
+      when door?
+        raise "cannot handle door: #{path()}"
+      else
+        raise "unknown file type: #{path()}"
+      end
+    end
+  end
+
+  def copy_entry!(src, dest, preserve = false, dereference_root = false, remove_destination = false)
+    Entry_.new(src, nil, dereference_root).traverse do |ent|
+      destent = Entry_.new(dest, ent.rel, false)
+      File.unlink destent.path if remove_destination && File.file?(destent.path)
+      ent.copy! destent.path
+      ent.copy_metadata destent.path if preserve
+    end
+  end
+  module_function :copy_entry!
+
+  def cp_rf(src, dest, options = {})
+    fu_check_options options, OPT_TABLE['cp_r']
+    fu_output_message "cp -rf#{options[:preserve] ? 'p' : ''}#{options[:remove_destination] ? ' --remove-destination' : ''} #{[src,dest].flatten.join ' '}" if options[:verbose]
+    return if options[:noop]
+    options = options.dup
+    options[:dereference_root] = true unless options.key?(:dereference_root)
+    fu_each_src_dest0(src, dest) do |s, d|
+      copy_entry! s, d, options[:preserve], options[:dereference_root], options[:remove_destination]
+    end
+  end
+  module_function :cp_rf
 end
