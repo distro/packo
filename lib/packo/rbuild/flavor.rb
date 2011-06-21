@@ -60,6 +60,10 @@ class Flavor < Packo::Package::Flavor
   def delete (name)
     @values.delete(name.to_sym)
   end
+
+  def needs (expression=nil)
+    expression ? @needs = expression : @needs
+  end
 end
 
 end; end

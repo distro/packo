@@ -217,21 +217,25 @@ class Package < Packo::Package
     self.envify!
     self.export! :arch, :kernel, :compiler, :libc
 
-    tmp = []
-    features.each {|feature|
-      next unless feature.enabled?
+    [flavor, features].each {|thing|
+      tmp = []
+      thing.each {|piece|
+        next unless piece.enabled?
 
-      tmp << feature.name
-    }
+        tmp << piece.name
+      }
 
-    features.each {|feature|
-      next unless feature.enabled? && feature.needs
-
-      expression = Packo::Package::Tags::Expression.parse(feature.needs)
-
-      if !expression.evaluate(tmp)
-        raise Package::Tags::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for `#{feature.name}`"
+      if thing.needs && !(expression = Packo::Package::Tags::Expression.parse(thing.needs)).evaluate(tmp)
+        raise Package::Tags::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for the #{thing.class.name.match(/(?:::)?([^:]*)$/)[1].downcase}"
       end
+
+      thing.each {|piece|
+        next unless piece.enabled? && piece.needs
+
+        if !(expression = Packo::Package::Tags::Expression.parse(piece.needs)).evaluate(tmp)
+          raise Package::Tags::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for `#{piece.name}`"
+        end
+      }
     }
 
     callbacks(:initialized).do(self)
