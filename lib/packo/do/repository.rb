@@ -103,7 +103,7 @@ class Repository
         FileUtils.mkpath path rescue nil
 
         if File.directory?("#{System.env[:TMP]}/.__packo.repo")
-          FileUtils.cp_r "#{System.env[:TMP]}/.__packo.repo/.", path, preserve: true
+          Do.cp :rf, "#{System.env[:TMP]}/.__packo.repo/.", path
         else
           Do::VCS.checkout(location, path)
         end

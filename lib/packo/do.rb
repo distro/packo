@@ -64,7 +64,12 @@ class Do
 
     if type.include?('r')
       Do.dir(to)
-      FileUtils.cp_r(files, to, force: type.include?('f'), preserve: true)
+
+      if type.include?('f')
+        FileUtils.cp_rf(files, to, preserve: true)
+      else
+        FileUtils.cp_r(files, to, preserve: true)
+      end
     else
       Do.dir(File.dirname(to))
       FileUtils.cp(files, to, preserve: true)
@@ -192,7 +197,7 @@ class Do
     }.flatten(1).each {|(file, name)|
       path = Path.clean("#{root}/#{@relative || 'usr'}/#{File.basename(name || file)}")
 
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
       FileUtils.chmod @opts || 0644, path, verbose: @verbose
     }
   end
@@ -204,7 +209,7 @@ class Do
       path = Path.clean("#{root}/#{@relative || '/'}/bin/#{File.basename(name || file)}")
 
       FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
       FileUtils.chmod @opts || 0755, path, verbose: @verbose
     }
   end
@@ -216,7 +221,7 @@ class Do
       path = Path.clean("#{root}/#{@relative || '/'}/sbin/#{File.basename(name || file)}")
 
       FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
       FileUtils.chmod @opts || 0755, path, verbose: @verbose
     }
   end
@@ -228,7 +233,7 @@ class Do
       path = Path.clean("#{root}/#{@relative || '/usr'}/lib/#{File.basename(name || file)}")
 
       FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
       FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), path, verbose: @verbose
     }
   end
@@ -241,7 +246,7 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
         FileUtils.chmod @opts || 0644, path, verbose: @verbose
       }
     }
@@ -255,7 +260,7 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
         FileUtils.chmod @opts || 0644, path, verbose: @verbose
       }
     }
@@ -269,7 +274,7 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
         FileUtils.chmod @opts || 0644, path, verbose: @verbose
       }
     }
@@ -283,7 +288,7 @@ class Do
         path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
         FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_r file, path, preserve: true, verbose: @verbose
+        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
         Packo.sh 'gzip', '-9', path, silent: !@verbose rescue nil
         FileUtils.chmod @opts || 0644, path, verbose: @verbose
       }
