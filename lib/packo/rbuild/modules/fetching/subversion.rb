@@ -27,7 +27,7 @@ class Subversion < Module
   def self.valid? (path)
     Do.cd path do
       Subversion.do(:info, throw: false) == 0
-    end
+    end rescue false
   end
 
   def self.fetch (location, path)

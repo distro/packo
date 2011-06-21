@@ -27,7 +27,7 @@ class Git < Module
   def self.valid? (path)
     Do.cd path do
       Git.do(:status, silent: true, throw: false) == 0
-    end
+    end rescue false
   end
 
   def self.fetch (location, path)

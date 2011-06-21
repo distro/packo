@@ -27,7 +27,7 @@ class Mercurial < Module
   def self.valid? (path)
     Do.cd path do
       Mercurial.do(:status, throw: false) == 0
-    end
+    end rescue false
   end
 
   def self.fetch (location, path)
