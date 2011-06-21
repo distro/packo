@@ -239,6 +239,11 @@ module FileUtils
         raise "unknown file type: #{path()}"
       end
     end
+
+    def copy_metadata!(dest)
+      copy_metadata(dest)
+    rescue nil
+    end
   end
 
   def copy_entry!(src, dest, preserve = false, dereference_root = false, remove_destination = false)
@@ -246,7 +251,7 @@ module FileUtils
       destent = Entry_.new(dest, ent.rel, false)
       File.unlink destent.path if remove_destination && File.file?(destent.path)
       ent.copy! destent.path
-      ent.copy_metadata destent.path if preserve
+      ent.copy_metadata! destent.path if preserve
     end
   end
   module_function :copy_entry!
