@@ -241,8 +241,7 @@ module FileUtils
     end
 
     def copy_metadata!(dest)
-      copy_metadata(dest)
-    rescue nil
+      copy_metadata(dest) rescue nil
     end
   end
 
