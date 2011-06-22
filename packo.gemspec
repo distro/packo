@@ -21,6 +21,7 @@ Gem::Specification.new {|s|
     s.add_dependency('memoized')
     s.add_dependency('sysctl')
     s.add_dependency('ffi')
+    s.add_dependency('boolean-expression')
 
     s.add_dependency('datamapper')
     s.add_dependency('dm-transactions')

@@ -225,15 +225,15 @@ class Package < Packo::Package
         tmp << piece.name
       }
 
-      if thing.needs && !(expression = Packo::Package::Tags::Expression.parse(thing.needs)).evaluate(tmp)
-        raise Package::Tags::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for the #{thing.class.name.match(/(?:::)?([^:]*)$/)[1].downcase}"
+      if thing.needs && !(expression = Boolean::Expression.parse(thing.needs)).evaluate(tmp)
+        raise Boolean::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for the #{thing.class.name.match(/(?:::)?([^:]*)$/)[1].downcase}"
       end
 
       thing.each {|piece|
         next unless piece.enabled? && piece.needs
 
-        if !(expression = Packo::Package::Tags::Expression.parse(piece.needs)).evaluate(tmp)
-          raise Package::Tags::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for `#{piece.name}`"
+        if !(expression = Packo::Boolean::Expression.parse(piece.needs)).evaluate(tmp)
+          raise Boolean::Expression::EvaluationError.new "#{self.to_s :name}: could not ensure `#{expression}` for `#{piece.name}`"
         end
       }
     }

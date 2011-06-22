@@ -28,6 +28,7 @@ require 'shellwords'
 require 'cgi'
 require 'open-uri'
 require 'versionub'
+require 'boolean/expression'
 require 'fffs'
 require 'find'
 
