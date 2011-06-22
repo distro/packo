@@ -42,6 +42,7 @@ System = Class.new {
     @host = Host.new(env!)
   end
 
+  memoize
   def has? (package, options={})
     require 'packo/models'
 

@@ -22,8 +22,7 @@ module Packo; module RBuild; module Modules; module Building
 class Autotools < Module
   class Configuration
     attr_accessor :path
-
-    attr_reader :package
+    attr_reader   :package
 
     def initialize (package=nil)
       @package = package
