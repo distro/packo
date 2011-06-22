@@ -104,7 +104,7 @@ Packager.register('pko') {
         dependency.to_s
       }
 
-      data['selectors'] = selectors.map {|selector|
+      data['selectors'] = package.selectors.map {|selector|
         selector.to_hash
       }
 
