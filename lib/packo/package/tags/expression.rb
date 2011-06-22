@@ -88,9 +88,7 @@ class Expression
   end
 
   def evaluate (package)
-    _evaluate(@base, (package.is_a?(Array) ? package : package.tags.to_a).map {|piece|
-      piece.to_s
-    })
+    _evaluate(@base, package.is_a?(Array) ? package : package.tags.to_a)
   end
 
   def to_s
@@ -98,20 +96,31 @@ class Expression
   end
 
   private
-    def _evaluate (group, pieces)
+    def _evaluate (group, tags)
       values = []
 
       group.each {|thing|
         case thing
           when Logic; values << thing
-          when Group; values << _evaluate(thing, pieces)
-          when Name;  values << pieces.member?(thing.to_s)
+          when Group; values << _evaluate(thing, tags)
+          when Name;  values << tags.member?(thing)
         end
       }
 
+      at = 0
+      while at < values.length
+        if values[at].is_a?(Logic) && values[at].type == :not
+          values.delete_at(at)
+          values[at] = !values[at]
+        end
+
+        at += 1
+      end
+
       while values.length > 1
         if values.first.is_a?(Logic) && values.first.type == :not
-          values.unshift(values.shift.evaluate(values.shift))
+          values.shift
+          values.first = !values.first
         else
           a, logic, b = values.shift(3)
           values.unshift(logic.evaluate(a, b))

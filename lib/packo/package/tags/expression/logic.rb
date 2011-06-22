@@ -29,14 +29,14 @@ class Logic
       when '||', /or/i  then :or
     end
 
-    raise SyntaxError.new('Invalid logical operator, logical fallacies everywhere') unless @type
+    raise SyntaxError.new('Invalid logical operator') unless @type
   end
 
   def evaluate (a, b=nil)
     case @type
-      when :not then !a
-      when :and then !!(a && b)
-      when :or  then !!(a || b)
+      when :not; !a
+      when :and; !!(a && b)
+      when :or;  !!(a || b)
     end
   end
 
