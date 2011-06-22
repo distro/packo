@@ -53,7 +53,12 @@ System = Class.new {
       expression = package.to_s
     end
 
-    !Models::InstalledPackage.search(expression, options).empty?
+    if (result = Models::InstalledPackage.search(expression, options)).empty?
+      false
+    elsif options[:all]
+      result
+    else
+      result.first
   end
 }.new
 
