@@ -148,10 +148,6 @@ class Package < Packo::Package
     use      Modules::Fetcher, Modules::Unpacker, Modules::Packager
     behavior Behaviors::Default
 
-    if (@parent = Package.current)
-      self.apply(&@parent.instance_eval('@block'))
-    end
-
     flavor {
       vanilla {
         description 'Apply only the patches needed to build succesfully the package'
@@ -203,6 +199,10 @@ class Package < Packo::Package
         description 'Make a debug build'
       }
     }
+
+    if (@parent = Package.current)
+      self.apply(&@parent.instance_eval('@block'))
+    end
 
     self.directory = Path.clean("#{package.env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}")
     self.workdir   = "#{package.directory}/work"
