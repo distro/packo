@@ -125,8 +125,20 @@ class Do
   def self.sed (file, *seds)
     content = File.read(file)
 
-    seds.each {|(regexp, sub)|
-      content.gsub!(regexp, sub.to_s)
+    seds.each {|sub|
+      case sub
+      when Array
+        regexp, sub = sub
+        content.gsub!(regexp, sub.to_s)
+      when Hash
+        content = content.split(/\n/).map {|line|
+          sub.each {|matcher, (regexp, subst)|
+            line.gsub!(regexp, subst.to_s) if line.match(matcher)
+          }
+
+          line
+        }.join("\n")
+      end
     }
 
     File.write(file, content)
