@@ -314,7 +314,7 @@ class Autotools < Module
     package.callbacks(:compile).do(@configuration) {
       next if package.autotools.disabled?
 
-      package.autotools.make "-j#{package.environment['MAKE_JOBS']}"
+      package.autotools.make "-j#{package.env[:MAKE_JOBS]}"
     }
   end
 
