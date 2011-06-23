@@ -27,6 +27,8 @@ commands = {
   [:build]  => 'Manage packø building system',
   [:select] => 'Manage various configurations',
 
+  [:virtual] => 'Work directly with virtual repositories',
+
   [:repository] => 'Manage packø repositories',
     [:repository, :remote] => 'Manage remote repositories',
 
@@ -35,7 +37,7 @@ commands = {
   [:profile] => 'Manage packø profiles',
 }
 
-trusted = [:base, :select, :db, :profile]
+trusted = [:base, :select, :db, :profile, :virtual]
 
 commands.keys.sort {|a, b|
   b.length <=> a.length

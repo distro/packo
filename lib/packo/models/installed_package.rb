@@ -99,7 +99,7 @@ class InstalledPackage
       end
 
       if expression && !expression.empty?
-        expression = Packo::Package::Tags::Expression.parse(expression)
+        expression = Packo::Boolean::Expression.parse(expression)
 
         result.select! {|pkg|
           expression.evaluate(Packo::Package.wrap(pkg))
@@ -132,7 +132,7 @@ class InstalledPackage
         InstalledPackage.get(id)
       }
     else
-      expression = Packo::Package::Tags::Expression.parse(expression)
+      expression = Packo::Boolean::Expression.parse(expression)
 
       all.select {|pkg|
         expression.evaluate(Packo::Package.wrap(pkg))

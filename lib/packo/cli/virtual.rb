@@ -1,3 +1,4 @@
+# encoding: utf-8
 #--
 # Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
 #
@@ -17,32 +18,15 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; class Package; class Tags < Array; class Expression
+require 'packo/cli/thor'
 
-class Logic
-  attr_reader :type
+module Packo; module CLI
 
-  def initialize (what)
-    @type = case what
-      when '!',  /not/i then :not
-      when '&&', /and/i then :and
-      when '||', /or/i  then :or
-    end
+class Virtual < Thor
+  include Thor::Actions
 
-    raise SyntaxError.new('Invalid logical operator') unless @type
-  end
-
-  def evaluate (a, b=nil)
-    case @type
-      when :not; !a
-      when :and; !!(a && b)
-      when :or;  !!(a || b)
-    end
-  end
-
-  def inspect
-    self.type.to_s.upcase
-  end
+  class_option :help, type: :boolean,
+    desc: 'Show help usage'
 end
 
-end; end; end; end
+end; end

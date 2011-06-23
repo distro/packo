@@ -65,7 +65,7 @@ class Build < Thor
         CLI.fatal e.message
 
         exit 2
-      rescue Package::Tags::Expression::EvaluationError => e
+      rescue Boolean::Expression::EvaluationError => e
         CLI.fatal e.message
 
         exit 3
@@ -144,7 +144,7 @@ class Build < Thor
         CLI.fatal e
 
         exit 2
-      rescue Package::Tags::Expression::EvaluationError => e
+      rescue Boolean::Expression::EvaluationError => e
         CLI.fatal e.message
 
         exit 3
@@ -177,7 +177,7 @@ class Build < Thor
           File.write('digest.yml', Do::Build.digest(file))
         }
       rescue Do::Build::Exceptions::PackageNotFound => e
-      rescue Package::Tags::Expression::EvaluationError => e
+      rescue Boolean::Expression::EvaluationError => e
         CLI.fatal e.message
 
         raise e
