@@ -60,6 +60,7 @@ System = Class.new {
       result
     else
       result.first
+    end
   end
 }.new
 
