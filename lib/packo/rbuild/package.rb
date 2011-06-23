@@ -206,7 +206,7 @@ class Package < Packo::Package
 
     self.directory = Path.clean("#{package.env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}")
     self.workdir   = "#{package.directory}/work"
-    self.distdir   = "#{package.directory}/dist"
+    self.distdir   = self.installdir = "#{package.directory}/dist"
     self.tempdir   = "#{package.directory}/temp"
     self.fetchdir  = System.env[:FETCH_PATH] || self.tempdir
 
