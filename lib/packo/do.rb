@@ -127,17 +127,18 @@ class Do
 
     seds.each {|sub|
       case sub
-      when Array
-        regexp, sub = sub
-        content.gsub!(regexp, sub.to_s)
-      when Hash
-        content = content.split(/\n/).map {|line|
-          sub.each {|matcher, (regexp, subst)|
-            line.gsub!(regexp, subst.to_s) if line.match(matcher)
-          }
+        when Array
+          regexp, sub = sub
+          content.gsub!(regexp, sub.to_s)
 
-          line
-        }.join("\n")
+        when Hash
+          content = content.lines.map {|line|
+            sub.each {|matcher, (regexp, replace_with)|
+              line.gsub!(regexp, replace_with.to_s) if line.match(matcher)
+            }
+
+            line
+          }.join("\n")
       end
     }
 
