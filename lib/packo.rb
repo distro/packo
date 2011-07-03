@@ -46,7 +46,6 @@ module Packo
 
     $stderr.puts output
   end
-
 end
 
 require 'packo/version'
@@ -57,3 +56,4 @@ require 'packo/repository'
 require 'packo/package'
 require 'packo/requirements'
 require 'packo/distfile'
+require 'packo/transform'

@@ -63,7 +63,7 @@ class Build
         options[:transforms].each {|transform|
           next unless File.readable?(transform)
 
-          package.apply(File.read(transform))
+          Transform.open(transform).apply_to(package)
         }
       end
 

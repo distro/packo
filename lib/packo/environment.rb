@@ -60,6 +60,7 @@ class Environment < Hash
       MAIN_PATH:    '/var/lib/packo',
       CONFIG_PATH:  '/etc/packo',
       INSTALL_PATH: '/',
+      FETCH_PATH:   '/var/tmp/packo',
 
       DATABASE: 'sqlite:///var/lib/packo/db',
     )
@@ -68,6 +69,7 @@ class Environment < Hash
       MAIN_PATH:    "#{ENV['HOME']}/.packo",
       CONFIG_PATH:  "#{ENV['HOME']}/.packo",
       INSTALL_PATH: "#{ENV['HOME']}/.packo/disk",
+      FETCH_PATH:   "#{ENV['HOME']}/.packo/fetch",
 
       DATABASE: "sqlite://#{ENV['HOME']}/.packo/db",
     )

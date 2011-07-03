@@ -17,42 +17,40 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'digest/sha1'
+module Packo
 
-module Packo; class Package
+class Transform
+  def self.open (path)
+    transform = self.new
 
-class Tags < Array
-  def self.parse (value)
-    Tags.new(value.is_a?(Array) ? value : Tags.new(value.to_s.split(%r{/|\s+})))
+    if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/, 2)).length > 1
+      transform.filesystem.parse(tmp.last.lstrip)
+    end
+
+    transform.instance_eval(tmp.first)
+    transform
   end
 
-  def initialize (*tags)
-    tags.flatten.compact.each {|tag|
-      self << tag.to_s.strip.downcase
-    }
+  attr_reader :filesystem
 
-    reject! {|tag|
-      tag.empty?
-    }
+  alias fs filesystem
+
+  def initialize
+    @blocks     = {}
+    @filesystem = FFFS::FileSystem.new
   end
 
-  def == (tags)
-    self.to_a.sort == Tags.parse(tags).to_a.sort
+  def apply_to (what)
+    if defined?(RBuild::Package) && what.is_a?(RBuild::Package)
+      what.apply(self, &@blocks[:build])
+    end
   end
 
-  def hashed
-    Digest::SHA1.hexdigest(self.sort.join('/'))
-  end
-
-  def hash
-    self.sort.join('/').hash
-  end
-
-  def to_s (minimized=false)
-    minimized ?
-      self.sort.map {|t| t[0]}.join :
-      self.join('/')
-  end
+  [:build, :install].each {|name|
+    define_method name do |&block|
+      @blocks[name] = block
+    end
+  }
 end
 
-end; end
+end

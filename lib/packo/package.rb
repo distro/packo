@@ -133,9 +133,12 @@ class Package
     self.do(&block)
   end
 
-  def apply (text=nil, &block)
-    self.instance_eval(text)   if text
-    self.instance_exec(&block) if block
+  def apply (*args, &block)
+    if block
+      self.instance_exec(*args, &block)
+    elsif args.first.is_a?(String)
+      self.instance_eval(args.first)
+    end
 
     self
   end

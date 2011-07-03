@@ -55,7 +55,7 @@ class Dependencies < Array
 
   def depends (text)
     push Dependency.parse(text)
-  end; alias depends_on depends
+  end; alias depends_on depends; alias needs depends;
 
   Types.each {|name|
     define_method name do |text=nil|

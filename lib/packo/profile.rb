@@ -94,9 +94,9 @@ class Profile
             p.strip if p && !p.strip.empty?
           }
 
-          next unless Packo::Package::Dependency.parse(pkg.strip).in?(package) if pkg
+          next unless Package::Dependency.parse(pkg.strip).in?(package) if pkg
 
-          next unless Packo::Boolean::Expression.parse(expr.strip).evaluate(package) if expr
+          next unless Boolean::Expression.parse(expr.strip).evaluate(package) if expr
 
           begin
             suppress_warnings {

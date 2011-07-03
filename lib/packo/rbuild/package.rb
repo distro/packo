@@ -241,9 +241,9 @@ class Package < Packo::Package
     callbacks(:initialized).do(self)
   end
 
-  def apply (text=nil, &block)
-    if text
-      if (tmp = text.split(/^__END__$/)).length > 1
+  def apply (*args, &block)
+    if !block && args.first.is_a?(String)
+      if (tmp = args.first.split(/^__END__$/, 2)).length > 1
         filesystem.parse(tmp.last.lstrip)
       end
     end
@@ -255,6 +255,7 @@ class Package < Packo::Package
     FileUtils.mkpath self.workdir
     FileUtils.mkpath self.distdir
     FileUtils.mkpath self.tempdir
+    FileUtils.mkpath self.fetchdir
   rescue; end
 
   def clean! (full=true)
