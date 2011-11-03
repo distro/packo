@@ -28,11 +28,14 @@ module Packo; module RBuild
 
 class Package < Packo::Package
 	def self.load (path)
-		if ((package = Package.parse(File.basename(path).sub(/.rbuild$/, ''))).version rescue false)
+		directory = File.dirname(path)
+		name      = File.basename(path).sub(/.rbuild$/, '')
+
+		if ((package = Package.parse(name)).version rescue false)
 			files = {}
 
-			if File.exists?("#{File.dirname(path)}/digest.yml") && (digest = YAML.parse_file("#{File.dirname(path)}/digest.yml").transform)
-				pkg = digest['packages'].find {|pkg|
+			if File.exists?("#{directory}/digest.yml") && (digest = YAML.parse_file("#{directory}/digest.yml").transform)
+				pkg = digest.find {|pkg|
 					pkg['version'] == package.version && (!package.slot || pkg['slot'] == package.slot)
 				}
 
@@ -46,38 +49,38 @@ class Package < Packo::Package
 				end
 			end
 
-			Packo.debug {
-				Package.new {
-					if File.exists? "#{File.dirname(path)}/#{package.name}.rbuild"
-						if (tmp = File.read("#{path}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
-							filesystem.parse(tmp.last.lstrip)
-						end
+			Package.new {
+				self.path = path
 
-						parent "#{path}/#{package.name}.rbuild"
-					end
-
-					if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
+				if File.exists? "#{directory}/#{package.name}.rbuild"
+					if (tmp = File.read("#{directory}/#{package.name}.rbuild", encoding: 'utf-8').split(/^__END__$/)).length > 1
 						filesystem.parse(tmp.last.lstrip)
 					end
 
-					if File.directory? "#{File.dirname(path)}/data"
-						filesystem.load "#{File.dirname(path)}/data"
-					end
+					parent "#{directory}/#{package.name}.rbuild"
+				end
 
-					self.digests = files
+				if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
+					filesystem.parse(tmp.last.lstrip)
+				end
 
-					main path
-				}
+				if File.directory? "#{directory}/data"
+					filesystem.load "#{directory}/data"
+				end
+
+				self.digests = files
+
+				main path
 			}
 		else
-			Packo.debug {
-				Package.new {
-					if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
-						filesystem.parse(tmp.last.lstrip)
-					end
+			Package.new {
+				self.path = path
 
-					main path
-				}
+				if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/)).length > 1
+					filesystem.parse(tmp.last.lstrip)
+				end
+
+				main path
 			}
 		end
 	end
@@ -86,7 +89,7 @@ class Package < Packo::Package
 
 	attr_reader :parent, :do, :modules, :dependencies, :stages, :filesystem
 
-	def initialize (name, version=nil, slot=nil, revision=nil, &block)
+	def initialize (name = nil, version = nil, slot = nil, revision = nil, &block)
 		super(
 			name:     name,
 			version:  version,
@@ -171,6 +174,8 @@ class Package < Packo::Package
 				description 'Make a debug build'
 			}
 		}
+
+		instance_eval &block if block
 	end
 
 	def parent (path)

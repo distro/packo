@@ -88,7 +88,7 @@ Packager.register('pko') {
 			}.compact])
 
 			data['environment'] = package.env!.reject {|name, value|
-				%w(DATABASE FLAVORS PROFILES CONFIG_PATH MAIN_PATH INSTALL_PATH FETCHER NO_COLORS DEBUG VERBOSE TMP SECURE).member(name.to_s)
+				%w(DATABASE FLAVORS PROFILES CONFIG_PATH MAIN_PATH INSTALL_PATH FETCHER NO_COLORS DEBUG VERBOSE TMP SECURE).member?(name.to_s)
 			}.map {|name, value|
 				next if value.nil?
 

@@ -198,6 +198,10 @@ class Do
 		}
 	end
 
+	def mv (from, to)
+		Do.mv Path.clean("#{root}/#{@relative}/#{from}"), Path.clean("#{root}/#{@relative}/#{to}")
+	end
+
 	def own (user, group, *files)
 		files.flatten.compact.each {|file|
 			FileUtils.chown user, group, files, :verbose => @verbose

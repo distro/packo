@@ -197,11 +197,9 @@ class Build
 				package.build
 			}
 
-			data = YAML.parse_file('digest.yml').transform rescue {}
+			data = YAML.parse_file('digest.yml').transform rescue []
 
-			data['packages'] ||= []
-
-			data['packages'].delete(data['packages'].find {|pkg|
+			data.delete(data.find {|pkg|
 				package.version == pkg['version'] && (!package.slot || package.slot == pkg['slot'])
 			})
 
@@ -215,11 +213,11 @@ class Build
 				Hash[
 					'name'   => File.basename(file.path),
 					'url'    => file.url.to_s,
-					'digest' => Packo.digest(file.path)
+					'digest' => Packo.digest(file.path).tap { |s| s.force_encoding 'US-ASCII' }
 				]
 			}
 
-			data['packages'] << pkg
+			data << pkg
 
 			data.to_yaml
 		}
@@ -258,17 +256,7 @@ class Build
 			}.last
 		end
 
-		if package.is_a?(String)
-			path    = File.dirname(File.realpath(package))
-			package = Package.parse(package.sub(/\.rbuild$/, ''))
-		else
-			path = "#{package.repository.path}/#{package.model.path}"
-		end
-
-		package      = RBuild::Package.load(path, package)
-		package.path = path
-
-		package
+		RBuild::Package.load(package.is_a?(String) ? package : "#{package.repository.path}/#{package.model.path}")
 	end
 end
 

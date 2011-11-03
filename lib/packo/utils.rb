@@ -18,7 +18,7 @@
 #++
 
 require 'packo/extensions'
-require 'digest/sha1'
+require 'digest/sha2'
 require 'fileutils'
 
 module Packo
@@ -94,7 +94,7 @@ module Packo
 	end
 
 	def self.digest (path)
-		Digest::SHA1.hexdigest(File.read(path))
+		Digest::SHA256.hexdigest(File.read(path))
 	end
 
 	def self.contents (obj, &block)

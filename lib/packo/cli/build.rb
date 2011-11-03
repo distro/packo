@@ -52,13 +52,7 @@ class Build < Thor
 	def package (*packages)
 		packages.map {|package|
 			begin
-				package = Do::Build.package(package, options)
-
-				if package.parent.nil?
-					CLI.warn "The package #{package} does not have a parent"
-				end
-
-				package
+				Do::Build.package(package, options)
 			rescue Do::Build::Exceptions::IncompleteEnvironment => e
 			rescue Do::Build::Exceptions::PackageNotFound => e
 			rescue Do::Build::Exceptions::MultiplePackages => e
@@ -205,11 +199,7 @@ class Build < Thor
 
 	desc 'info FILE', 'Get informations about an rbuild'
 	def info (file)
-		if File.basename(file).match(/.*?-\d/)
-			package = RBuild::Package.load(File.dirname(file), Package.parse(File.basename(file).sub(/\.rbuild$/, '')))
-		else
-			package = RBuild::Package.load(file)
-		end
+		package = RBuild::Package.load(file)
 
 		print package.name.bold
 		print "-#{package.version.to_s.red}"

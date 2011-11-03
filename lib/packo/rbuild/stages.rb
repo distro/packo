@@ -72,7 +72,7 @@ class Stages
 			stage.name == name
 		}
 
-		@stages << Stage.new(name, method, options)
+		@stages << Stage.new(name, options, &method)
 
 		@sorted = false
 	end
