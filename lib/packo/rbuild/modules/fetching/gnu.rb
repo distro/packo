@@ -22,38 +22,34 @@ require 'net/http'
 module Packo; module RBuild; module Modules; module Fetching
 
 Fetcher.register :gnu do |url, package|
-  whole, name, version = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a
+	whole, name, version = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a
 
-  packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/")).scan(
-    %r{href="(#{name}-#{version}.*?)"}
-  ).flatten.map {|pack|
-    URI.decode(pack)
-  }.select {|pack|
-    !pack.match(%r{(\.sig|/)$})
-  }
+	packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/")).scan(
+		%r(href="(#{name}-#{version}.*?)")
+	).flatten.map {|pack|
+		URI.decode(pack)
+	}.select {|pack|
+		!pack.match(%r{(\.sig|/)$})
+	}
 
-  if packs.empty?
-    packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/#{name}-#{version}/")).scan(
-      %r{href="(#{name}-#{version}.*?)"}
-    ).flatten.map {|pack|
-      URI.decode("#{name}-#{version}/#{pack}")
-    }.select {|pack|
-      !pack.match(%r{(\.sig|/)$})
-    }
-  end
+	if packs.empty?
+		packs = Net::HTTP.get(URI.parse("http://ftp.gnu.org/gnu/#{name}/#{name}-#{version}/")).scan(
+			%r{href="(#{name}-#{version}.*?)"}
+		).flatten.map {|pack|
+			URI.decode("#{name}-#{version}/#{pack}")
+		}.select {|pack|
+			!pack.match(%r{(\.sig|/)$})
+		}
+	end
 
-  pack = nil
-  ['xz', 'lzma', 'bz2', 'gz'].each {|compression|
-    pack = packs.find {|pack|
-      pack.match(/\.#{compression}$/)
-    }
+	pack = nil
+	%w(xz lzma bz2 gz).any? {|compression|
+		pack = packs.find {|pack|
+			pack.match(/\.#{compression}$/)
+		}
+	} or raise RuntimeError, "no download URL for #{name}-#{version}"
 
-    break if pack
-  }
-
-  raise RuntimeError.new "No download URL for #{name}-#{version}" if !pack
-
-  "http://ftp.gnu.org/gnu/#{name}/#{pack}"
+	"http://ftp.gnu.org/gnu/#{name}/#{pack}"
 end
 
 end; end; end; end

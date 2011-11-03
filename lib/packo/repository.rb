@@ -20,82 +20,82 @@
 module Packo
 
 class Repository
-  Types = [:binary, :source, :virtual]
+	Types = [:binary, :source, :virtual]
 
-  def self.parse (text)
-    if text.include?('/')
-      type, name = text.split('/')
+	def self.parse (text)
+		if text.include?('/')
+			type, name = text.split('/')
 
-      type = type.to_sym
-    else
-      type, name = nil, name
-    end
+			type = type.to_sym
+		else
+			type, name = nil, name
+		end
 
-    Repository.new(
-      type: type,
-      name: name
-    )
-  end
+		Repository.new(
+			type: type,
+			name: name
+		)
+	end
 
-  def self.wrap (model)
-    Repository.const_get(model.type.capitalize).new(
-      type: model.type,
-      name: model.name,
+	def self.wrap (model)
+		Repository.const_get(model.type.capitalize).new(
+			type: model.type,
+			name: model.name,
 
-      location: model.location,
-      path:     model.path,
+			location: model.location,
+			path:     model.path,
 
-      model: model
-    )
-  end
+			model: model
+		)
+	end
 
-  attr_accessor :type, :name, :location, :path
+	attr_accessor :type, :name, :location, :path
 
-  attr_reader :model
+	attr_reader :model
 
-  def initialize (data)
-    self.type = data[:type]
-    self.name = data[:name]
+	def initialize (data)
+		self.type = data[:type]
+		self.name = data[:name]
 
-    self.location = data[:location]
-    self.path     = data[:path]
+		self.location = data[:location]
+		self.path     = data[:path]
 
-    @model = data[:model]
-  end
+		@model = data[:model]
+	end
 
-  def type= (value)
-    @type = value.to_sym if value
-  end
+	def type= (value)
+		@type = value.to_sym if value
+	end
 
-  def location= (value)
-    @location = value.is_a?(Packo::Location) ? value : Packo::Location[value] if value
-  end
+	def location= (value)
+		@location = value.is_a?(Packo::Location) ? value : Packo::Location[value] if value
+	end
 
-  def packages (*args)
-    Enumerator.new(self, :each_package, *args)
-  end
+	def packages (*args)
+		Enumerator.new(self, :each_package, *args)
+	end
 
-  def dependencies (package, *args)
-    Enumerator.new(self, :each_dependency, package, *args)
-  end
+	def dependencies (package, *args)
+		Enumerator.new(self, :each_dependency, package, *args)
+	end
 
-  def has? (package)
-    false
-  end
+	def has? (package)
+		false
+	end
 
-  def to_hash
-    result = {}
+	def to_hash
+		result = {}
 
-    [:type, :name, :location, :path].each {|name|
-      result[name] = self.send(name) unless self.send(name).nil?
-    }
+		[:type, :name, :location, :path].each {|name|
+			result[name] = self.send(name) unless self.send(name).nil?
+		}
 
-    return result
-  end
+		return result
+	end
 
-  def to_s
-    "#{self.type}/#{self.name}"
-  end
+	def to_s
+		"#{self.type}/#{self.name}"
+	end
 end
 
 end

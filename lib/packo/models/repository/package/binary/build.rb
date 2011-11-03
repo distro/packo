@@ -17,20 +17,20 @@
 # along with packo. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-module Packo; module Models; class Repository; class Package; class Binary
+module Packo; module Models; class Repository; class Package; class Binary < Package
 
 class Build
-  include DataMapper::Resource
+	include DataMapper::Resource
 
-  belongs_to :binary
+	belongs_to :package
 
-  property :id, Serial
+	property :id, Serial
 
-  property :binary_package_id, Integer,              unique_index: :a
-  property :flavor,            Text,    default: '', unique_index: :a
-  property :features,          Text,    default: '', unique_index: :a
+	property :binary_package_id, Integer,              unique_index: :a
+	property :flavor,            Text,    default: '', unique_index: :a
+	property :features,          Text,    default: '', unique_index: :a
 
-  property :digest, Text, default: ''
+	property :digest, Text, default: ''
 end
 
 end; end; end; end; end

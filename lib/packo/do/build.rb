@@ -20,256 +20,256 @@
 require 'packo/rbuild'
 
 module Packo; class Do
-  
+
 class Build
-  module Exceptions
-    IncompleteEnvironment = Class.new(Exception)
-    PackageNotFound       = Class.new(Exception)
-    MultiplePackages      = Class.new(Exception)
-    InvalidName           = Class.new(Exception)
-  end
+	module Exceptions
+		IncompleteEnvironment = Class.new(Exception)
+		PackageNotFound       = Class.new(Exception)
+		MultiplePackages      = Class.new(Exception)
+		InvalidName           = Class.new(Exception)
+	end
 
-  def self.build (package, options={}, &block)
-    package           = self.package(package, options)
-    package.extension = options[:extension] || '.pko'
+	def self.build (package, options={}, &block)
+		package           = self.package(package, options)
+		package.extension = options[:extension] || '.pko'
 
-    output = nil
-    pwd    = Dir.pwd
+		output = nil
+		pwd    = Dir.pwd
 
-    System.env.sandbox(options[:env] || {}) {
-      package.after :pack do |path|
-        path = File.realpath(path)
+		System.env.sandbox(options[:env] || {}) {
+			package.after :pack do |path|
+				path = File.realpath(path)
 
-        if options[:output]
-          Do.cd(pwd) {
-            Do.cp(path, options[:output])
-          }
-        end
+				if options[:output]
+					Do.cd(pwd) {
+						Do.cp(path, options[:output])
+					}
+				end
 
-        output = path
-      end
+				output = path
+			end
 
-      package.clean!(false)
+			package.clean!(false)
 
-      if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
-        Build.clean(package)
+			if (File.read("#{package.directory}/.build") rescue nil) != package.to_s(:everything) || options[:wipe]
+				Build.clean(package)
 
-        package.create!
+				package.create!
 
-        File.write("#{package.directory}/.build", package.to_s(:everything)) rescue nil
-      end
+				File.write("#{package.directory}/.build", package.to_s(:everything)) rescue nil
+			end
 
-      if options[:transforms].respond_to? :each
-        options[:transforms].each {|transform|
-          next unless File.readable?(transform)
+			if options[:transforms].respond_to? :each
+				options[:transforms].each {|transform|
+					next unless File.readable?(transform)
 
-          Transform.open(transform).apply_to(package)
-        }
-      end
+					Transform.open(transform).apply_to(package)
+				}
+			end
 
-      package.build &block
-    }
+			package.build &block
+		}
 
-    output
-  end
+		output
+	end
 
-  def self.command (package, command, options={})
-    if !package.is_a?(Packo::Package)
-      package = Packo::Package.parse(package.to_s)
-    end
+	def self.command (package, command, options={})
+		if !package.is_a?(Packo::Package)
+			package = Packo::Package.parse(package.to_s)
+		end
 
-    unless package.name && package.version
-      raise InvalidName.new 'You have to pass a valid package name and version, like package-0.2'
-    end
+		unless package.name && package.version
+			raise InvalidName, 'you have to pass a valid package name and version, like package-0.2'
+		end
 
-    package = RBuild::Package.define(package.name, package.version) {
-      tags *package.tags
+		package = RBuild::Package.define(package.name, package.version) {
+			tags *package.tags
 
-      description "Built in: `#{Dir.pwd}` with `#{command}`"
-      maintainer  env[:USER]
-    }
+			description "Built in: `#{Dir.pwd}` with `#{command}`"
+			maintainer  env[:USER]
+		}
 
-    package.avoid RBuild::Behaviors::Default
+		package.avoid RBuild::Behaviors::Default
 
-    package.clean!
-    package.create!
+		package.clean!
+		package.create!
 
-    tmp = Tempfile.new('packo')
-    dir = "#{System.env[:TMP]}/#{Process.pid}"
+		tmp = Tempfile.new('packo')
+		dir = "#{System.env[:TMP]}/#{Process.pid}"
 
-    tmp.write %{
-      #! /bin/sh
+		tmp.write %{
+			#! /bin/sh
 
-      cd "#{Dir.pwd}"
+			cd "#{Dir.pwd}"
 
-      #{command}
+			#{command}
 
-      exit $?
-    }
+			exit $?
+		}
 
-    tmp.chmod 0700
-    tmp.close
+		tmp.chmod 0700
+		tmp.close
 
-    Packo.sh 'installwatch', "--logfile=#{package.tempdir}/newfiles.log", "--exclude=#{Dir.pwd}",
-      "--root=#{package.workdir}", '--transl=yes', '--backup=no', tmp.path
+		Packo.sh 'installwatch', "--logfile=#{package.tempdir}/newfiles.log", "--exclude=#{Dir.pwd}",
+			"--root=#{package.workdir}", '--transl=yes', '--backup=no', tmp.path
 
-    package.before :pack, priority: -42 do
-      files = File.new("#{tempdir}/newfiles", 'w')
+		package.before :pack, priority: -42 do
+			files = File.new("#{tempdir}/newfiles", 'w')
 
-      files.print File.new("#{tempdir}/newfiles.log", 'r').lines.map {|line| line.strip!
-        whole, type = line.match(/^.*?\t(.*?)\t/).to_a
+			files.print File.new("#{tempdir}/newfiles.log", 'r').lines.map {|line| line.strip!
+				whole, type = line.match(/^.*?\t(.*?)\t/).to_a
 
-        case type
-          when 'chmod', 'open'
-            whole, file = line.match(/.*?\t.*?\t(.*?)(\t|$)/).to_a
+				case type
+					when 'chmod', 'open'
+						whole, file = line.match(/.*?\t.*?\t(.*?)(\t|$)/).to_a
 
-            next if file.match(%r[^(/dev|#{Regexp.escape(Dir.pwd)}|/tmp)(/|$)])
+						next if file.match(%r[^(/dev|#{Regexp.escape(Dir.pwd)}|/tmp)(/|$)])
 
-            file
+						file
 
-          when 'symlink'
-            whole, to, file = line.match(/.*?\t.*?\t(.*?)\t(.*?)(\t|$)/).to_a
+					when 'symlink'
+						whole, to, file = line.match(/.*?\t.*?\t(.*?)\t(.*?)(\t|$)/).to_a
 
-            "#{file} -> #{to}"
-        end
-      }.compact.uniq.sort.join("\n")
+						"#{file} -> #{to}"
+				end
+			}.compact.uniq.sort.join("\n")
 
-      files.close
+			files.close
 
-      if options[:inspect] && STDOUT.tty? && STDIN.tty?
-        Packo.sh System.env[:EDITOR] || 'vi', files.path
-      end
+			if options[:inspect] && STDOUT.tty? && STDIN.tty?
+				Packo.sh System.env[:EDITOR] || 'vi', files.path
+			end
 
-      links = []
+			links = []
 
-      File.new("#{tempdir}/newfiles", 'r').lines.each {|line|
-        whole, file, link = line.match(/^(.*?)(?: -> (.*?))?$/).to_a
+			File.new("#{tempdir}/newfiles", 'r').lines.each {|line|
+				whole, file, link = line.match(/^(.*?)(?: -> (.*?))?$/).to_a
 
-        FileUtils.mkpath "#{distdir}/#{File.dirname(file)}"
+				FileUtils.mkpath "#{distdir}/#{File.dirname(file)}"
 
-        if link
-          links << [link, file]
-        else
-          FileUtils.cp "#{workdir}/TRANSL/#{file}", "#{distdir}/#{file}"
-        end
-      }
+				if link
+					links << [link, file]
+				else
+					FileUtils.cp "#{workdir}/TRANSL/#{file}", "#{distdir}/#{file}"
+				end
+			}
 
-      links.each {|(link, file)|
-        FileUtils.ln_sf link, "#{distdir}/#{file}" rescue nil
-      }
-    end
+			links.each {|(link, file)|
+				FileUtils.ln_sf link, "#{distdir}/#{file}" rescue nil
+			}
+		end
 
-    package.before :pack do
-      if options[:inspect] && STDOUT.tty? && STDIN.tty?
-        Packo.sh System.env[:EDITOR] || 'vi', "#{directory}/manifest.xml"
-      end
-    end
+		package.before :pack do
+			if options[:inspect] && STDOUT.tty? && STDIN.tty?
+				Packo.sh System.env[:EDITOR] || 'vi', "#{directory}/manifest.xml"
+			end
+		end
 
-    if options[:bump]
-      require 'packo/models'
+		if options[:bump]
+			require 'packo/models'
 
-      if !Models.search_installed(package.to_s).empty?
-        package.revision = Models.search_installed(package.to_s).first.revision + 1
-      end
-    end
+			if !Models.search_installed(package.to_s).empty?
+				package.revision = Models.search_installed(package.to_s).first.revision + 1
+			end
+		end
 
-    package.build
-  end
+		package.build
+	end
 
-  def self.clean (package, options={})
-    package = self.package(package, options)
+	def self.clean (package, options={})
+		package = self.package(package, options)
 
-    package.clean!
-  end
+		package.clean!
+	end
 
-  def self.digest (file, options={})
-    Do.cd(File.dirname(file)) {
-      package = self.package(file, options)
+	def self.digest (file, options={})
+		Do.cd(File.dirname(file)) {
+			package = self.package(file, options)
 
-      package.digests = {}
+			package.digests = {}
 
-      package.after :fetch do |result|
-        stages.stop!
-        skip
-      end
+			package.after :fetch do |result|
+				stages.stop!
+				skip
+			end
 
-      Do.cd {
-        package.build
-      }
+			Do.cd {
+				package.build
+			}
 
-      data = YAML.parse_file('digest.yml').transform rescue {}
+			data = YAML.parse_file('digest.yml').transform rescue {}
 
-      data['packages'] ||= []
+			data['packages'] ||= []
 
-      data['packages'].delete(data['packages'].find {|pkg|
-        package.version == pkg['version'] && (!package.slot || package.slot == pkg['slot'])
-      })
+			data['packages'].delete(data['packages'].find {|pkg|
+				package.version == pkg['version'] && (!package.slot || package.slot == pkg['slot'])
+			})
 
-      pkg = {}
-      pkg['version'] = package.version.to_s
-      pkg['slot']    = package.slot if package.slot
+			pkg = {}
+			pkg['version'] = package.version.to_s
+			pkg['slot']    = package.slot if package.slot
 
-      pkg['files'] = package.distfiles.to_a.map {|(name, file)|
-        file ||= name
+			pkg['files'] = package.distfiles.to_a.map {|(name, file)|
+				file ||= name
 
-        Hash[
-          'name'   => File.basename(file.path),
-          'url'    => file.url.to_s,
-          'digest' => Packo.digest(file.path)
-        ]
-      }
+				Hash[
+					'name'   => File.basename(file.path),
+					'url'    => file.url.to_s,
+					'digest' => Packo.digest(file.path)
+				]
+			}
 
-      data['packages'] << pkg
+			data['packages'] << pkg
 
-      data.to_yaml
-    }
-  end
+			data.to_yaml
+		}
+	end
 
-  def self.manifest (package, options={})
-    package = self.package(package, options)
-    
-    RBuild::Package::Manifest.new(package).to_s
-  end
+	def self.manifest (package, options={})
+		package = self.package(package, options)
 
-  def self.package (package, options={})
-    return package if package.is_a?(RBuild::Package)
+		RBuild::Package::Manifest.new(package).to_s
+	end
 
-    package = package.to_s
+	def self.package (package, options={})
+		return package if package.is_a?(RBuild::Package)
 
-    if !package.end_with?('.rbuild')
-      require 'packo/models'
+		package = package.to_s
 
-      packages = Models.search(package, options)
+		if !package.end_with?('.rbuild')
+			require 'packo/models'
 
-      names = packages.group_by {|package|
-        "#{package.tags}/#{package.name}"
-      }.map {|(name, package)| name}.uniq
+			packages = Models.search(package, options)
 
-      if names.length == 0
-        raise Exceptions::PackageNotFound.new "No package matches #{package}"
-      elsif names.length > 1
-        raise Exceptions::MultiplePackages.new "More than one package matches: #{package}"
-      end
+			names = packages.group_by {|package|
+				"#{package.tags}/#{package.name}"
+			}.map {|(name, package)| name}.uniq
 
-      package = packages.select {|pkg|
-        !pkg.masked?
-      }.sort {|a, b|
-        a.version <=> b.version
-      }.last
-    end
+			if names.length == 0
+				raise Exceptions::PackageNotFound, "no package matches #{package}"
+			elsif names.length > 1
+				raise Exceptions::MultiplePackages, "more than one package matches: #{package}"
+			end
 
-    if package.is_a?(String)
-      path    = File.dirname(File.realpath(package))
-      package = Package.parse(package.sub(/\.rbuild$/, ''))
-    else
-      path = "#{package.repository.path}/#{package.model.data.path}"
-    end
+			package = packages.select {|pkg|
+				!pkg.masked?
+			}.sort {|a, b|
+				a.version <=> b.version
+			}.last
+		end
 
-    package      = RBuild::Package.load(path, package)
-    package.path = path
+		if package.is_a?(String)
+			path    = File.dirname(File.realpath(package))
+			package = Package.parse(package.sub(/\.rbuild$/, ''))
+		else
+			path = "#{package.repository.path}/#{package.model.path}"
+		end
 
-    package
-  end
+		package      = RBuild::Package.load(path, package)
+		package.path = path
+
+		package
+	end
 end
 
 end; end

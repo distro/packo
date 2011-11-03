@@ -20,103 +20,99 @@
 module Packo
 
 class Profile
-  def self.path (path)
-    return unless File.directory?(path)
+	def self.path (path)
+		return unless File.directory?(path)
 
-    Profile.new(
-      config:   "#{path}/config",
-      modules:  "#{path}/modules",
-      packages: "#{path}/packages"
-    )
-  end
+		Profile.new(
+			config:   "#{path}/config",
+			modules:  "#{path}/modules",
+			packages: "#{path}/packages"
+		)
+	end
 
-  attr_reader :paths
+	attr_reader :paths
 
-  def initialize (paths={})
-    @paths = paths
+	def initialize (paths = {})
+		@paths = paths
 
-    if !@paths.is_a?(Hash)
-      @paths = @paths.to_hash rescue {}
-    end
+		if !@paths.is_a?(Hash)
+			@paths = @paths.to_hash rescue {}
+		end
 
-    @paths.delete_if {|_, path|
-      !File.file?(path) || !File.readable?(path)
-    }
+		@paths.delete_if {|_, path|
+			!File.file?(path) || !File.readable?(path)
+		}
 
-    @paths.dup.each {|name, path|
-      @paths[name] = Path.new(path)
-    }
-  end
+		@paths.dup.each {|name, path|
+			@paths[name] = Path.new(path)
+		}
+	end
 
-  def method_missing (id, *args)
-    id = id.to_s.sub(/[=?]$/, '').to_sym
+	def method_missing (id, *args)
+		id = id.to_s.sub(/[=?]$/, '').to_sym
 
-    if args.length == 0
-      return @paths[id]
-    else
-      if respond_to? "#{id}="
-        send "#{id}=", *args
-      else
-        @paths[id] = Path.new(args.first)
-      end
-    end
-  end
+		if args.length == 0
+			return @paths[id]
+		else
+			if respond_to? "#{id}="
+				send "#{id}=", *args
+			else
+				@paths[id] = Path.new(args.first)
+			end
+		end
+	end
 
-  def apply! (environment, package=nil)
-    mod = ::Module.new
+	def apply! (environment, package = nil)
+		mod = ::Module.new
 
-    begin
-      suppress_warnings {
-        mod.module_eval File.read(config)
-      } if File.readable?(config.to_s)
-    rescue Exception => e
-      Packo.debug e
-    end
+		Packo.debug {
+			suppress_warnings {
+				mod.module_eval File.read(config)
+			} if File.readable?(config.to_s)
+		}
 
-    if package
-      if File.directory?(modules.to_s)
-        Dir.glob("#{modules}/*").each {|script|
-          package.instance_exec(package, File.read(script)) if File.readable?(script)
-        }
-      end
+		if package
+			if File.directory?(modules.to_s)
+				Dir.glob("#{modules}/*").each {|script|
+					package.instance_exec(package, File.read(script)) if File.readable?(script)
+				}
+			end
 
-      if File.readable?(packages.to_s)
-        file    = File.read(packages.to_s)
-        checks  = {}
-        configs = file.split(/^\s*!.*?$/)[1 .. -1]
+			if File.readable?(packages.to_s)
+				file    = File.read(packages.to_s)
+				checks  = {}
+				configs = file.split(/^\s*!.*?$/)[1 .. -1]
 
-        file.scan(/^\s*!\s*(.*?)\s*$/).flatten.each_with_index {|name, index|
-          checks[name] = configs[index]
-        }
+				file.scan(/^\s*!\s*(.*?)\s*$/).flatten.each_with_index {|name, index|
+					checks[name] = configs[index]
+				}
 
-        checks.each {|expression, config|
-          whole, pkg, expr = expression.match(/^(.*?)?\s*(?:\((.*)\))?\s*(#.*)?$/).to_a.map {|p|
-            p.strip if p && !p.strip.empty?
-          }
+				checks.each {|expression, config|
+					whole, pkg, expr = expression.match(/^(.*?)?\s*(?:\((.*)\))?\s*(#.*)?$/).to_a.map {|p|
+						p.strip if p && !p.strip.empty?
+					}
 
-          next unless Package::Dependency.parse(pkg.strip).in?(package) if pkg
+					next unless Package::Dependency.parse(pkg.strip).in?(package) if pkg
 
-          next unless Boolean::Expression.parse(expr.strip).evaluate(package) if expr
+					next unless Boolean::Expression.parse(expr.strip).evaluate(package) if expr
 
-          begin
-            suppress_warnings {
-              mod.module_eval config
-            }
-          rescue Exception => e
-            Packo.debug e
-          end
-        }
-      end
-    end
+					Packo.debug {
+						suppress_warnings {
+							mod.module_eval config
+						}
+					}
+				}
+			end
+		end
 
-    mod.constants.each {|const|
-      environment[const] = mod.const_get const
-    }
-  end
+		mod.constants.each {|const|
+			environment[const] = mod.const_get const
+		}
+	end
 
-  def hash
-    @paths.hash
-  end
+	def hash
+		@paths.hash
+	end
 end
 
 end

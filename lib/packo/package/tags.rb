@@ -22,37 +22,35 @@ require 'digest/sha1'
 module Packo; class Package
 
 class Tags < Array
-  def self.parse (value)
-    Tags.new(value.is_a?(Array) ? value : Tags.new(value.to_s.split(%r{/|\s+})))
-  end
+	def self.parse (value)
+		Tags.new(value.is_a?(Array) ? value : Tags.new(value.to_s.split(%r{/|\s+})))
+	end
 
-  def initialize (*tags)
-    tags.flatten.compact.each {|tag|
-      self << tag.to_s.strip.downcase
-    }
+	def initialize (*tags)
+		tags.flatten.compact.each {|tag|
+			self << tag.to_s.strip.downcase
+		}
 
-    reject! {|tag|
-      tag.empty?
-    }
-  end
+		reject! {|tag|
+			tag.empty?
+		}
+	end
 
-  def == (tags)
-    self.to_a.sort == Tags.parse(tags).to_a.sort
-  end
+	def == (tags)
+		self.to_a.sort == Tags.parse(tags).to_a.sort
+	end
 
-  def hashed
-    Digest::SHA1.hexdigest(self.sort.join('/'))
-  end
+	def hashed
+		Digest::SHA1.hexdigest(sort.join('/'))
+	end
 
-  def hash
-    self.sort.join('/').hash
-  end
+	def hash
+		sort.join('/').hash
+	end
 
-  def to_s (minimized=false)
-    minimized ?
-      self.sort.map {|t| t[0]}.join :
-      self.join('/')
-  end
+	def to_s (minimized = false)
+		minimized ? sort.map {|t| t[0]}.join : join('/')
+	end
 end
 
 end; end

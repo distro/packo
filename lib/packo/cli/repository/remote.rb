@@ -25,87 +25,87 @@ require 'packo/do/repository'
 module Packo; module CLI; class Repository < Thor
 
 class Remote < Thor
-  include Thor::Actions
+	include Thor::Actions
 
-  class_option :help, type: :boolean, desc: 'Show help usage'
+	class_option :help, type: :boolean, desc: 'Show help usage'
 
-  desc 'add URI...', 'Add remote sets'
-  map '-a' => :add
-  def add (*uris)
-    uris.each {|uri|
-      begin
-        remote = Do::Repository::Remote.add(uri)
+	desc 'add URI...', 'Add remote sets'
+	map '-a' => :add
+	def add (*uris)
+		uris.each {|uri|
+			begin
+				remote = Do::Repository::Remote.add(uri)
 
-        CLI.info "Added #{remote.name.to_s.bold}"
-      rescue Exception => e
-        CLI.fatal "Failed to add #{uri.to_s.bold}"
+				CLI.info "Added #{remote.name.to_s.bold}"
+			rescue Exception => e
+				CLI.fatal "Failed to add #{uri.to_s.bold}"
 
-        Packo.debug e
-      end
-    }
-  end
+				Packo.debug e
+			end
+		}
+	end
 
-  desc 'delete NAME...', 'Delete installed remote sets'
-  map '-d' => :delete, '-R' => :delete
-  def delete (*names)
-    names.each {|name|
-      begin
-        Do::Repository::Remote.delete(Models::Repository::Remote.first(name: name))
+	desc 'delete NAME...', 'Delete installed remote sets'
+	map '-d' => :delete, '-R' => :delete
+	def delete (*names)
+		names.each {|name|
+			begin
+				Do::Repository::Remote.delete(Models::Repository::Remote.first(name: name))
 
-        CLI.info "Deleted #{name.to_s.bold}"
-      rescue Exception => e
-        CLI.fatal "Failed to delete #{uri.to_s.bold}"
+				CLI.info "Deleted #{name.to_s.bold}"
+			rescue Exception => e
+				CLI.fatal "Failed to delete #{uri.to_s.bold}"
 
-        Packo.debug e
-      end
-    }
-  end
+				Packo.debug e
+			end
+		}
+	end
 
-  desc 'update [NAME...]', 'Update installed remote sets'
-  map '-u' => :update
-  def update (*names)
-    if names.empty?
-      names = Models::Repository::Remote.all.map {|remote|
-        remote.name
-      }
-    end
+	desc 'update [NAME...]', 'Update installed remote sets'
+	map '-u' => :update
+	def update (*names)
+		if names.empty?
+			names = Models::Repository::Remote.all.map {|remote|
+				remote.name
+			}
+		end
 
-    names.each {|name|
-      begin
-        if Do::Repository::Remote.update(Models::Repository::Remote.first(name: name))
-          CLI.info "Updated #{name.to_s.bold}"
-        else
-          CLI.info "#{name.to_s.bold} already up to date"
-        end
-      rescue Exception => e
-        CLI.fatal "Failed to update #{name.to_s.bold}"
+		names.each {|name|
+			begin
+				if Do::Repository::Remote.update(Models::Repository::Remote.first(name: name))
+					CLI.info "Updated #{name.to_s.bold}"
+				else
+					CLI.info "#{name.to_s.bold} already up to date"
+				end
+			rescue Exception => e
+				CLI.fatal "Failed to update #{name.to_s.bold}"
 
-        Packo.debug e
-      end
-    }
-  end
+				Packo.debug e
+			end
+		}
+	end
 
-  desc 'list [NAME]', 'List available remotes'
-  def list (name=nil)
-    (name ? [Models::Repository::Remote.first(name: name)] : Models::Repository::Remote.all).each {|remote|
-      print remote.name.to_s.green
-      print ", #{remote.description}" if remote.description
-      puts ':'
+	desc 'list [NAME]', 'List available remotes'
+	def list (name=nil)
+		(name ? [Models::Repository::Remote.first(name: name)] : Models::Repository::Remote.all).each {|remote|
+			print remote.name.to_s.green
+			print ", #{remote.description}" if remote.description
+			puts ':'
 
-      length = remote.pieces.map {|piece|      
-        "#{piece.type}/#{piece.name}".length
-      }.max
+			length = remote.pieces.map {|piece|
+				"#{piece.type}/#{piece.name}".length
+			}.max
 
-      remote.pieces.each {|piece|
-        print '    '
-        print "#{piece.type}/#{piece.name}".bold
-        print ' ' * (4 + length - "#{piece.type}/#{piece.name}".length)
-        puts  piece.description
-      }
-      
-      puts ''
-    }
-  end
+			remote.pieces.each {|piece|
+				print '    '
+				print "#{piece.type}/#{piece.name}".bold
+				print ' ' * (4 + length - "#{piece.type}/#{piece.name}".length)
+				puts  piece.description
+			}
+
+			puts ''
+		}
+	end
 end
 
 end; end; end

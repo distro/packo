@@ -20,23 +20,22 @@
 module Packo; class Do; class Repository; module Helpers
 
 module Repository
-  def self.wrap (model)
-    raise ArgumentError.new('You passed a nil model.') unless model
+	extend Forwardable
 
-    model.save
+	attr_reader    :model
+	def_delegators :model, :type, :name, :location, :path
 
-    case model.type
-      when :binary;  Helpers::Binary.new(model)
-      when :source;  Helpers::Source.new(model)
-      when :virtual; Helpers::Virtual.new(model)
-    end
-  end
+	def self.wrap (model)
+		raise ArgumentError.new('You passed a nil model.') unless model
 
-  def model;    @model          end
-  def type;     @model.type     end
-  def name;     @model.name     end
-  def location; @model.location end
-  def path;     @model.path     end
+		model.save
+
+		case model.type
+			when :binary  then Helpers::Binary.new(model)
+			when :source  then Helpers::Source.new(model)
+			when :virtual then Helpers::Virtual.new(model)
+		end
+	end
 end
 
 require 'packo/do/repository/binary'

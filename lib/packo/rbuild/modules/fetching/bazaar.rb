@@ -20,67 +20,67 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Bazaar < Module
-  def self.do (*args)
-    Packo.sh 'bzr', *args
-  end
+	def self.do (*args)
+		Packo.sh 'bzr', *args
+	end
 
-  def self.valid? (path)
-    Do.cd path do
-      Bazaar.do(:status, silent: true, throw: false) == 0
-    end rescue false
-  end
+	def self.valid? (path)
+		Do.cd path do
+			Bazaar.do(:status, silent: true, throw: false) == 0
+		end rescue false
+	end
 
-  def self.fetch (location, path)
-    if Bazaar.valid?(path)
-      Bazaar.update(path)
+	def self.fetch (location, path)
+		if Bazaar.valid?(path)
+			Bazaar.update(path)
 
-      return
-    end
+			return
+		end
 
-    Do.rm path
+		Do.rm path
 
-    if location.repository && location.branch
-      Bazaar.do :checkout, '--lightweight', "#{location.repository}/#{location.branch}", path
-    else
-      Bazaar.do :checkout, '--lightweight', location.repository || location.branch, path
-    end
-  end
+		if location.repository && location.branch
+			Bazaar.do :checkout, '--lightweight', "#{location.repository}/#{location.branch}", path
+		else
+			Bazaar.do :checkout, '--lightweight', location.repository || location.branch, path
+		end
+	end
 
-  def self.update (path)
-    raise ArgumentError.new 'The passed path is not a bzr repository' unless Bazaar.valid?(path)
+	def self.update (path)
+		raise ArgumentError.new 'The passed path is not a bzr repository' unless Bazaar.valid?(path)
 
-    Do.cd path do
-      !`bzr pull`.match(/^No revisions to pull\.$/)
-    end
-  end
+		Do.cd path do
+			!`bzr pull`.match(/^No revisions to pull\.$/)
+		end
+	end
 
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.avoid [Fetcher, Unpacker]
+		package.avoid [Fetcher, Unpacker]
 
-    package.stages.add :fetch, self.method(:fetch), after: :beginning
+		package.stages.add :fetch, method(:fetch), after: :beginning
 
-    package.after :initialize do
-      package.dependencies << 'vcs/bzr!'
-    end
-  end
+		package.after :initialize do
+			package.dependencies << 'vcs/bzr!'
+		end
+	end
 
-  def finalize
-    package.stages.delete :fetch, self.method(:fetch)
-  end
+	def finalize
+		package.stages.delete :fetch
+	end
 
-  def fetch
-    package.callbacks(:fetch).do {
-      package.source.to_hash.each {|name, value|
-        package.source[name] = value.to_s.interpolate(package)
-      }
+	def fetch
+		package.callbacks(:fetch).do {
+			package.source.to_hash.each {|name, value|
+				package.source[name] = value.to_s.interpolate(package)
+			}
 
-      Bazaar.fetch package.source, package.workdir
+			Bazaar.fetch package.source, package.workdir
 
-      Do.cd package.workdir
-    }
-  end
+			Do.cd package.workdir
+		}
+	end
 end
 
 end; end; end; end

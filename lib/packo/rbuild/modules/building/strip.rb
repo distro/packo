@@ -20,23 +20,27 @@
 module Packo; module RBuild; module Modules; module Building
 
 class Strip < Module
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.stages.add :strip, self.method(:strip), before: :pack
-  end
+		package.stages.add :strip, method(:strip), before: :pack
+	end
 
-  def strip
-    package.callbacks(:strip).do {
-      next if package.env[:NO_STRIP]
+	def finalize
+		package.stages.delete :strip
+	end
 
-      Find.find(package.distdir) {|file|
-        next unless File.file?(file)
+	def strip
+		package.callbacks(:strip).do {
+			next if package.env[:NO_STRIP]
 
-        Packo.sh 'strip', file, silent: true rescue nil
-      }
-    }
-  end
+			Find.find(package.distdir) {|file|
+				next unless File.file?(file)
+
+				Packo.sh 'strip', file, silent: true rescue nil
+			}
+		}
+	end
 end
 
 end; end; end; end

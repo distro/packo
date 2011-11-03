@@ -18,56 +18,38 @@
 #++
 
 require 'packo/models/tag'
-require 'packo/models/repository/package/binary'
-require 'packo/models/repository/package/source'
-require 'packo/models/repository/package/virtual'
 
 module Packo; module Models; class Repository
 
 class Package
-  include DataMapper::Resource
+	include DataMapper::Resource
 
-  property :id, Serial
+	def self.to_sym
+		name.split('::').last.downcase.to_sym
+	end
 
-  belongs_to :repo, 'Repository'
-  has n,     :tags, through: Resource, constraint: :destroy
+	property :id, Serial
 
-  property :repository_id, Integer,                               unique_index: :a
-  property :tags_hashed,   String,  length: 40,   required: true, unique_index: :a
-  property :name,          String,  length: 255,  required: true, unique_index: :a
-  property :version,       Version,               required: true, unique_index: :a
-  property :slot,          String,  default: '',                  unique_index: :a
-  property :revision,      Integer, default: 0
+	belongs_to :repo, 'Repository'
+	property   :type, Discriminator
+	has n,     :tags, through: Resource, constraint: :destroy
 
-  property :description,  Text
-  property :homepage,     Text
-  property :license,      Text
+	property :repository_id, Integer,                               unique_index: :a
+	property :tags_hashed,   String,  length: 40,   required: true, unique_index: :a
+	property :name,          String,  length: 255,  required: true, unique_index: :a
+	property :version,       Version,               required: true, unique_index: :a
+	property :slot,          String,  default: '',                  unique_index: :a
+	property :revision,      Integer, default: 0
 
-  property :maintainer, String
+	property :description,  Text
+	property :homepage,     Text
+	property :license,      Text
 
-  after :create do |package|
-    case package.repo.type
-      when :binary;  Binary.create(package: package)
-      when :source;  Source.create(package: package)
-      when :virtual; Virtual.create(package: package)
-    end
-  end
-
-  after :save do |package|
-    package.data.save if package.data
-  end
-
-  after :destroy do |package|
-    package.data.destroy! if package.data
-  end
-
-  def data
-    case repo.type
-      when :binary;  Binary.first_or_create(package: self)
-      when :source;  Source.first_or_create(package: self)
-      when :virtual; Virtual.first_or_create(package: self)
-    end
-  end
+	property :maintainer, String
 end
 
 end; end; end
+
+require 'packo/models/repository/package/binary'
+require 'packo/models/repository/package/source'
+require 'packo/models/repository/package/virtual'

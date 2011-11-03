@@ -20,27 +20,27 @@
 require 'packo/system'
 
 class Numeric
-  module Scalar
-    Multipliers = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
-    
-    Multipliers.each {|key|
-      define_method "#{key}B" do
-        self * (1024 ** Multipliers.index(key))
-      end
-    }
-  end
+	module Scalar
+		Multipliers = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
+
+		Multipliers.each {|key|
+			define_method "#{key}B" do
+				self * (1024 ** Multipliers.index(key))
+			end
+		}
+	end
 end
 
 class Integer
-  include Numeric::Scalar
+	include Numeric::Scalar
 end
 
 class Float
-  include Numeric::Scalar
+	include Numeric::Scalar
 end
 
 class Rational
-  include Numeric::Scalar
+	include Numeric::Scalar
 end
 
 require 'packo/os'
@@ -48,38 +48,38 @@ require 'packo/os'
 module Packo
 
 class Requirements
-  def self.disk (path=nil, option)
-    return false if !(stat = OS::Filesystem.stat(path))
+	def self.disk (path=nil, option)
+		return false if !(stat = OS::Filesystem.stat(path))
 
-    return false if options[:free] && stat.free < options[:free]
+		return false if options[:free] && stat.free < options[:free]
 
-    return false if options[:total] && stat.total < options[:total]
+		return false if options[:total] && stat.total < options[:total]
 
-    true
-  end
+		true
+	end
 
-  def self.memory (options={})
-    status = OS::Ram.status
+	def self.memory (options={})
+		status = OS::Ram.status
 
-    case options[:type]
-      when :physycal, :phys, :phy
-        return false if options[:free] && status.physical.free < options[:free]
+		case options[:type]
+			when :physycal, :phys, :phy
+				return false if options[:free] && status.physical.free < options[:free]
 
-        return false if options[:total] && total.physical.total < options[:total]
+				return false if options[:total] && total.physical.total < options[:total]
 
-      when :swap
-        return false if options[:free] && status.swap.free < options[:free]
+			when :swap
+				return false if options[:free] && status.swap.free < options[:free]
 
-        return false if options[:total] && total.swap.total < options[:total]
+				return false if options[:total] && total.swap.total < options[:total]
 
-      else
-        return false if options[:free] && status.virtual.free < options[:free]
+			else
+				return false if options[:free] && status.virtual.free < options[:free]
 
-        return false if options[:total] && total.virtual.total < options[:total]
-    end
+				return false if options[:total] && total.virtual.total < options[:total]
+		end
 
-    true
-  end
+		true
+	end
 end
 
 end

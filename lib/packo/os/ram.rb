@@ -22,59 +22,59 @@ require 'packo/os'
 module Packo; module OS
 
 class Ram
-  if File.readable?('/proc/meminfo')
-    def self.status
-      result = Hash[File.read('/proc/meminfo').each_line.map {|line|
-        whole, name, value = line.match(/^(\w+):\s+(\d+)/).to_a
+	if File.readable?('/proc/meminfo')
+		def self.status
+			result = Hash[File.read('/proc/meminfo').each_line.map {|line|
+				whole, name, value = line.match(/^(\w+):\s+(\d+)/).to_a
 
-        next unless whole
+				next unless whole
 
-        [name.downcase.to_sym, value.to_i * 1024]
-      }.compact]
+				[name.downcase.to_sym, value.to_i * 1024]
+			}.compact]
 
-      return OpenStruct.new(
-        physical: OpenStruct.new(
-          total: result[:memtotal],
-          free:  result[:memfree]
-        ),
-          
-        swap: OpenStruct.new(
-          total: result[:swaptotal],
-          free:  result[:swapfree]
-        ),
+			return OpenStruct.new(
+				physical: OpenStruct.new(
+					total: result[:memtotal],
+					free:  result[:memfree]
+				),
+					
+				swap: OpenStruct.new(
+					total: result[:swaptotal],
+					free:  result[:swapfree]
+				),
 
-        virtual: OpenStruct.new(
-          total: result[:memtotal] + result[:swaptotal],
-          free:  result[:memfree] + result[:swapfree]
-        )
-      )
-    end
-  elsif OS.respond_to? :sysctl
-    def self.status
-      return OpenStruct.new(
-        physical: OpenStruct.new(
-          total: OS.sysctl('hw.physmem'),
-          free:  OS.sysctl('vm.stats.vm.v_free_count')     * OS.sysctl('hw.pagesize') +
-                 OS.sysctl('vm.stats.vm.v_inactive_count') * OS.sysctl('hw.pagesize') +
-                 OS.sysctl('vm.stats.vm.v_cache_count')    * OS.sysctl('hw.pagesize')
-        ),
+				virtual: OpenStruct.new(
+					total: result[:memtotal] + result[:swaptotal],
+					free:  result[:memfree] + result[:swapfree]
+				)
+			)
+		end
+	elsif OS.respond_to? :sysctl
+		def self.status
+			return OpenStruct.new(
+				physical: OpenStruct.new(
+					total: OS.sysctl('hw.physmem'),
+					free:  OS.sysctl('vm.stats.vm.v_free_count')     * OS.sysctl('hw.pagesize') +
+					       OS.sysctl('vm.stats.vm.v_inactive_count') * OS.sysctl('hw.pagesize') +
+					       OS.sysctl('vm.stats.vm.v_cache_count')    * OS.sysctl('hw.pagesize')
+				),
 
-        swap: OpenStruct.new(
-          total: 0,
-          free:  0
-        ),
+				swap: OpenStruct.new(
+					total: 0,
+					free:  0
+				),
 
-        virtual: OpenStruct.new(
-          total: OS.sysctl('hw.physmem'),
-          free:  OS.sysctl('vm.stats.vm.v_free_count')     * OS.sysctl('hw.pagesize') +
-                 OS.sysctl('vm.stats.vm.v_inactive_count') * OS.sysctl('hw.pagesize') +
-                 OS.sysctl('vm.stats.vm.v_cache_count')    * OS.sysctl('hw.pagesize')
-        )
-      )
-    end
-  else
-    fail 'Unsupported platform, contact the developers please.'
-  end
+				virtual: OpenStruct.new(
+					total: OS.sysctl('hw.physmem'),
+					free:  OS.sysctl('vm.stats.vm.v_free_count')     * OS.sysctl('hw.pagesize') +
+					       OS.sysctl('vm.stats.vm.v_inactive_count') * OS.sysctl('hw.pagesize') +
+					       OS.sysctl('vm.stats.vm.v_cache_count')    * OS.sysctl('hw.pagesize')
+				)
+			)
+		end
+	else
+		fail 'Unsupported platform, contact the developers please.'
+	end
 end
 
 end; end

@@ -22,79 +22,79 @@ require 'uri'
 module Packo; class Do; class Repository
 
 class Remote
-  module Model
-    def self.add (name, uri, path, description=nil)
-      require 'packo/models'
+	module Model
+		def self.add (name, uri, path, description=nil)
+			require 'packo/models'
 
-      remote = Models::Repository::Remote.first_or_create(name: name)
-      remote.update(
-        uri:  uri,
-        path: path,
-        description: description
-      )
+			remote = Models::Repository::Remote.first_or_create(name: name)
+			remote.update(
+				uri:  uri,
+				path: path,
+				description: description
+			)
 
-      YAML.parse_file(path).transform['repositories'].each {|type, data|
-        data.each {|piece|
-          remote.pieces.first_or_create(type: type, name: piece['name']).update(
-            description: piece['description'],
-            location:    piece['location']
-          )
-        }
-      }
+			YAML.parse_file(path).transform['repositories'].each {|type, data|
+				data.each {|piece|
+					remote.pieces.first_or_create(type: type, name: piece['name']).update(
+						description: piece['description'],
+						location:    piece['location']
+					)
+				}
+			}
 
-      remote
-    end
+			remote
+		end
 
-    def self.delete (name)
-      Models::Repository::Remote.first(name: name).destroy
-    end
-  end
+		def self.delete (name)
+			Models::Repository::Remote.first(name: name).destroy
+		end
+	end
 
-  def self.add (uri)
-    uri = URI.parse(uri)
+	def self.add (uri)
+		uri = URI.parse(uri)
 
-    if uri.scheme.nil? || uri.scheme == 'file'
-      uri = URI.parse(File.realpath(uri.path))
-    end
+		if uri.scheme.nil? || uri.scheme == 'file'
+			uri = URI.parse(File.realpath(uri.path))
+		end
 
-    path = "#{System.env[:MAIN_PATH]}/repositories/remotes/#{File.basename(uri.path)}"
+		path = "#{System.env[:MAIN_PATH]}/repositories/remotes/#{File.basename(uri.path)}"
 
-    FileUtils.mkpath(File.dirname(path))
+		FileUtils.mkpath(File.dirname(path))
 
-    content = open(uri.to_s).read
-    data    = YAML.parse(content).transform
+		content = open(uri.to_s).read
+		data    = YAML.parse(content).transform
 
-    Models.transaction {
-      File.write(path, content)
+		Models.transaction {
+			File.write(path, content)
 
-      Model.add(data['name'], uri, path, data['description'])
-    }
-  end
+			Model.add(data['name'], uri, path, data['description'])
+		}
+	end
 
-  def self.delete (remote)
-    FileUtils.rm_rf remote.path, secure: true
+	def self.delete (remote)
+		FileUtils.rm_rf remote.path, secure: true
 
-    Models.transaction {
-      remote.destroy
-    }
-  end
+		Models.transaction {
+			remote.destroy
+		}
+	end
 
-  def self.update (remote)
-    uri = remote.uri.to_s
+	def self.update (remote)
+		uri = remote.uri.to_s
 
-    return false if (content = open(uri).read) == File.read(remote.path)
+		return false if (content = open(uri).read) == File.read(remote.path)
 
-    delete(remote)
-    add(uri)
-  end
+		delete(remote)
+		add(uri)
+	end
 
-  def self.get (name)
-    require 'packo/models'
+	def self.get (name)
+		require 'packo/models'
 
-    what = Packo::Repository.parse(name)
+		what = Packo::Repository.parse(name)
 
-    Models::Repository::Remote::Piece.first(type: what.type, name: what.name) rescue nil
-  end
+		Models::Repository::Remote::Piece.first(type: what.type, name: what.name) rescue nil
+	end
 end
 
 end; end; end

@@ -22,31 +22,31 @@ require 'packo'
 require 'packo/rbuild'
 
 module Packo; class Do
-  
+
 class VCS
-  def self.checkout (location, path)
-    require 'packo/rbuild'
+	def self.checkout (location, path)
+		require 'packo/rbuild'
 
-    location = Location[location]
-    
-    if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-      RBuild::Modules::Fetching.const_get(location.type.capitalize).fetch(location, path)
-    else
-      raise ArgumentError.new "#{location.type} is an unsupported SCM"
-    end
-  end
+		location = Location[location]
 
-  def self.update (location, path)
-    require 'packo/rbuild'
+		if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
+			RBuild::Modules::Fetching.const_get(location.type.capitalize).fetch(location, path)
+		else
+			raise ArgumentError, "#{location.type} is an unsupported SCM"
+		end
+	end
 
-    location = Location[location]
+	def self.update (location, path)
+		require 'packo/rbuild'
 
-    if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
-      RBuild::Modules::Fetching.const_get(location.type.capitalize).update(path)
-    else
-      raise ArgumentError.new "#{location.type} is an unsupported SCM"
-    end
-  end
+		location = Location[location]
+
+		if RBuild::Modules::Fetching.const_defined?(location.type.capitalize)
+			RBuild::Modules::Fetching.const_get(location.type.capitalize).update(path)
+		else
+			raise ArgumentError, "#{location.type} is an unsupported SCM"
+		end
+	end
 end
 
 end; end

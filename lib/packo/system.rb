@@ -24,44 +24,44 @@ require 'packo/host'
 module Packo
 
 System = Class.new {
-  attr_reader :environment, :host
+	attr_reader :environment, :host
 
-  def environment!; @environmentClean end
+	def environment!; @environmentClean end
 
-  alias env environment
-  alias env! environment!
+	alias env environment
+	alias env! environment!
 
-  def initialize
-    @environment      = Environment.new
-    @environmentClean = Environment.new(nil, true)
+	def initialize
+		@environment      = Environment.new
+		@environmentClean = Environment.new(nil, true)
 
-    if env[:DEBUG].to_i > 0
-      begin; require 'ap'; rescue LoadError; end
-    end
+		if env[:DEBUG].to_i > 0
+			begin; require 'ap'; rescue LoadError; end
+		end
 
-    @host = Host.new(env!)
-  end
+		@host = Host.new(env!)
+	end
 
-  memoize
-  def has? (package, options={})
-    require 'packo/models'
+	memoize
+	def has? (package, options={})
+		require 'packo/models'
 
-    if package.is_a?(Package::Tags) || package.is_a?(Array)
-      expression = "[#{package.join(' && ')}]"
-    elsif package.is_a?(Package)
-      expression = package.to_s(:whole)
-    else
-      expression = package.to_s
-    end
+		if package.is_a?(Package::Tags) || package.is_a?(Array)
+			expression = "[#{package.join(' && ')}]"
+		elsif package.is_a?(Package)
+			expression = package.to_s(:whole)
+		else
+			expression = package.to_s
+		end
 
-    if (result = Models::InstalledPackage.search(expression, options)).empty?
-      false
-    elsif options[:all]
-      result
-    else
-      result.first
-    end
-  end
+		if (result = Models::InstalledPackage.search(expression, options)).empty?
+			false
+		elsif options[:all]
+			result
+		else
+			result.first
+		end
+	end
 }.new
 
 end

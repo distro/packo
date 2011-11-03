@@ -22,84 +22,84 @@ require 'packo/package/feature'
 module Packo; class Package
 
 class Features
-  def self.parse (text)
-    data = []
+	def self.parse (text)
+		data = []
 
-    text.split(/\s+/).each {|part|
-      data << Feature.parse(part)
-    }
+		text.split(/\s+/).each {|part|
+			data << Feature.parse(part)
+		}
 
-    Features.new(data)
-  end
+		Features.new(data)
+	end
 
-  def initialize (values={})
-    @values = {}
+	def initialize (values={})
+		@values = {}
 
-    if values.is_a?(Array)
-      values.dup.each {|feature|
-        @values[feature.name] = feature
-      }
-    elsif values.is_a?(Hash)
-      values.dup.each {|name, value|
-        @values[name.to_sym] = Feature.new(name, value || false)
-      }
-    end
-  end
+		if values.is_a?(Array)
+			values.dup.each {|feature|
+				@values[feature.name] = feature
+			}
+		elsif values.is_a?(Hash)
+			values.dup.each {|name, value|
+				@values[name.to_sym] = Feature.new(name, value || false)
+			}
+		end
+	end
 
-  def each
-    @values.dup.each_value {|feature|
-      yield feature
-    }
-  end
+	def each
+		@values.dup.each_value {|feature|
+			yield feature
+		}
+	end
 
-  def empty?
-    @values.empty?
-  end
+	def empty?
+		@values.empty?
+	end
 
-  def set (name, value)
-    @values[name.to_sym] = Feature.new(name, value)
-  end
+	def set (name, value)
+		@values[name.to_sym] = Feature.new(name, value)
+	end
 
-  def get (name)
-    @values[name.to_sym] ||= Feature.new(name, false)
-  end
+	def get (name)
+		@values[name.to_sym] ||= Feature.new(name, false)
+	end
 
-  def delete (name)
-    @values.delete(name.to_sym)
-  end
+	def delete (name)
+		@values.delete(name.to_sym)
+	end
 
-  def has? (name)
-    @values.key? name.to_sym
-  end
+	def has? (name)
+		@values.key? name.to_sym
+	end
 
-  def to_hash
-    Hash[*@values.map {|(name, element)|
-      [name, element.value]
-    }]
-  end
+	def to_hash
+		Hash[*@values.map {|(name, element)|
+			[name, element.value]
+		}]
+	end
 
-  def to_a
-    @values.map {|(name, element)|
-      element
-    }
-  end
+	def to_a
+		@values.map {|(name, element)|
+			element
+		}
+	end
 
-  def to_s (type=:normal)
-    case type
-      when :package
-        @values.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
+	def to_s (type=:normal)
+		case type
+			when :package
+				@values.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
 
-      when :normal
-        self.to_a.sort {|a, b|
-          if a.enabled? && b.enabled?     ;  0
-          elsif a.enabled? && !b.enabled? ; -1
-          else                            ;  1
-          end
-        }.map {|feature|
-          (feature.enabled? ? '' : '-') + feature.name.to_s
-        }.join(' ')
-    end
-  end
+			when :normal
+				to_a.sort {|a, b|
+					if a.enabled? && b.enabled?     ;  0
+					elsif a.enabled? && !b.enabled? ; -1
+					else                            ;  1
+					end
+				}.map {|feature|
+					(feature.enabled? ? '' : '-') + feature.name.to_s
+				}.join(' ')
+		end
+	end
 end
 
 end; end

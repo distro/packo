@@ -22,36 +22,36 @@ require 'packo/cli'
 module Packo
 
 module CLI
-  def self.message (text, options={})
-    case options[:type] || :info
-      when :info  then print "#{'*'.green} "
-      when :warn  then print "#{'*'.yellow} "
-      when :fatal then print "#{'*'.red} "
-    end
+	def self.message (text, options={})
+		case options[:type] || :info
+			when :info  then print "#{'*'.green} "
+			when :warn  then print "#{'*'.yellow} "
+			when :fatal then print "#{'*'.red} "
+		end
 
-    print text
-    STDOUT.flush
+		print text
+		STDOUT.flush
 
-    begin
-      if yield
-        puts " #{(options[:good] || '^_^').green}"
-      else
-        raise Class.new(Exception) { def __packo; end }
-      end
-      
-      true
-    rescue Exception => e
-      puts " #{(options[:bad] || ';_;').red}"
-      
-      if !e.respond_to? :__packo
-        CLI.fatal e.message
+		begin
+			if yield
+				puts " #{(options[:good] || '^_^').green}"
+			else
+				raise Class.new(Exception) { def __packo; end }
+			end
 
-        Packo.debug e
-      end
+			true
+		rescue Exception => e
+			puts " #{(options[:bad] || ';_;').red}"
+			
+			if !e.respond_to? :__packo
+				CLI.fatal e.message
 
-      false
-    end
-  end
+				Packo.debug e
+			end
+
+			false
+		end
+	end
 end
 
 end

@@ -26,13 +26,13 @@ before = 'module Packo;'
 after  = '; end'
 
 module Packo
-  case ARGV.first
-    when 'rc'; ARGV.shift
-      require 'packo/do/helpers/rc'
+	case ARGV.first
+		when 'rc'; ARGV.shift
+			require 'packo/do/helpers/rc'
 
-      before << 'class Do; module RC;'
-      after  << '; end; end'
-  end
+			before << 'class Do; module RC;'
+			after  << '; end; end'
+	end
 end
 
 Packo.load(ARGV.shift, before: before, after: after)

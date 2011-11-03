@@ -27,36 +27,36 @@ $0   = File.realpath($0)
 conf = nil
 
 Packo::Service::Paths.each {|path|
-  next unless $0.start_with?(path)
+	next unless $0.start_with?(path)
 
-  whole, name = $0.match(%r{^#{path}/(.*?)$})
+	whole, name = $0.match(%r{^#{path}/(.*?)$})
 
-  next unless File.readable?(file = "/etc/conf.d/#{name}")
+	next unless File.readable?(file = "/etc/conf.d/#{name}")
 
-  if File.read(file, 3) == '---'
-    conf = YAML.parse_file(file).transform
-  else
-    mod = ::Module.new
+	if File.read(file, 3) == '---'
+		conf = YAML.parse_file(file).transform
+	else
+		mod = ::Module.new
 
-    suppress_warnings {
-      mod.module_eval File.read(file)
-    }
+		suppress_warnings {
+			mod.module_eval File.read(file)
+		}
 
-    conf = Hash[mod.constants.map {|name|
-      [name, mod.const_get(name)]
-    }]
-  end
+		conf = Hash[mod.constants.map {|name|
+			[name, mod.const_get(name)]
+		}]
+	end
 
-  conf[:rc] = YAML.parse_file('/etc/rc.conf').transform rescue {}
+	conf[:rc] = YAML.parse_file('/etc/rc.conf').transform rescue {}
 }
 
 service = Packo::Service.new(:configuration => conf)
 service.instance_eval(File.read(ARGV.first), ARGV.first)
 
 begin
-  service.run(ARGV[1 .. -1])
+	service.run(ARGV[1 .. -1])
 rescue Exception => e
-  Packo::CLI.fatal e.message
+	Packo::CLI.fatal e.message
 
-  Packo.debug e
+	Packo.debug e
 end

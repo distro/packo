@@ -22,49 +22,49 @@ require 'find'
 module Packo; module RBuild; module Modules; module Helpers
 
 class Python < Module
-  module Functions
-    def fix_shebang (file, version=nil)
-      unless File.file?(file) || File.symlink?(file)
-        raise ArgumentError.new("#{file} isn't a file")
-      end
+	module Functions
+		def fix_shebang (file, version = nil)
+			unless File.file?(file) || File.symlink?(file)
+				raise ArgumentError.new("#{file} isn't a file")
+			end
 
-      return false unless (content = File.read(file)).match(/^#\s*!.*?python/)
+			return false unless (content = File.read(file)).match(/^#\s*!.*?python/)
 
-      File.write(file, content.sub(/^#\s*!.*?\n/, "#! /usr/bin/env python#{version}\n"))
+			File.write(file, content.sub(/^#\s*!.*?\n/, "#! /usr/bin/env python#{version}\n"))
 
-      true
-    end
+			true
+		end
 
-    def fix_shebangs (directory, version=nil)
-      if File.directory?(directory)
-        Find.find(directory) {|path|
-          next unless File.file?(path)
+		def fix_shebangs (directory, version = nil)
+			if File.directory?(directory)
+				Find.find(directory) {|path|
+					next unless File.file?(path)
 
-          fix_shebang(path, version)
-        }
-      else
-        fix_shebang(directory)
-      end
-    end
-  end
+					fix_shebang(path, version)
+				}
+			else
+				fix_shebang(directory)
+			end
+		end
+	end
 
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.py = package.python = Class.new(Module::Helper) {
-      include Functions
+		package.py = package.python = Module::Helper.for(package) {
+			include Functions
 
-      def version (value)
-        package.dependencies.set {
-          depends_on "python%#{value}"
-        }
-      end
-    }.new(package)
-  end
+			def version (value)
+				package.dependencies.set {
+					depends_on "python%#{value}"
+				}
+			end
+		}
+	end
 
-  def finalize
-    package.py = nil
-  end
+	def finalize
+		package.py = nil
+	end
 end
 
 end; end; end; end

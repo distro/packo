@@ -20,37 +20,37 @@
 module Packo
 
 class Transform
-  def self.open (path)
-    transform = self.new
+	def self.open (path)
+		transform = self.new
 
-    if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/, 2)).length > 1
-      transform.filesystem.parse(tmp.last.lstrip)
-    end
+		if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/, 2)).length > 1
+			transform.filesystem.parse(tmp.last.lstrip)
+		end
 
-    transform.instance_eval(tmp.first)
-    transform
-  end
+		transform.instance_eval(tmp.first)
+		transform
+	end
 
-  attr_reader :filesystem
+	attr_reader :filesystem
 
-  alias fs filesystem
+	alias fs filesystem
 
-  def initialize
-    @blocks     = {}
-    @filesystem = FFFS::FileSystem.new
-  end
+	def initialize
+		@blocks     = {}
+		@filesystem = FFFS::FileSystem.new
+	end
 
-  def apply_to (what)
-    if defined?(RBuild::Package) && what.is_a?(RBuild::Package)
-      what.apply(self, &@blocks[:build])
-    end
-  end
+	def apply_to (what)
+		if defined?(RBuild::Package) && what.is_a?(RBuild::Package)
+			what.apply(self, &@blocks[:build])
+		end
+	end
 
-  [:build, :install].each {|name|
-    define_method name do |&block|
-      @blocks[name] = block
-    end
-  }
+	[:build, :install].each {|name|
+		define_method name do |&block|
+			@blocks[name] = block
+		end
+	}
 end
 
 end

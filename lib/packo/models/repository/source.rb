@@ -19,12 +19,8 @@
 
 module Packo; module Models; class Repository
 
-class Source
-  include DataMapper::Resource
-
-  belongs_to :repo, 'Repository', key: true
-
-  property :address, Text, default: '', required: false
+class Source < Repository
+	property :address, Text, default: '', required: false
 end
 
 end; end; end

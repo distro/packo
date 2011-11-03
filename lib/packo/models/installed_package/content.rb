@@ -20,31 +20,31 @@
 module Packo; module Models; class InstalledPackage
 
 class Content
-  include DataMapper::Resource
+	include DataMapper::Resource
 
-  belongs_to :installed_package
+	belongs_to :installed_package
 
-  property :id, Serial
+	property :id, Serial
 
-  property :type, Enum[:dir, :obj, :sym]
+	property :type, Enum[:dir, :obj, :sym]
 
-  property :path, Text
+	property :path, Text
 
-  property :meta, Object, required: false
+	property :meta, Object, required: false
 
-  def check!
-    return if self.type
+	def check!
+		return if self.type
 
-    if File.directory?(self.path)
-      self.type = :dir
-    elsif File.symlink?(self.path)
-      self.type = :sym
-    elsif File.file?(self.path)
-      self.type = :obj
-    end
+		if File.directory?(self.path)
+			self.type = :dir
+		elsif File.symlink?(self.path)
+			self.type = :sym
+		elsif File.file?(self.path)
+			self.type = :obj
+		end
 
-    self.save
-  end
+		self.save
+	end
 end
 
 end; end; end

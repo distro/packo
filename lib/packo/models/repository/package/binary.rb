@@ -21,12 +21,8 @@ require 'packo/models/repository/package/binary/build'
 
 module Packo; module Models; class Repository; class Package
 
-class Binary
-  include DataMapper::Resource
-
-  belongs_to :package, key: true
-
-  has n, :builds, constraint: :destroy
+class Binary < Package
+	has n, :builds, constraint: :destroy
 end
 
 end; end; end; end

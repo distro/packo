@@ -20,16 +20,16 @@
 module Packo; module RBuild; module Modules; module Unpacking
 
 Unpacker.register /\.((tar\.(bz2|gz|xz|lzma))|tgz)$/ do |path, to|
-  options = [case File.extname(path)
-    when '.xz'         then '--xz'
-    when '.lzma'       then '--lzma'
-    when '.tgz', '.gz' then '--gzip'
-    when '.bz2'        then '--bzip2'
-  end].flatten.compact
+	options = [case File.extname(path)
+		when '.xz'         then '--xz'
+		when '.lzma'       then '--lzma'
+		when '.tgz', '.gz' then '--gzip'
+		when '.bz2'        then '--bzip2'
+	end].flatten.compact
 
-  options << '-C' << to if to
+	options << '-C' << to if to
 
-  Packo.sh 'tar', 'xf', path, *options, '-k'
+	Packo.sh 'tar', 'xf', path, *options, '-k'
 end
 
 end; end; end; end

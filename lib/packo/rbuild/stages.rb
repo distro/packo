@@ -20,159 +20,158 @@
 module Packo; module RBuild
 
 class Stages
-  class Stage
-    attr_reader :name, :options, :method
+	class Stage
+		attr_reader :name, :options, :method
 
-    def initialize (name, method, options)
-      @name    = name.to_sym
-      @method  = method
-      @options = options
+		def initialize (name, options, &method)
+			@name    = name.to_sym
+			@method  = method
+			@options = options
 
-      if (@options[:at] || @options[:after] == :beginning || @options[:before] == :ending) && @options[:strict].nil?
-        @options[:strict] = true
-      end
+			if (@options[:at] || @options[:after] == :beginning || @options[:before] == :ending) && @options[:strict].nil?
+				@options[:strict] = true
+			end
 
-      @options[:priority] ||= 0
-    end
+			@options[:priority] ||= 0
+		end
 
-    def call (*args)
-      @method.call(*args)
-    end
+		def call (*args)
+			@method.(*args)
+		end
 
-    def == (value)
-      @name == value || @method == value
-    end
+		def == (value)
+			@name == value || @method == value
+		end
 
-    def inspect
-      "#<Stage: #{name} (#{@options.inspect})>"
-    end
-  end
+		def inspect
+			"#<Stage: #{name} (#{@options.inspect})>"
+		end
+	end
 
-  attr_reader :package, :stages
+	attr_reader :package, :stages
 
-  def initialize (package)
-    @package = package
+	def initialize (package)
+		@package = package
 
-    @stages    = []
-  end
+		@stages    = []
+	end
 
-  def owner_of (name)
-    name = name.to_sym
+	def owner_of (name)
+		name = name.to_sym
 
-    @stages.find {|stage|
-      stage.name == name
-    }.method.owner rescue nil
-  end
+		@stages.find {|stage|
+			stage.name == name
+		}.method.owner rescue nil
+	end
 
-  def add (name, method, options={})
-    @stages.delete_if {|stage|
-      stage.name == name
-    }
+	def add (name, method = nil, options = nil, &block)
+		options = method if method.is_a?(Hash)
+		method  = block  if block
 
-    @stages << Stage.new(name, method, options)
+		@stages.delete_if {|stage|
+			stage.name == name
+		}
 
-    @sorted = false
-  end
+		@stages << Stage.new(name, method, options)
 
-  def delete (name, method=nil)
-    @stages.delete_if {|stage|
-      stage.name == name && (!method || stage.method == method)
-    }
+		@sorted = false
+	end
 
-    @sorted = false
-  end
+	def delete (name)
+		@stages.delete_if {|stage|
+			stage.name == name
+		}
 
-  # Ugly incomprensibile shit ahead. It's dangerous to go alone! Take this! <BS>
-  #
-  # In short it tries to sort stuff as it wanted to be placed depending on stage's options  
-  def sort! (strict=false)
-    return if @sorted
+		@sorted = false
+	end
 
-    funcs = {
-      atom: lambda {
-        { stricts: [], normals: [] }
-      },
+	def sort! (strict = false)
+		return if @sorted
 
-      leaf: lambda {
-        Hash[
-          after:  funcs[:atom].call,
-          before: funcs[:atom].call,
-          at:     funcs[:atom].call,
-          stage:  nil
-        ]
-      },
+		funcs = {
+			atom: -> {
+				{ stricts: [], normals: [] }
+			},
 
-      type: lambda {|stage|
-        stage.options[:strict] ? :stricts : :normals
-      },
+			leaf: -> {
+				Hash[
+					after:  funcs[:atom].(),
+					before: funcs[:atom].(),
+					at:     funcs[:atom].(),
+					stage:  nil
+				]
+			},
 
-      plain: lambda {|pi|
-        pi.sort {|a, b|
-          pr = (a[:stage].options[:priority] || 0) <=> (b[:stage].options[:priority] || 0)
-          pr.zero? ? a[:stage].name.to_s.downcase <=> b[:stage].name.to_s.downcase : pr
-        }.map {|l|
-          funcs[:flat].call(l)
-        }.flatten
-      },
+			type: -> stage {
+				stage.options[:strict] ? :stricts : :normals
+			},
 
-      flat: lambda {|leaf|
-        funcs[:plain].call(leaf[:after][:normals]) + funcs[:plain].call(leaf[:after][:stricts]) +
-          (leaf[:stage] ? [leaf[:stage]] : (funcs[:plain].call(leaf[:at][:stricts]) + funcs[:plain].call(leaf[:at][:normals]))) +
-          funcs[:plain].call(leaf[:before][:stricts]) + funcs[:plain].call(leaf[:before][:normals])
-      }
-    }
+			plain: -> pi {
+				pi.sort {|a, b|
+					pr = (a[:stage].options[:priority] || 0) <=> (b[:stage].options[:priority] || 0)
+					pr.zero? ? a[:stage].name.to_s.downcase <=> b[:stage].name.to_s.downcase : pr
+				}.map {|l|
+					funcs[:flat].(l)
+				}.flatten
+			},
 
-    tree = { beginning: funcs[:leaf].call, end: funcs[:leaf].call }
+			flat: -> leaf {
+				funcs[:plain].(leaf[:after][:normals]) + funcs[:plain].(leaf[:after][:stricts]) +
+					(leaf[:stage] ? [leaf[:stage]] : (funcs[:plain].(leaf[:at][:stricts]) + funcs[:plain].(leaf[:at][:normals]))) +
+					funcs[:plain].(leaf[:before][:stricts]) + funcs[:plain].(leaf[:before][:normals])
+			}
+		}
 
-    remained = @stages.dup
-    prev_rem = @stages.size
+		tree = { beginning: funcs[:leaf].(), end: funcs[:leaf].() }
 
-    begin
-      prev_rem = remained.size
+		remained = @stages.dup
+		prev_rem = @stages.size
 
-      remained.dup.each {|stage|
-        place = (if tree[stage.options[:after]]
-          [stage.options[:after], :before, funcs[:type].call(stage)]
-        elsif tree[stage.options[:before]]
-          [stage.options[:before], :after, funcs[:type].call(stage)]
-        elsif [:beginning, :end].include?(stage.options[:at])
-          [stage.options[:at], :at, funcs[:type].call(stage)]
-        else
-          nil
-        end)
+		begin
+			prev_rem = remained.size
 
-        next unless place
+			remained.dup.each {|stage|
+				place = (if tree[stage.options[:after]]
+					[stage.options[:after], :before, funcs[:type].(stage)]
+				elsif tree[stage.options[:before]]
+					[stage.options[:before], :after, funcs[:type].(stage)]
+				elsif [:beginning, :end].include?(stage.options[:at])
+					[stage.options[:at], :at, funcs[:type].(stage)]
+				else
+					nil
+				end)
 
-        remained.delete(stage)
+				next unless place
 
-        leaf         = funcs[:leaf].call
-        leaf[:stage] = stage
+				remained.delete(stage)
 
-        tree[place[0]][place[1]][place[2]] << leaf
+				leaf         = funcs[:leaf].()
+				leaf[:stage] = stage
 
-        tree[stage.name.to_sym] = leaf
-      }
-    end while prev_rem != remained.size
+				tree[place[0]][place[1]][place[2]] << leaf
 
-    tree[:beginning][:after] = tree[:end][:before] = funcs[:atom].call
+				tree[stage.name.to_sym] = leaf
+			}
+		end while prev_rem != remained.size
 
-    @stages = funcs[:flat].call(tree[:beginning]) + funcs[:flat].call(tree[:end])
-    @sorted = true
-  end
+		tree[:beginning][:after] = tree[:end][:before] = funcs[:atom].()
 
-  def stop!;    @stopped = true;  end
-  def restart!; @stopped = false; end
+		@stages = funcs[:flat].(tree[:beginning]) + funcs[:flat].(tree[:end])
+		@sorted = true
+	end
 
-  def each (&block)
-    self.sort!
+	def stop!;    @stopped = true;  end
+	def restart!; @stopped = false; end
 
-    @stages.each {|stage|
-      block.call stage
+	def each (&block)
+		self.sort!
 
-      break if @stopped
-    }
-  end
+		@stages.each {|stage|
+			block.call stage
 
+			break if @stopped
+		}
+	end
 end
 
 end; end

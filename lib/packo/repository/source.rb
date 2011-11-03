@@ -22,51 +22,51 @@ require 'packo/package'
 module Packo; class Repository
 
 class Source < Repository
-  def initialize (data)
-    if data[:type] != :source
-      raise ArgumentError.new('It has to be a source repository')
-    end
+	def initialize (data)
+		if data[:type] != :source
+			raise ArgumentError.new('It has to be a source repository')
+		end
 
-    super(data)
-  end
+		super(data)
+	end
 
-  def location
-    Location[YAML.parse_file("#{self.path}/repository.yml").transform['location']]
-  end
+	def location
+		Location[YAML.parse_file("#{self.path}/repository.yml").transform['location']]
+	end
 
-  def each_package (what=[self.path], &block)
-    what.select {|what| File.directory? what}.each {|what|
-      if File.file? "#{what}/#{File.basename(what)}.rbuild"
-        Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
-          CLI.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
+	def each_package (what = [self.path], &block)
+		what.select {|what| File.directory? what}.each {|what|
+			if File.file? "#{what}/#{File.basename(what)}.rbuild"
+				Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
+					CLI.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
 
-          pkg = Packo::Package.new(
-            name:    File.basename(what),
-            version: version.match(/-(\d.*?)\.rbuild$/)[1]
-          )
+					pkg = Packo::Package.new(
+						name:    File.basename(what),
+						version: version.match(/-(\d.*?)\.rbuild$/)[1]
+					)
 
-          begin
-            package = RBuild::Package.load(what, pkg)
-          rescue LoadError => e
-            CLI.warn e.to_s if System.env[:VERBOSE]
-          end
+					begin
+						package = RBuild::Package.load(what, pkg)
+					rescue LoadError => e
+						CLI.warn e.to_s if System.env[:VERBOSE]
+					end
 
-          if !package || package.name != pkg.name || package.version != pkg.version
-            CLI.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
-            next
-          end
+					if !package || package.name != pkg.name || package.version != pkg.version
+						CLI.warn "Package not found: #{pkg.name}" if System.env[:VERBOSE]
+						next
+					end
 
-          package.path = version.sub("#{self.path}/", '')
+					package.path = version.sub("#{self.path}/", '')
 
-          block.call(package)
-        }
-      end
+					block.call(package)
+				}
+			end
 
-      each_package(Dir.entries(what).map {|e|
-        "#{what}/#{e}" if e != '.' && e != '..' && e != 'data'
-      }.compact, &block)
-    }
-  end
+			each_package(Dir.entries(what).map {|e|
+				"#{what}/#{e}" if e != '.' && e != '..' && e != 'data'
+			}.compact, &block)
+		}
+	end
 end
 
 end; end

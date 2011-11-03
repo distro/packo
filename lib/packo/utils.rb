@@ -22,106 +22,106 @@ require 'digest/sha1'
 require 'fileutils'
 
 module Packo
-  def self.protected?
-    !!(ENV['SANDBOX_ACTIVE'] || ENV['FAKED_MODE'])
-  end
+	def self.protected?
+		!!(ENV['SANDBOX_ACTIVE'] || ENV['FAKED_MODE'])
+	end
 
-  def self.user?
-    ENV['USER'] != 'root'
-  end
+	def self.user?
+		ENV['USER'] != 'root'
+	end
 
-  def self.sh (*cmd, &block)
-    options = (Hash === cmd.last) ? cmd.pop : {}
-    cmd     = cmd.flatten.compact.map {|c| c.to_s}
+	def self.sh (*cmd, &block)
+		options = (Hash === cmd.last) ? cmd.pop : {}
+		cmd     = cmd.flatten.compact.map {|c| c.to_s}
 
-    if !block_given?
-      show_command = cmd.join(' ')
-      show_command = show_command[0, 42] + '...' unless $trace
+		if !block_given?
+			show_command = cmd.join(' ')
+			show_command = show_command[0, 42] + '...' unless $trace
 
-      block = lambda {|ok, status|
-        next if Environment[:IGNORE] || options[:throw] == false
+			block = lambda {|ok, status|
+				next if Environment[:IGNORE] || options[:throw] == false
 
-        ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}] in {#{Dir.pwd}}"
-      }
-    end
+				ok or fail "Command failed with status (#{status.exitstatus}): [#{show_command}] in {#{Dir.pwd}}"
+			}
+		end
 
-    if options[:silent] || options[:catch] || (Environment[:SILENT] && options[:silent] != false)
-      r, w = IO.pipe
+		if options[:silent] || options[:catch] || (Environment[:SILENT] && options[:silent] != false)
+			r, w = IO.pipe
 
-      options[:out] = w
-      options[:err] = w
-    elsif options[:echo] != false
-      print "#{cmd.first} "
-      cmd[1 .. cmd.length].each {|cmd|
-        print cmd.shellescape
-        print ' '
-      }
-      print "\n"
-    end
+			options[:out] = w
+			options[:err] = w
+		elsif options[:echo] != false
+			print "#{cmd.first} "
+			cmd[1 .. cmd.length].each {|cmd|
+				print cmd.shellescape
+				print ' '
+			}
+			print "\n"
+		end
 
-    result = Kernel.system(options[:env] || {}, *cmd, {
-      out: options[:out] || STDOUT,
-      err: options[:err] || STDERR
-    })
+		result = Kernel.system(options[:env] || {}, *cmd, {
+			out: options[:out] || STDOUT,
+			err: options[:err] || STDERR
+		})
 
-    status = $?
+		status = $?
 
-    block.call(result, status)
+		block.call(result, status)
 
-    if options[:catch]
-      w.flush
-      r.read_all_nonblock
-    else
-      status
-    end.tap {
-      r.close if r
-      w.close if w
-    }
-  end
+		if options[:catch]
+			w.flush
+			r.read_all_nonblock
+		else
+			status
+		end.tap {
+			r.close if r
+			w.close if w
+		}
+	end
 
-  def self.sh! (*cmd)
-    options = (Hash === cmd.last) ? cmd.pop : {}
+	def self.sh! (*cmd)
+		options = (Hash === cmd.last) ? cmd.pop : {}
 
-    sh(*cmd, options.merge(echo: false)) rescue false
-  end
+		sh(*cmd, options.merge(echo: false)) rescue false
+	end
 
-  def self.load (path, options={})
-    if !File.readable? path
-      raise LoadError.new("no such file to load -- #{path}")
-    end
+	def self.load (path, options={})
+		if !File.readable? path
+			raise LoadError.new("no such file to load -- #{path}")
+		end
 
-    eval("#{options[:before]}#{File.read(path, encoding: 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1 - (options[:before] || '').lines.to_a.length)
-  end
+		eval("#{options[:before]}#{File.read(path, encoding: 'utf-8').split(/^__END__$/).first}#{options[:after]}", options[:binding] || binding, path, 1 - (options[:before] || '').lines.to_a.length)
+	end
 
-  def self.digest (path)
-    Digest::SHA1.hexdigest(File.read(path))
-  end
+	def self.digest (path)
+		Digest::SHA1.hexdigest(File.read(path))
+	end
 
-  def self.contents (obj, &block)
-    Enumerator.new do |e|
-      obj.each {|file|
-        next unless File.directory?(file) || File.symlink?(file) || File.file?(file)
+	def self.contents (obj, &block)
+		Enumerator.new do |e|
+			obj.each {|file|
+				next unless File.directory?(file) || File.symlink?(file) || File.file?(file)
 
-        data = {}
-        data.merge!(block.call(file) || {}) if block
+				data = {}
+				data.merge!(block.call(file) || {}) if block
 
-        next if data[:next]
+				next if data[:next]
 
-        data[:source] ||= file
-        data[:path]   ||= file
+				data[:source] ||= file
+				data[:path]   ||= file
 
-        if File.directory?(file)
-          data[:type] ||= :dir
-        elsif File.symlink?(file)
-          data[:type] ||= :sym
-          data[:meta] ||= File.readlink(file)
-        elsif File.file?(file)
-          data[:type] ||= :obj
-          data[:meta] ||= Packo.digest(file)
-        end
+				if File.directory?(file)
+					data[:type] ||= :dir
+				elsif File.symlink?(file)
+					data[:type] ||= :sym
+					data[:meta] ||= File.readlink(file)
+				elsif File.file?(file)
+					data[:type] ||= :obj
+					data[:meta] ||= Packo.digest(file)
+				end
 
-        e << OpenStruct.new(data)
-      }
-    end
-  end
+				e << OpenStruct.new(data)
+			}
+		end
+	end
 end

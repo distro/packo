@@ -24,39 +24,39 @@ require 'packo/models'
 module Packo; module CLI
 
 class Select < Thor
-  include Thor::Actions
+	include Thor::Actions
 
-  class_option :help, type: :boolean,
-    desc: 'Show help usage'
+	class_option :help, type: :boolean,
+		desc: 'Show help usage'
 
-  desc 'add NAME DESCRIPTION PATH', 'Add a module to the database'
-  def add (name, description, path)
-    Models::Selector.first_or_create(name: name).update(description: description, path: path)
+	desc 'add NAME DESCRIPTION PATH', 'Add a module to the database'
+	def add (name, description, path)
+		Models::Selector.first_or_create(name: name).update(description: description, path: path)
 
-    CLI.info "#{name} added"
-  end
+		CLI.info "#{name} added"
+	end
 
-  desc 'delete NAME', 'Delete a module from the database'
-  def delete (name)
-    selector = Models::Selector.first(name: name)
+	desc 'delete NAME', 'Delete a module from the database'
+	def delete (name)
+		selector = Models::Selector.first(name: name)
 
-    if !selector
-      fatal "#{name} doesn't exist"
-      exit! 30
-    end
+		if !selector
+			fatal "#{name} doesn't exist"
+			exit! 30
+		end
 
-    selector.destroy
+		selector.destroy
 
-    CLI.info "#{name} deleted"
-  end
+		CLI.info "#{name} deleted"
+	end
 end
 
 Models::Selector.all.each {|selector|
-  Select.desc "#{selector.name} [ARGUMENTS...]", selector.description
+	Select.desc "#{selector.name} [ARGUMENTS...]", selector.description
 
-  Select.define_method selector.name do |*arguments|
-    system(*([selector.path] + (ARGV[1 .. -1] || [])).compact)
-  end
+	Select.define_method selector.name do |*arguments|
+		system(*([selector.path] + (ARGV[1 .. -1] || [])).compact)
+	end
 }
 
 end; end

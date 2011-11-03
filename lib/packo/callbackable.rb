@@ -20,127 +20,127 @@
 module Packo
 
 module Callbackable
-  def register (chain, name, callback, data={})
-    @callbacks ||= {}
+	def register (chain, name, callback, data = {})
+		@callbacks ||= {}
 
-    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).register(chain, callback, data)
-  end
+		(@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).register(chain, callback, data)
+	end
 
-  def unregister (chain, name, known=nil)
-    @callbacks ||= {}
+	def unregister (chain, name, known = nil)
+		@callbacks ||= {}
 
-    (@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).unregister(chain, known)
-  end
+		(@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)).unregister(chain, known)
+	end
 
-  def callbacks (name=nil)
-    @callbacks ||= {}
+	def callbacks (name = nil)
+		@callbacks ||= {}
 
-    if name
-      @callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)
-    else
-      @callbacks
-    end
-  end
+		if name
+			@callbacks[name.to_sym] ||= Callbacks.new(name.to_sym)
+		else
+			@callbacks
+		end
+	end
 
-  def before (name, data={}, &block)
-    register(:before, name, block, { binding: self }.merge(data))
-  end
+	def before (name, data = {}, &block)
+		register(:before, name, block, { binding: self }.merge(data))
+	end
 
-  def after (name, data={}, &block)
-    register(:after, name, block, { binding: self }.merge(data))
-  end
-  
-  def on (name, data={}, &block)
-    register(:on, name, block, { binding: self }.merge(data))
-  end; alias during on
+	def after (name, data = {}, &block)
+		register(:after, name, block, { binding: self }.merge(data))
+	end
+	
+	def on (name, data = {}, &block)
+		register(:on, name, block, { binding: self }.merge(data))
+	end; alias during on
 
-  def skip (*args)
-    if args.empty?
-      throw :halt
-    else
-      chain, name, known = args
+	def skip (*args)
+		if args.empty?
+			throw :halt
+		else
+			chain, name, known = args
 
-      unregister(chain, name, known)
-    end
-  end
+			unregister(chain, name, known)
+		end
+	end
 end
 
 class Callbacks
-  Chains = [:before, :after]
+	Chains = [:before, :after]
 
-  class Callback
-    attr_accessor :binding
+	class Callback
+		attr_accessor :binding
 
-    attr_reader :name, :priority, :position
+		attr_reader :name, :priority, :position
 
-    def initialize (callback, data)
-      @callback = callback
-      @priority = data[:priority] || 0
-      @binding  = data[:binding]  || binding
-      @position = data[:position] || 0
-      @name     = data[:name]
-    end
+		def initialize (callback, data)
+			@callback = callback
+			@priority = data[:priority] || 0
+			@binding  = data[:binding]  || binding
+			@position = data[:position] || 0
+			@name     = data[:name]
+		end
 
-    def call (*args)
-      if binding
-        binding.instance_exec(*args, &@callback)
-      else
-        @callback.call(*args)
-      end
-    end
-  end
+		def call (*args)
+			if binding
+				binding.instance_exec(*args, &@callback)
+			else
+				@callback.call(*args)
+			end
+		end
+	end
 
-  attr_reader :name
+	attr_reader :name
 
-  def initialize (name)
-    @name      = name
-    @callbacks = Hash[before: [], after: [], on: []]
-    @position  = 0
-  end
+	def initialize (name)
+		@name      = name
+		@callbacks = Hash[before: [], after: [], on: []]
+		@position  = 0
+	end
 
-  def register (chain, callback, data)
-    @callbacks[Chains.member?(chain) ? chain : :on] << Callback.new(callback, { position: @position += 1 }.merge(data))
-  end
+	def register (chain, callback, data)
+		@callbacks[Chains.member?(chain) ? chain : :on] << Callback.new(callback, { position: @position += 1 }.merge(data))
+	end
 
-  def unregister (chain, name=nil)
-    @callbacks[Chains.member?(chain) ? chain : :on].delete_if {|callback|
-      callback.name == name || name.nil?
-    }
-  end
+	def unregister (chain, name = nil)
+		@callbacks[Chains.member?(chain) ? chain : :on].delete_if {|callback|
+			callback.name == name || name.nil?
+		}
+	end
 
-  def sort!
-    Chains.each {|chain|
-      @callbacks[chain].sort! {|a, b|
-        if a.priority == b.priority
-          a.position <=> b.position
-        else
-          a.priority <=> b.priority
-        end
-      }
-    }
-  end
+	def sort!
+		Chains.each {|chain|
+			@callbacks[chain].sort! {|a, b|
+				if a.priority == b.priority
+					a.position <=> b.position
+				else
+					a.priority <=> b.priority
+				end
+			}
+		}
+	end
 
-  def do (*args)
-    self.sort!
+	def do (*args)
+		self.sort!
 
-    catch(:halt) do
-      @callbacks[:before].each {|c|
-        c.call(*args)
-      }
+		catch(:halt) do
+			@callbacks[:before].each {|c|
+				c.call(*args)
+			}
 
-      @callbacks[:on].each {|c|
-        c.call(*args)
-      }
+			@callbacks[:on].each {|c|
+				c.call(*args)
+			}
 
-      result = yield *args if block_given?
+			result = yield *args if block_given?
 
-      @callbacks[:after].each {|c|
-        c.call(result, *args)
-      }
+			@callbacks[:after].each {|c|
+				c.call(result, *args)
+			}
 
-      result
-    end
-  end
+			result
+		end
+	end
 end
 
 end

@@ -22,305 +22,305 @@ require 'packo/utils'
 module Packo
 
 class Do
-  # when called without a path it means it will preserve the actual pwd on exit
-  def self.cd (path=nil)
-    if block_given?
-      tmp       = Dir.pwd
-      exception = nil
+	# when called without a path it means it will preserve the actual pwd on exit
+	def self.cd (path = nil)
+		if block_given?
+			tmp       = Dir.pwd
+			exception = nil
 
-      Dir.chdir(path) if path
+			Dir.chdir(path) if path
 
-      begin
-        result = yield path
-      rescue Exception => e
-        exception = e
-      end
+			begin
+				result = yield path
+			rescue Exception => e
+				exception = e
+			end
 
-      Dir.chdir(tmp)
+			Dir.chdir(tmp)
 
-      if exception
-        raise exception
-      else
-        result
-      end
-    else
-      Dir.chdir(path) rescue false
-    end
-  end
+			if exception
+				raise exception
+			else
+				result
+			end
+		else
+			Dir.chdir(path) rescue false
+		end
+	end
 
-  def self.dir (path)
-    FileUtils.mkpath path rescue nil
-  end
+	def self.dir (path)
+		FileUtils.mkpath path rescue nil
+	end
 
-  def self.touch (*path)
-    FileUtils.touch(path) rescue nil
-  end
+	def self.touch (*path)
+		FileUtils.touch(path) rescue nil
+	end
 
-  def self.cp (*files, to)
-    files.flatten!
-    files.compact!
+	def self.cp (*files, to)
+		files.flatten!
+		files.compact!
 
-    type = (files.first.is_a?(Symbol) ? files.shift : :f).to_s
+		type = (files.first.is_a?(Symbol) ? files.shift : :f).to_s
 
-    if type.include?('r')
-      Do.dir(to)
+		if type.include?('r')
+			Do.dir(to)
 
-      if type.include?('f')
-        FileUtils.cp_rf(files, to, preserve: true)
-      else
-        FileUtils.cp_r(files, to, preserve: true)
-      end
-    else
-      Do.dir(File.dirname(to))
-      FileUtils.cp(files, to, preserve: true)
-    end
-  end
+			if type.include?('f')
+				FileUtils.cp_rf(files, to, preserve: true)
+			else
+				FileUtils.cp_r(files, to, preserve: true)
+			end
+		else
+			Do.dir(File.dirname(to))
+			FileUtils.cp(files, to, preserve: true)
+		end
+	end
 
-  def self.mv (*files, to)
-    files.flatten!
-    files.compact!
+	def self.mv (*files, to)
+		files.flatten!
+		files.compact!
 
-    if files.length == 1
-      Do.dir(File.dirname(to))
-      FileUtils.mv(files.first, to, force: true)
-    else
-      Do.dir(to)
-      FileUtils.mv(files, to, force: true)
-    end
-  end
+		if files.length == 1
+			Do.dir(File.dirname(to))
+			FileUtils.mv(files.first, to, force: true)
+		else
+			Do.dir(to)
+			FileUtils.mv(files, to, force: true)
+		end
+	end
 
-  def self.rm (*files)
-    files.flatten!
-    files.compact!
+	def self.rm (*files)
+		files.flatten!
+		files.compact!
 
-    type = (files.first.is_a?(Symbol) ? files.shift : :f).to_s
+		type = (files.first.is_a?(Symbol) ? files.shift : :f).to_s
 
-    files.each {|file|
-      next unless File.exists?(file)
+		files.each {|file|
+			next unless File.exists?(file)
 
-      case type
-        when /r/
-          FileUtils.rm_r(file, :force => type.include?('f'), :secure => true)
+			case type
+				when /r/
+					FileUtils.rm_r(file, :force => type.include?('f'), :secure => true)
 
-        else
-          if File.directory?(file)
-            Dir.delete(file) rescue nil
-          else
-            FileUtils.rm(file, :force => type.include?('f')) rescue nil
-          end
-      end
-    }
-  end
+				else
+					if File.directory?(file)
+						Dir.delete(file) rescue nil
+					else
+						FileUtils.rm(file, :force => type.include?('f')) rescue nil
+					end
+			end
+		}
+	end
 
-  def self.clean (*path)
-    path.each {|dir|
-      begin
-        ndel = Dir.glob("#{dir}/**/", File::FNM_DOTMATCH).count do |d|
-          begin; Dir.rmdir d; rescue SystemCallError; end
-        end
-      end while ndel > 0
-    }
-  end
+	def self.clean (*path)
+		path.each {|dir|
+			begin
+				ndel = Dir.glob("#{dir}/**/", File::FNM_DOTMATCH).count do |d|
+					begin; Dir.rmdir d; rescue SystemCallError; end
+				end
+			end while ndel > 0
+		}
+	end
 
-  def self.sed (file, *seds)
-    content = File.read(file)
+	def self.sed (file, *seds)
+		content = File.read(file)
 
-    seds.each {|sub|
-      case sub
-        when Array
-          regexp, sub = sub
-          content.gsub!(regexp, sub.to_s)
+		seds.each {|sub|
+			case sub
+				when Array
+					regexp, sub = sub
+					content.gsub!(regexp, sub.to_s)
 
-        when Hash
-          content = content.lines.map {|line|
-            sub.each {|matcher, (regexp, replace_with)|
-              line.gsub!(regexp, replace_with.to_s) if line.match(matcher)
-            }
+				when Hash
+					content = content.lines.map {|line|
+						sub.each {|matcher, (regexp, replace_with)|
+							line.gsub!(regexp, replace_with.to_s) if line.match(matcher)
+						}
 
-            line
-          }.join("\n")
-      end
-    }
+						line
+					}.join("\n")
+			end
+		}
 
-    File.write(file, content)
-  end
+		File.write(file, content)
+	end
 
-  attr_reader :package
+	attr_reader :package
 
-  def initialize (package)
-    @package = package
+	def initialize (package)
+		@package = package
 
-    @opts     = nil
-    @verbose  = true
-  end
+		@opts     = nil
+		@verbose  = true
+	end
 
-  def verbose?;     @verbose         end
-  def verbose!;     @verbose = true  end
-  def not_verbose!; @verbose = false end
+	def verbose?;     @verbose         end
+	def verbose!;     @verbose = true  end
+	def not_verbose!; @verbose = false end
 
-  def root
-    @root || package.distdir
-  end
+	def root
+		@root || package.distdir
+	end
 
-  def root= (path)
-    FileUtils.mkpath(path)
-  end
+	def root= (path)
+		FileUtils.mkpath(path)
+	end
 
-  def into (path)
-    tmp, @relative = @relative, path
+	def into (path)
+		tmp, @relative = @relative, path
 
-    Do.dir "#{root}/#{@relative}"
+		Do.dir "#{root}/#{@relative}"
 
-    yield
+		yield
 
-    @relative = tmp
-  end
+		@relative = tmp
+	end
 
-  def opts (value)
-    tmp, @opts = @opts, value
+	def opts (value)
+		tmp, @opts = @opts, value
 
-    yield
+		yield
 
-    @opts = tmp
-  end
+		@opts = tmp
+	end
 
-  alias chmod opts
-  alias opt opts
+	alias chmod opts
+	alias opt opts
 
-  def dir (path)
-    FileUtils.mkpath "#{root}/#{path}", verbose: @verbose
-    FileUtils.chmod @opts || 0755, "#{root}/#{path}", verbose: @verbose
-  end
+	def dir (path)
+		FileUtils.mkpath "#{root}/#{path}", verbose: @verbose
+		FileUtils.chmod @opts || 0755, "#{root}/#{path}", verbose: @verbose
+	end
 
-  def rm (*files)
-    files.flatten.compact.each {|file|
-      Do.rm Path.clean("#{root}/#{@relative}/#{file}")
-    }
-  end
+	def rm (*files)
+		files.flatten.compact.each {|file|
+			Do.rm Path.clean("#{root}/#{@relative}/#{file}")
+		}
+	end
 
-  def own (user, group, *files)
-    files.flatten.compact.each {|file|
-      FileUtils.chown user, group, files, :verbose => @verbose
-    }
-  end
+	def own (user, group, *files)
+		files.flatten.compact.each {|file|
+			FileUtils.chown user, group, files, :verbose => @verbose
+		}
+	end
 
-  def ins (*files)
-    files.map {|file|
-      file.is_a?(Array) ? [file] : Dir.glob(file)
-    }.flatten(1).each {|(file, name)|
-      path = Path.clean("#{root}/#{@relative || 'usr'}/#{File.basename(name || file)}")
+	def ins (*files)
+		files.map {|file|
+			file.is_a?(Array) ? [file] : Dir.glob(file)
+		}.flatten(1).each {|(file, name)|
+			path = Path.clean("#{root}/#{@relative || 'usr'}/#{File.basename(name || file)}")
 
-      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || 0644, path, verbose: @verbose
-    }
-  end
+			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+			FileUtils.chmod @opts || 0644, path, verbose: @verbose
+		}
+	end
 
-  def bin (*bins)
-    bins.map {|bin|
-      bin.is_a?(Array) ? [bin] : Dir.glob(bin)
-    }.flatten(1).each {|(file, name)|
-      path = Path.clean("#{root}/#{@relative || '/'}/bin/#{File.basename(name || file)}")
+	def bin (*bins)
+		bins.map {|bin|
+			bin.is_a?(Array) ? [bin] : Dir.glob(bin)
+		}.flatten(1).each {|(file, name)|
+			path = Path.clean("#{root}/#{@relative || '/'}/bin/#{File.basename(name || file)}")
 
-      FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || 0755, path, verbose: @verbose
-    }
-  end
+			FileUtils.mkpath File.dirname(path)
+			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+			FileUtils.chmod @opts || 0755, path, verbose: @verbose
+		}
+	end
 
-  def sbin (*sbins)
-    sbins.map {|sbin|
-      sbin.is_a?(Array) ? [sbin] : Dir.glob(sbin)
-    }.flatten(1).each {|(file, name)|
-      path = Path.clean("#{root}/#{@relative || '/'}/sbin/#{File.basename(name || file)}")
+	def sbin (*sbins)
+		sbins.map {|sbin|
+			sbin.is_a?(Array) ? [sbin] : Dir.glob(sbin)
+		}.flatten(1).each {|(file, name)|
+			path = Path.clean("#{root}/#{@relative || '/'}/sbin/#{File.basename(name || file)}")
 
-      FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || 0755, path, verbose: @verbose
-    }
-  end
+			FileUtils.mkpath File.dirname(path)
+			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+			FileUtils.chmod @opts || 0755, path, verbose: @verbose
+		}
+	end
 
-  def lib (*libs)
-    libs.map {|lib|
-      lib.is_a?(Array) ? [lib] : Dir.glob(lib)
-    }.flatten(1).each {|(file, name)|
-      path = Path.clean("#{root}/#{@relative || '/usr'}/lib/#{File.basename(name || file)}")
+	def lib (*libs)
+		libs.map {|lib|
+			lib.is_a?(Array) ? [lib] : Dir.glob(lib)
+		}.flatten(1).each {|(file, name)|
+			path = Path.clean("#{root}/#{@relative || '/usr'}/lib/#{File.basename(name || file)}")
 
-      FileUtils.mkpath File.dirname(path)
-      FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-      FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), path, verbose: @verbose
-    }
-  end
+			FileUtils.mkpath File.dirname(path)
+			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+			FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), path, verbose: @verbose
+		}
+	end
 
-  def doc (*docs)
-    into("/usr/share/doc/#{package.name}-#{package.version}") {
-      docs.map {|doc|
-        doc.is_a?(Array) ? [doc] : Dir.glob(doc)
-      }.flatten(1).each {|(file, name)|
-        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
+	def doc (*docs)
+		into("/usr/share/doc/#{package.name}-#{package.version}") {
+			docs.map {|doc|
+				doc.is_a?(Array) ? [doc] : Dir.glob(doc)
+			}.flatten(1).each {|(file, name)|
+				path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
-        FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
-      }
-    }
-  end
+				FileUtils.mkpath File.dirname(path)
+				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+			}
+		}
+	end
 
-  def html (*htmls)
-    into("/usr/share/doc/#{package.name}-#{package.version}/html") {
-      htmls.map {|html|
-        html.is_a?(Array) ? [html] : Dir.glob(html)
-      }.flatten(1).each {|(file, name)|
-        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
+	def html (*htmls)
+		into("/usr/share/doc/#{package.name}-#{package.version}/html") {
+			htmls.map {|html|
+				html.is_a?(Array) ? [html] : Dir.glob(html)
+			}.flatten(1).each {|(file, name)|
+				path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
-        FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
-      }
-    }
-  end
+				FileUtils.mkpath File.dirname(path)
+				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+			}
+		}
+	end
 
-  def man (*mans)
-    into("/usr/share/man/man#{man[-1]}") {
-      mans.map {|man|
-        man.is_a?(Array) ? [man] : Dir.glob(man)
-      }.flatten(1).each {|(file, name)|
-        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
+	def man (*mans)
+		into("/usr/share/man/man#{man[-1]}") {
+			mans.map {|man|
+				man.is_a?(Array) ? [man] : Dir.glob(man)
+			}.flatten(1).each {|(file, name)|
+				path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
-        FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
-      }
-    }
-  end
+				FileUtils.mkpath File.dirname(path)
+				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+			}
+		}
+	end
 
-  def info (*infos)
-    into("/usr/share/info/#{info[-1]}") {
-      infos.map {|info|
-        info.is_a?(Array) ? [info] : Dir.glob(info)
-      }.flatten(1).each {|(file, name)|
-        path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
+	def info (*infos)
+		into("/usr/share/info/#{info[-1]}") {
+			infos.map {|info|
+				info.is_a?(Array) ? [info] : Dir.glob(info)
+			}.flatten(1).each {|(file, name)|
+				path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
-        FileUtils.mkpath File.dirname(path)
-        FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-        Packo.sh 'gzip', '-9', path, silent: !@verbose rescue nil
-        FileUtils.chmod @opts || 0644, path, verbose: @verbose
-      }
-    }
-  end
+				FileUtils.mkpath File.dirname(path)
+				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+				Packo.sh 'gzip', '-9', path, silent: !@verbose rescue nil
+				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+			}
+		}
+	end
 
-  def sym (link, to)
-    path = Path.clean("#{root}/#{@relative}/#{to}")
+	def sym (link, to)
+		path = Path.clean("#{root}/#{@relative}/#{to}")
 
-    FileUtils.mkpath File.dirname(path)
-    FileUtils.ln_sf link, path, verbose: @verbose
-  end
+		FileUtils.mkpath File.dirname(path)
+		FileUtils.ln_sf link, path, verbose: @verbose
+	end
 
-  def hard (link, to)
-    path = Path.clean("#{root}/#{@relative}/#{to}")
+	def hard (link, to)
+		path = Path.clean("#{root}/#{@relative}/#{to}")
 
-    FileUtils.mkpath File.dirname(path) 
-    FileUtils.ln_f link, path, verbose: @verbose
-  end
+		FileUtils.mkpath File.dirname(path) 
+		FileUtils.ln_f link, path, verbose: @verbose
+	end
 end
 
 end

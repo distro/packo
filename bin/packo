@@ -22,58 +22,58 @@
 require 'shellwords'
 
 commands = {
-  [:base]   => 'Manage packages in the system',
-  [:files]  => 'Manage various informations about package contents',
-  [:build]  => 'Manage packø building system',
-  [:select] => 'Manage various configurations',
+	[:base]   => 'Manage packages in the system',
+	[:files]  => 'Manage various informations about package contents',
+	[:build]  => 'Manage packø building system',
+	[:select] => 'Manage various configurations',
 
-  [:virtual] => 'Work directly with virtual repositories',
+	[:virtual] => 'Work directly with virtual repositories',
 
-  [:repository] => 'Manage packø repositories',
-    [:repository, :remote] => 'Manage remote repositories',
+	[:repository] => 'Manage packø repositories',
+		[:repository, :remote] => 'Manage remote repositories',
 
-  [:env]     => 'Manage packø environment',
-  [:db]      => 'Manage packø databases',
-  [:profile] => 'Manage packø profiles',
+	[:env]     => 'Manage packø environment',
+	[:db]      => 'Manage packø databases',
+	[:profile] => 'Manage packø profiles',
 }
 
 trusted = [:base, :select, :db, :profile, :virtual]
 
 commands.keys.sort {|a, b|
-  b.length <=> a.length
+	b.length <=> a.length
 }.each {|command|
-  next unless command.map { |p| p.to_s } == ARGV[0 .. command.length - 1]
+	next unless command.map { |p| p.to_s } == ARGV[0 .. command.length - 1]
 
-  ARGV.shift(command.length)
+	ARGV.shift(command.length)
 
-  sandbox  = false
-  fakeroot = false
+	sandbox  = false
+	fakeroot = false
 
-  ENV['PATH'].split(':').each {|folder|
-    sandbox  ||= File.executable?("#{folder}/sandbox")
-    fakeroot ||= File.executable?("#{folder}/fakeroot")
+	ENV['PATH'].split(':').each {|folder|
+		sandbox  ||= File.executable?("#{folder}/sandbox")
+		fakeroot ||= File.executable?("#{folder}/fakeroot")
 
-    break if sandbox && fakeroot
-  }
-  
-  warn "sandbox isn't installed"  if !sandbox
-  warn "fakeroot isn't installed" if !fakeroot
+		break if sandbox && fakeroot
+	}
+	
+	warn "sandbox isn't installed"  if !sandbox
+	warn "fakeroot isn't installed" if !fakeroot
 
-  through = []
+	through = []
 
-  if !trusted.include?(command.length > 1 ? command : command.first) && sandbox
-    through << 'sandbox'
+	if !trusted.include?(command.length > 1 ? command : command.first) && sandbox
+		through << 'sandbox'
 
-    ARGV.map! {|arg|
-      arg.shellescape
-    }
-  end 
-  
-  through << 'fakeroot' if fakeroot
-  
-  through << "packo-#{command.join('-')}"
+		ARGV.map! {|arg|
+			arg.shellescape
+		}
+	end 
+	
+	through << 'fakeroot' if fakeroot
+	
+	through << "packo-#{command.join('-')}"
 
-  exit Kernel.system(*(through + ARGV))
+	exit Kernel.system(*(through + ARGV))
 }
 
 require 'rubygems' unless defined?(Gem)
@@ -81,25 +81,25 @@ require 'rubygems' unless defined?(Gem)
 require 'packo/cli/base'
 
 class Application < Packo::CLI::Base
-  class_option :help, :type => :boolean, :desc => 'Show help usage'
+	class_option :help, :type => :boolean, :desc => 'Show help usage'
 
-  desc 'version', 'Show current version'
-  map '-v' => :version, '--version' => :version
-  def version
-    puts "packø v. #{Packo.version}"
-  end
+	desc 'version', 'Show current version'
+	map '-v' => :version, '--version' => :version
+	def version
+		puts "packø v. #{Packo.version}"
+	end
 end
 
 commands.each {|command, description|
-  next if command.length > 1
+	next if command.length > 1
 
-  command = command.first
+	command = command.first
 
-  Application.class_eval {
-    desc "#{command} [ARGUMENTS...]", description
+	Application.class_eval {
+		desc "#{command} [ARGUMENTS...]", description
 
-    define_method command do end
-  }
+		define_method command do end
+	}
 }
 
 Application.start(ARGV)

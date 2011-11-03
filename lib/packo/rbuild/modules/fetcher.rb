@@ -23,152 +23,152 @@ require 'digest/sha1'
 module Packo; module RBuild; module Modules
 
 class Fetcher < Module
-  @@wrappers = {}
+	@@wrappers = {}
 
-  def self.register (name, &block)
-    @@wrappers[name.to_sym] = block
-  end
+	def self.register (name, &block)
+		@@wrappers[name.to_sym] = block
+	end
 
-  def self.url (url, package)
-    whole, scheme, url = url.to_s.match(%r{^(.+?)://(.+)$}).to_a
+	def self.url (url, package)
+		whole, scheme, url = url.to_s.match(%r{^(.+?)://(.+)$}).to_a
 
-    raise ArgumentError.new('Invalid URI passed') unless whole
+		raise ArgumentError, 'invalid URI passed' unless whole
 
-    if ['https', 'http', 'ftp'].member?(scheme)
-      "#{scheme}://#{url.interpolate(package)}"
-    elsif @@wrappers[scheme.to_sym]
-      @@wrappers[scheme.to_sym].call(url, package)
-    else
-      raise ArgumentError.new('Scheme not supported')
-    end
-  end
+		if ['https', 'http', 'ftp'].member?(scheme)
+			"#{scheme}://#{url.interpolate(package)}"
+		elsif @@wrappers[scheme.to_sym]
+			@@wrappers[scheme.to_sym].call(url, package)
+		else
+			raise ArgumentError, 'scheme not supported'
+		end
+	end
 
-  def self.fetch (url, to)
-    if !System.env[:FETCHER]
-      raise RuntimeError.new('Set a FETCHER variable.')
-    end
+	def self.fetch (url, to)
+		if !System.env[:FETCHER]
+			raise RuntimeError, 'set a FETCHER variable.'
+		end
 
-    Packo.sh System.env[:FETCHER].interpolate(OpenStruct.new(
-      source: Fetcher.url(url, self),
-      output: to
-    )).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), silent: !System.env[:VERBOSE]
-  end
+		Packo.sh System.env[:FETCHER].interpolate(OpenStruct.new(
+			source: Fetcher.url(url, self),
+			output: to
+		)).gsub('%o', to).gsub('%u', Fetcher.url(url, self)), silent: !System.env[:VERBOSE]
+	end
 
-  def self.filename (text)
-    return unless text
+	def self.filename (text)
+		return unless text
 
-    File.basename(text).sub(/\?.*$/, '')
-  end
+		File.basename(text).sub(/\?.*$/, '')
+	end
 
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.stages.add :fetch,  self.method(:fetch),  after: :beginning
-    package.stages.add :digest, self.method(:digest), after: :fetch, strict: true
+		package.stages.add :fetch,  method(:fetch),  after: :beginning
+		package.stages.add :digest, method(:digest), after: :fetch, strict: true
 
-    after :initialize do |result, package|
-      package.define_singleton_method :fetch, &Fetcher.method(:fetch)
-    end
-  end
+		after :initialize do |result, package|
+			package.define_singleton_method :fetch, &Fetcher.method(:fetch)
+		end
+	end
 
-  def finalize
-    package.stages.delete :fetch,  self.method(:fetch)
-    package.stages.delete :digest, self.method(:digest)
-  end
+	def finalize
+		package.stages.delete :fetch
+		package.stages.delete :digest
+	end
 
-  def url (text)
-    text.interpolate(package)
-  end
+	def url (text)
+		text.interpolate(package)
+	end
 
-  def filename (text)
-    Fetcher.filename(url(text))
-  end
+	def filename (text)
+		Fetcher.filename(url(text))
+	end
 
-  def fetch
-    if package.source.is_a?(Hash)
-      package.distfiles = {}
+	def fetch
+		if package.source.is_a?(Hash)
+			package.distfiles = {}
 
-      sources = Hash[package.source.map {|(name, source)|
-        next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
+			sources = Hash[package.source.map {|(name, source)|
+				next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
 
-        url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
+				url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
 
-        [name, (
-          if url.is_a?(Array) && url.length == 2
-            url + [source]
-          else
-            ([url] + [nil, source]).flatten
-          end
-        )]
-      }.compact]
+				[name, (
+					if url.is_a?(Array) && url.length == 2
+						url + [source]
+					else
+						([url] + [nil, source]).flatten
+					end
+				)]
+			}.compact]
 
-      package.callbacks(:fetch).do(sources) {
-        sources.each {|name, (source, output, original)|
-          package.distfiles[name] = Distfile.new(
-            "#{package.fetchdir}/#{output || filename(source)}",
-            url(original)
-          )
+			package.callbacks(:fetch).do(sources) {
+				sources.each {|name, (source, output, original)|
+					package.distfiles[name] = Distfile.new(
+						"#{package.fetchdir}/#{output || filename(source)}",
+						url(original)
+					)
 
-          package.fetch source, package.distfiles[name].path
-        }
+					package.fetch source, package.distfiles[name].path
+				}
 
-        package.source.each {|name, source|
-          next if package.distfiles[name]
+				package.source.each {|name, source|
+					next if package.distfiles[name]
 
-          package.distfiles[name] = Distfile.new(
-            "#{package.fetchdir}/#{package.digests[url(source)].name}", url(source)
-          )
-        }
-      }
-    else
-      package.distfiles = []
+					package.distfiles[name] = Distfile.new(
+						"#{package.fetchdir}/#{package.digests[url(source)].name}", url(source)
+					)
+				}
+			}
+		else
+			package.distfiles = []
 
-      sources = [package.source].flatten.compact.map {|source|
-        next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
+			sources = [package.source].flatten.compact.map {|source|
+				next if package.digests[url(source)] && (Packo.digest("#{package.fetchdir}/#{package.digests[url(source)].name}") rescue false) == package.digests[url(source)].digest
 
-        url = Fetcher.url(source, package) or fail "Failed to get the real URL for: #{source}"
+				url = Fetcher.url(source, package) or fail "failed to get the real URL for: #{source}"
 
-        if url.is_a?(Array) && url.length == 2
-          url + [source]
-        else
-          ([url] + [nil, source]).flatten
-        end
-      }.compact
+				if url.is_a?(Array) && url.length == 2
+					url + [source]
+				else
+					([url] + [nil, source]).flatten
+				end
+			}.compact
 
-      package.callbacks(:fetch).do(sources) {
-        sources.each {|(source, output, original)|
-          package.distfiles << Distfile.new(
-            "#{package.fetchdir}/#{output || filename(source)}", url(original)
-          )
+			package.callbacks(:fetch).do(sources) {
+				sources.each {|(source, output, original)|
+					package.distfiles << Distfile.new(
+						"#{package.fetchdir}/#{output || filename(source)}", url(original)
+					)
 
-          package.fetch source, package.distfiles.last.path
-        }
+					package.fetch source, package.distfiles.last.path
+				}
 
-        [package.source].flatten.compact.select {|source|
-          !!package.digests[url(source)]
-        }.each {|source|
-          package.distfiles << Distfile.new(
-            "#{package.fetchdir}/#{package.digests[url(source)].name}", url(source)
-          )
-        }
-      }
-    end
-  end
+				[package.source].flatten.compact.select {|source|
+					!!package.digests[url(source)]
+				}.each {|source|
+					package.distfiles << Distfile.new(
+						"#{package.fetchdir}/#{package.digests[url(source)].name}", url(source)
+					)
+				}
+			}
+		end
+	end
 
-  def digest
-    package.callbacks(:digest).do(package.distfiles) {
-      package.distfiles.each {|name, file|
-        file ||= name
+	def digest
+		package.callbacks(:digest).do(package.distfiles) {
+			package.distfiles.each {|name, file|
+				file ||= name
 
-        original = package.digests[file.url].digest rescue nil or next
-        digest   = Packo.digest(file.path) or next
+				original = package.digests[file.url].digest rescue nil or next
+				digest   = Packo.digest(file.path) or next
 
-        if digest != original
-          raise ArgumentError.new("#{File.basename(file.path)} digest is #{digest} but should be #{original}")
-        end
-      }
-    }
-  end
+				if digest != original
+					raise ArgumentError, "#{File.basename(file.path)} digest is #{digest} but should be #{original}"
+				end
+			}
+		}
+	end
 end
 
 end; end; end

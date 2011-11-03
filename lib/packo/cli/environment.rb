@@ -23,23 +23,23 @@ require 'packo/cli/thor'
 module Packo; module CLI
 
 class Environment < Thor
-  include Thor::Actions
+	include Thor::Actions
 
-  class_option :help, type: :boolean,
-    desc: 'Show help usage'
+	class_option :help, type: :boolean,
+		desc: 'Show help usage'
 
-  desc 'show', 'Show the current system environment'
-    method_option :modified, aliases: '-m', type: :boolean, default: false,
-      desc: 'Show a modified environment'
+	desc 'show', 'Show the current system environment'
+		method_option :modified, aliases: '-m', type: :boolean, default: false,
+			desc: 'Show a modified environment'
 
-  def show
-    env    = (options[:modified] ? System.env : System.env!)
-    length = env.map {|(name, value)| name.length}.max
+	def show
+		env    = (options[:modified] ? System.env : System.env!)
+		length = env.map {|(name, value)| name.length}.max
 
-    env.each {|(name, value)|
-      puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
-    }
-  end
+		env.each {|(name, value)|
+			puts "#{name}#{' ' * (1 + length - name.length)}= #{value}" if value && !value.to_s.empty?
+		}
+	end
 end
 
 end; end

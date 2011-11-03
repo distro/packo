@@ -20,91 +20,91 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Git < Module
-  def self.do (*args)
-    Packo.sh 'git', *args
-  end
+	def self.do (*args)
+		Packo.sh 'git', *args
+	end
 
-  def self.valid? (path)
-    Do.cd path do
-      Git.do(:status, silent: true, throw: false) == 0
-    end rescue false
-  end
+	def self.valid? (path)
+		Do.cd path do
+			Git.do(:status, silent: true, throw: false) == 0
+		end rescue false
+	end
 
-  def self.fetch (location, path)
-    if Git.valid?(path)
-      Git.update(path)
+	def self.fetch (location, path)
+		if Git.valid?(path)
+			Git.update(path)
 
-      Do.cd path do
-        return true if begin
-          if location.branch || location.commit || location.tag
-            Git.do :checkout, location.branch || location.commit || location.tag, silent: true
-          else
-            Git.do :checkout, :master, silent: true
-          end
+			Do.cd path do
+				return true if begin
+					if location.branch || location.commit || location.tag
+						Git.do :checkout, location.branch || location.commit || location.tag, silent: true
+					else
+						Git.do :checkout, :master, silent: true
+					end
 
-          true
-        rescue
-          false
-        end
-      end
-    end
-    
-    Do.rm path
+					true
+				rescue
+					false
+				end
+			end
+		end
 
-    options = []
+		Do.rm path
 
-    options << '--branch' << location.branch if location.branch
-    options << '--depth'  << '1' unless location.commit || location.tag
+		options = []
 
-    Git.do :clone, *options, location.repository, path
+		options << '--branch' << location.branch if location.branch
+		options << '--depth'  << '1' unless location.commit || location.tag
 
-    Do.cd path do
-      if location.commit || location.tag
-        Git.do :checkout, location.commit || location.tag, silent: true
-      end
+		Git.do :clone, *options, location.repository, path
 
-      Git.do :submodule, :init, throw: false
-      Git.do :submodule, :update, throw: false
-    end
+		Do.cd path do
+			if location.commit || location.tag
+				Git.do :checkout, location.commit || location.tag, silent: true
+			end
 
-    true
-  end
+			Git.do :submodule, :init, throw: false
+			Git.do :submodule, :update, throw: false
+		end
 
-  def self.update (path)
-    raise ArgumentError.new 'The passed path is not a git repository' unless Git.valid?(path)
+		true
+	end
 
-    Do.cd path do
-      Git.do(:reset, '--hard', silent: true, throw: false) == 0 && Git.do(:pull, catch: true).strip != 'Already up-to-date.'
-    end
-  end
+	def self.update (path)
+		raise ArgumentError.new 'The passed path is not a git repository' unless Git.valid?(path)
 
-  def initialize (package)
-    super(package)
+		Do.cd path do
+			Git.do(:reset, '--hard', silent: true, throw: false) == 0 && Git.do(:pull, catch: true).strip != 'Already up-to-date.'
+		end
+	end
 
-    package.avoid [Fetcher, Unpacker]
+	def initialize (package)
+		super(package)
 
-    package.stages.add :fetch, self.method(:fetch), after: :beginning
+		package.avoid [Fetcher, Unpacker]
 
-    package.after :initialize do
-      package.dependencies << 'vcs/git!'
-    end
-  end
+		package.stages.add :fetch, method(:fetch), after: :beginning
 
-  def finalize
-    package.stages.delete :fetch, self.method(:fetch)
-  end
+		package.after :initialize do
+			package.dependencies << 'vcs/git!'
+		end
+	end
 
-  def fetch
-    package.callbacks(:fetch).do {
-      package.source.to_hash.each {|name, value|
-        package.source[name] = value.to_s.interpolate(package)
-      }
+	def finalize
+		package.stages.delete :fetch
+	end
 
-      Git.fetch package.source, package.workdir
+	def fetch
+		package.callbacks(:fetch).do {
+			package.source.to_hash.each {|name, value|
+				package.source[name] = value.to_s.interpolate(package)
+			}
 
-      Do.cd package.workdir
-    }
-  end
+			Git.fetch package.source, package.workdir
+
+			Do.cd package.workdir
+		}
+	end
 end
 
 end; end; end; end

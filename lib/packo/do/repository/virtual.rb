@@ -25,34 +25,35 @@ require 'packo/do/repository/repository'
 module Packo; class Do; class Repository; module Helpers
 
 class Virtual < Packo::Repository::Virtual
-  include Packo::Models
-  include Helpers::Repository
+	include Packo::Models
+	include Helpers::Repository
 
-  def initialize (model)
-    super(model.to_hash.merge(model: model))
-  end
+	def initialize (model)
+		super(model.to_hash.merge(model: model))
+	end
 
-  def populate
-    self.packages.each {|package|
-      pkg = model.packages.first_or_create(
-        repo: model,
+	def populate
+		packages.each {|package|
+			pkg = model.packages.first_or_create(
+				repo: model,
+				type: Models::Repository::Package::Virtual,
 
-        tags_hashed: package.tags.hashed,
-        name:        package.name,
-        version:     package.version,
-        slot:        package.slot,
-        revision:    package.revision
-      )
+				tags_hashed: package.tags.hashed,
+				name:        package.name,
+				version:     package.version,
+				slot:        package.slot,
+				revision:    package.revision
+			)
 
-      package.tags.each {|tag|
-        pkg.tags << Tag.first_or_create(name: tag.to_s)
-      }
+			package.tags.each {|tag|
+				pkg.tags << Tag.first_or_create(name: tag.to_s)
+			}
 
-      pkg.data.update(content: package.data)
+			pkg.update(content: package.data)
 
-      pkg.save
-    }
-  end
+			pkg.save
+		}
+	end
 end
 
 end; end; end; end

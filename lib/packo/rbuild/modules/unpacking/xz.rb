@@ -20,15 +20,15 @@
 module Packo; module RBuild; module Modules; module Unpacking
 
 Unpacker.register /\.xz$/ do |path, to|
-  Packo.sh 'xz', '-dfk', path
+	Packo.sh 'xz', '-dfk', path
 
-  path.sub!(/\.xz$/, '')
+	path.sub!(/\.xz$/, '')
 
-  if to
-    Do.mv(path, (path = to))
-  end
+	if to
+		Do.mv(path, (path = to))
+	end
 
-  path
+	path
 end
 
 end; end; end; end

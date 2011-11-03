@@ -20,25 +20,41 @@
 module Packo; module RBuild
 
 class Module
-  Callbackable.instance_methods.each {|meth|
-    define_method meth do |*args, &block|
-      package.__send__ meth, *args, &block
-    end
-  }
+	class Delete
+		attr_reader :module
 
-  class Helper
-    attr_accessor :package
+		def initialize (mod)
+			@module = mod
+		end
+	end
 
-    def initialize (package)
-      @package = package
-    end
-  end
+	Callbackable.instance_methods.each {|meth|
+		define_method meth do |*args, &block|
+			package.__send__ meth, *args, &block
+		end
+	}
 
-  attr_reader :package
+	def self.-@
+		Delete.new(self)
+	end
 
-  def initialize (package)
-    @package = package
-  end
+	class Helper
+		def self.for (package, &block)
+			Class.new(self, &block).new(package)
+		end
+
+		attr_accessor :package
+
+		def initialize (package)
+			@package = package
+		end
+	end
+
+	attr_reader :package
+
+	def initialize (package)
+		@package = package
+	end
 end
 
 end; end

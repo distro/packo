@@ -47,7 +47,7 @@ module CLI
     }
   end
 
-  def self.confirm? (query, default=true)
+  def self.confirm? (query, default = true)
     $stdout.print "#{query} [#{default ? 'YES/no' : 'yes/NO'}] "
 
     case $stdin.gets.strip
@@ -57,7 +57,7 @@ module CLI
     end
   end
 
-  def self.choice (list=nil, query='The choice is yours')
+  def self.choice (list = nil, query = 'The choice is yours')
     array = if list.is_a?(Array)
       list = Hash[list.each_with_index.map {|v, i|
         [i + 1, v]

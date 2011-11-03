@@ -20,19 +20,19 @@
 module Packo; module RBuild; module Modules; module Building
 
 class CMake < Module
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.stages.add :generate, self.method(:generate), before: :configure
-  end
+		package.stages.add :generate, method(:generate), before: :configure
+	end
 
-  def finalize
-    package.stages.delete :generate, self.method(:generate)
-  end
+	def finalize
+		package.stages.delete :generate
+	end
 
-  def generate
-    Packo.sh 'cmake', package.cmake || 'CMakeLists.txt'
-  end
+	def generate
+		Packo.sh 'cmake', package.cmake || 'CMakeLists.txt'
+	end
 end
 
 end; end; end; end

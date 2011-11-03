@@ -20,11 +20,11 @@
 module Packo; module Models
 
 class Tag
-  include DataMapper::Resource
+	include DataMapper::Resource
 
-  property :id, Serial
+	property :id, Serial
 
-  property :name, Text, required: true
+	property :name, Text, required: true
 end
 
 end; end

@@ -24,47 +24,47 @@ require 'packo/package'
 module Packo; class Repository
 
 class Virtual < Repository
-  attr_reader :filesystem
+	attr_reader :filesystem
 
-  def initialize (data, &block)
-    if data[:type] != :virtual
-      raise ArgumentError.new('It has to be a virtual repository')
-    end
+	def initialize (data, &block)
+		if data[:type] != :virtual
+			raise ArgumentError.new('It has to be a virtual repository')
+		end
 
-    super(data)
+		super(data)
 
-    @filesystem = FFFS::FileSystem.new
+		@filesystem = FFFS::FileSystem.new
 
-    self.do(File.read(data[:path])) if data[:path]
-    self.do(&block) if block
-  end
+		self.do(File.read(data[:path])) if data[:path]
+		self.do(&block) if block
+	end
 
-  def do (data=nil, &block)
-    repository = self
+	def do (data = nil, &block)
+		repository = self
 
-    if data
-      if (tmp = data.split(/^__END__$/)).length > 1
-        @filesystem.parse(tmp.last.lstrip)
-        data = tmp.first
-      end
+		if data
+			if (tmp = data.split(/^__END__$/)).length > 1
+				@filesystem.parse(tmp.last.lstrip)
+				data = tmp.first
+			end
 
-      self.instance_eval(data) if data
-    end
+			self.instance_eval(data) if data
+		end
 
-    if block
-      self.instance_eval(&block)
-    end
+		if block
+			self.instance_eval(&block)
+		end
 
-    self
-  end
+		self
+	end
 
-  def install (package)
-    false
-  end
+	def install (package)
+		false
+	end
 
-  def uninstall (package)
-    true
-  end
+	def uninstall (package)
+		true
+	end
 end
 
 end; end

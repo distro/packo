@@ -24,46 +24,46 @@ require 'packo/rbuild/feature'
 module Packo; module RBuild
 
 class Flavor < Packo::Package::Flavor
-  Default = Class.new(Hash) {
-    def define (name, &block)
-      (self[name.to_sym] ||= []) << block
-    end
-  }.new
+	Default = Class.new(Hash) {
+		def define (name, &block)
+			(self[name.to_sym] ||= []) << block
+		end
+	}.new
 
-  attr_reader :package
+	attr_reader :package
 
-  def initialize (package, values={})
-    super(values)
+	def initialize (package, values={})
+		super(values)
 
-    @package = package
+		@package = package
 
-    yield self if block_given?
-  end
+		yield self if block_given?
+	end
 
-  def method_missing (id, *args, &block)
-    case id.to_s
-      when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new(@package, $1, false)).enabled?
-      when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).disable!
-      when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).enable!
-      when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).do(&block)
-    end
-  end
+	def method_missing (id, *args, &block)
+		case id.to_s
+			when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new(@package, $1, false)).enabled?
+			when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).disable!
+			when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).enable!
+			when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).do(&block)
+		end
+	end
 
-  def set (name, &block)
-    @values[name.to_sym] = Feature.new(@package, name, &block)
-  end
+	def set (name, &block)
+		@values[name.to_sym] = Feature.new(@package, name, &block)
+	end
 
-  def get (name)
-    @values[name.to_sym] ||= Feature.new(@package, name, false)
-  end
+	def get (name)
+		@values[name.to_sym] ||= Feature.new(@package, name, false)
+	end
 
-  def delete (name)
-    @values.delete(name.to_sym)
-  end
+	def delete (name)
+		@values.delete(name.to_sym)
+	end
 
-  def needs (expression=nil)
-    expression ? @needs = expression : @needs
-  end
+	def needs (expression=nil)
+		expression ? @needs = expression : @needs
+	end
 end
 
 end; end

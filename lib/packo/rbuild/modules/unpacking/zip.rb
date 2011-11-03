@@ -20,7 +20,7 @@
 module Packo; module RBuild; module Modules; module Unpacking
 
 Unpacker.register /\.zip$/ do |path, to|
-  Packo.sh 'unzip', '-qq', *(to ? ['-d', to] : []), path
+	Packo.sh 'unzip', '-qq', *(to ? ['-d', to] : []), path
 end
 
 end; end; end; end

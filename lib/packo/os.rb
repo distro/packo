@@ -19,9 +19,12 @@
 
 require 'packo'
 
-require 'packo/os/helpers'
+begin
+	require 'sysctl'
 
-require 'packo/os/ram'
-require 'packo/os/filesystem'
-require 'packo/os/process'
-require 'packo/os/cpu'
+	require 'packo/os/ram'
+	require 'packo/os/filesystem'
+	require 'packo/os/process'
+	require 'packo/os/cpu'
+rescue LoadError
+end

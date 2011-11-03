@@ -20,27 +20,27 @@
 module Packo; class Do; class Repository
 
 class Model
-  def self.add (type, name, location, path, populate=true)
-    require 'packo/models'
+	def self.add (type, name, location, path, populate=true)
+		require 'packo/models'
 
-    repo = Helpers::Repository.wrap(Models::Repository.create(
-      type: type,
-      name: name,
+		repo = Helpers::Repository.wrap(Models::Repository.create(
+			type: type,
+			name: name,
 
-      location: location,
-      path:     path
-    ))
+			location: location,
+			path:     path
+		))
 
-    repo.populate if populate
+		repo.populate if populate
 
-    repo
-  end
+		repo
+	end
 
-  def self.delete (type, name)
-    require 'packo/models'
+	def self.delete (type, name)
+		require 'packo/models'
 
-    Models::Repository.first(name: name, type: type).destroy
-  end
+		Models::Repository.first(name: name, type: type).destroy
+	end
 end
 
 end; end; end

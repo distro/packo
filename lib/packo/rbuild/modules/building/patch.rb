@@ -20,65 +20,65 @@
 module Packo; module RBuild; module Modules; module Building
 
 class Patch < Module
-  def self.do (patch, options={})
-    return unless patch
+	def self.do (patch, options = {})
+		return unless patch
 
-    begin
-      if patch.is_a?(FFFS::File) || options[:stream]
-        temp = Tempfile.new('patch')
-        temp.write patch.to_s
-        temp.flush
+		begin
+			if patch.is_a?(FFFS::File) || options[:stream]
+				temp = Tempfile.new('patch')
+				temp.write patch.to_s
+				temp.flush
 
-        Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'", silent: options[:silent]
+				Packo.sh "patch -f -p#{options[:level] || 0} < '#{temp.path}'", silent: options[:silent]
 
-        temp.close(true)
-      else
-        Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'", silent: options[:silent]
-      end
-    rescue Exception => e
-      Packo.debug e unless options[:silent]
+				temp.close(true)
+			else
+				Packo.sh "patch -f -p#{options[:level] || 0} < '#{patch}'", silent: options[:silent]
+			end
+		rescue Exception => e
+			Packo.debug e unless options[:silent]
 
-      return false
-    end
+			return false
+		end
 
-    return true
-  end
+		return true
+	end
 
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.stages.add :patch, self.method(:patch), after: :fetch, priority: -1
+		package.stages.add :patch, method(:patch), after: :fetch, priority: -1
 
-    before :initialize do |package|
-      package.define_singleton_method :patch, &Patch.method(:do)
-    end
-  end
+		before :initialize do |package|
+			package.define_singleton_method :patch, &Patch.method(:do)
+		end
+	end
 
-  def finalize
-    package.stages.delete :patch, self.method(:patch)
-  end
+	def finalize
+		package.stages.delete :patch
+	end
 
-  def patch
-    package.callbacks(:patch).do(package) {
-      package.filesystem.patches.each {|name, file|
-        _patch(file)
-      }
-    }
-  end
+	def patch
+		package.callbacks(:patch).do(package) {
+			package.filesystem.patches.each {|name, file|
+				_patch(file)
+			}
+		}
+	end
 
-  private
+	private
 
-  def _patch (what)
-    if what.is_a?(FFFS::Directory)
-      what.sort.each {|(name, file)|
-        Do.cd(what.name) {
-          _patch(file)
-        }
-      }
-    else
-      package.patch(what) rescue nil
-    end
-  end
+	def _patch (what)
+		if what.is_a?(FFFS::Directory)
+			what.sort.each {|(name, file)|
+				Do.cd(what.name) {
+					_patch(file)
+				}
+			}
+		else
+			package.patch(what) rescue nil
+		end
+	end
 end
 
 end; end; end; end

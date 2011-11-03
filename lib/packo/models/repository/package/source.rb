@@ -22,15 +22,11 @@ require 'packo/models/repository/package/source/flavor'
 
 module Packo; module Models; class Repository; class Package
 
-class Source
-  include DataMapper::Resource
+class Source < Package
+	property :path, Text, default: ''
 
-  belongs_to :package, key: true
-
-  property :path, Text, default: ''
-
-  has n, :features, constraint: :destroy
-  has n, :flavor,   constraint: :destroy
+	has n, :features, constraint: :destroy
+	has n, :flavor,   constraint: :destroy
 end
 
 end; end; end; end

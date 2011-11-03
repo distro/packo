@@ -20,67 +20,67 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 class Mercurial < Module
-  def self.do (*args)
-    Packo.sh 'hg', *args
-  end
+	def self.do (*args)
+		Packo.sh 'hg', *args
+	end
 
-  def self.valid? (path)
-    Do.cd path do
-      Mercurial.do(:status, throw: false) == 0
-    end rescue false
-  end
+	def self.valid? (path)
+		Do.cd path do
+			Mercurial.do(:status, throw: false) == 0
+		end rescue false
+	end
 
-  def self.fetch (location, path)
-    if Mercurial.valid?
-      Mercurial.update(path)
+	def self.fetch (location, path)
+		if Mercurial.valid?
+			Mercurial.update(path)
 
-      return
-    end
+			return
+		end
 
-    Do.rm path
+		Do.rm path
 
-    Mercurial.do :clone, location.repository, path
-  end
+		Mercurial.do :clone, location.repository, path
+	end
 
-  def self.update (path)
-    raise ArgumentError.new 'The passed path is not a mercurial repository' unless Mercurial.valid?(path)
+	def self.update (path)
+		raise ArgumentError.new 'The passed path is not a mercurial repository' unless Mercurial.valid?(path)
 
-    Do.cd path do
-      updated = !`hg pull`.include?('no changes found')
-      
-      `hg update` if updated
+		Do.cd path do
+			updated = !`hg pull`.include?('no changes found')
 
-      updated
-    end
-  end
+			`hg update` if updated
 
-  def initialize (package)
-    super(package)
+			updated
+		end
+	end
 
-    package.avoid [Fetcher, Unpacker]
+	def initialize (package)
+		super(package)
 
-    package.stages.add :fetch, self.method(:fetch), after: :beginning
+		package.use -Fetcher, -Unpacker
 
-    package.after :initialize do
-      package.dependencies << 'vcs/mercurial!'
-    end
-  end
+		package.stages.add :fetch, method(:fetch), after: :beginning
 
-  def finalize
-    package.stages.delete :fetch, self.method(:fetch)
-  end
+		package.after :initialize do
+			package.dependencies << 'vcs/mercurial!'
+		end
+	end
 
-  def fetch
-    package.callbacks(:fetch).do {
-      package.source.to_hash.each {|name, value|
-        package.source[name] = value.to_s.interpolate(package)
-      }
+	def finalize
+		package.stages.delete :fetch
+	end
 
-      Mercurial.fetch package.source, package.workdir
+	def fetch
+		package.callbacks(:fetch).do {
+			package.source.to_hash.each {|name, value|
+				package.source[name] = value.to_s.interpolate(package)
+			}
 
-      Do.cd package.workdir
-    }
-  end
+			Mercurial.fetch package.source, package.workdir
+
+			Do.cd package.workdir
+		}
+	end
 end
 
 end; end; end; end

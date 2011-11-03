@@ -22,47 +22,47 @@ require 'packo/os'
 module Packo; module OS
 
 class Filesystem
-  if Packo::System.host.posix?
-    extend FFI::Library
+	if Packo::System.host.posix?
+		extend FFI::Library
 
-    ffi_lib FFI::Library::LIBC
-    
-    attach_function 'statvfs', [:string, :pointer], :int
+		ffi_lib FFI::Library::LIBC
+		
+		attach_function 'statvfs', [:string, :pointer], :int
 
-    class StatVFS < FFI::Struct
-      layout \
-        :f_bsize,   :ulong,
-        :f_frsize,  :ulong,
-        :f_blocks,  :fsblkcnt_t,
-        :f_bfree,   :fsblkcnt_t,
-        :f_bavail,  :fsblkcnt_t,
-        :f_files,   :fsblkcnt_t,
-        :f_ffree,   :fsblkcnt_t,
-        :f_favail,  :fsblkcnt_t,
-        :f_fsid,    :uint64,
-        :f_flag,    :ulong,
-        :f_namemax, :ulong,
-        :__f_spare,   [:int, 6]
-    end
+		class StatVFS < FFI::Struct
+			layout \
+				:f_bsize,   :ulong,
+				:f_frsize,  :ulong,
+				:f_blocks,  :fsblkcnt_t,
+				:f_bfree,   :fsblkcnt_t,
+				:f_bavail,  :fsblkcnt_t,
+				:f_files,   :fsblkcnt_t,
+				:f_ffree,   :fsblkcnt_t,
+				:f_favail,  :fsblkcnt_t,
+				:f_fsid,    :uint64,
+				:f_flag,    :ulong,
+				:f_namemax, :ulong,
+				:__f_spare,   [:int, 6]
+		end
 
-    def self.stat (path=nil)
-      path ||= '/'
-      fs     = StatVFS.new
+		def self.stat (path=nil)
+			path ||= '/'
+			fs     = StatVFS.new
 
-      if statvfs(path, fs.pointer) < 0
-        raise ArgumentError.new "Mount point '#{path}' not found"
-      end
+			if statvfs(path, fs.pointer) < 0
+				raise ArgumentError.new "Mount point '#{path}' not found"
+			end
 
-      return OpenStruct.new(
-        path: path,
+			return OpenStruct.new(
+				path: path,
 
-        total: fs[:f_blocks] * fs[:f_frsize],
-        free:  fs[:f_bfree]  * fs[:f_bsize]
-      )
-    end
-  else
-    fail 'Unsupported platform, contact the developers please.'
-  end
+				total: fs[:f_blocks] * fs[:f_frsize],
+				free:  fs[:f_bfree]  * fs[:f_bsize]
+			)
+		end
+	else
+		fail 'Unsupported platform, contact the developers please.'
+	end
 end
 
 end; end

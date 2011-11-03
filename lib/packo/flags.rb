@@ -20,45 +20,45 @@
 module Packo
 
 class Flags < Array
-  def self.parse (string)
-    Flags.new(*string.to_s.split(/\s+/))
-  end
+	def self.parse (string)
+		Flags.new(*string.to_s.split(/\s+/))
+	end
 
-  def initialize (*flags)
-    self.insert(-1, *flags)
-  end
+	def initialize (*flags)
+		push(*flags)
+	end
 
-  def push (*values)
-    values.each {|value|
-      super(value.to_s.strip)
-    }
+	def push (*values)
+		values.each {|value|
+			super(value.to_s.strip)
+		}
 
-    self
-  end
+		self
+	end
 
-  alias << push
+	alias << push
 
-  def delete (*values)
-    values.each {|value|
-      super(value)
-    }
+	def delete (*values)
+		values.each {|value|
+			super(value)
+		}
 
-    self
-  end
+		self
+	end
 
-  def replace (from, to)
-    tmp, _ = self.dup, self.clear
+	def replace (from, to)
+		tmp, _ = self.dup, self.clear
 
-    self.insert(-1, *tmp.map {|value|
-      value.match(from) ? to : value
-    })
+		push(*tmp.map {|value|
+			value.match(from) ? to : value
+		})
 
-    self
-  end
+		self
+	end
 
-  def to_s
-    self.join(' ')
-  end
+	def to_s
+		join ' '
+	end
 end
 
 end

@@ -20,20 +20,20 @@
 module Packo; module Models; class InstalledPackage
 
 class Dependency
-  include DataMapper::Resource
+	include DataMapper::Resource
 
-  belongs_to :installed_package
+	belongs_to :installed_package
 
-  property :id, Serial
+	property :id, Serial
 
-  property :tags,     Text,                   unique_index: :a
-  property :name,     String,                 unique_index: :a
-  property :version,  String,                 unique_index: :a
-  property :slot,     String,  default: ''
-  property :revision, Integer, default: 0
+	property :tags,     Text,                   unique_index: :a
+	property :name,     String,                 unique_index: :a
+	property :version,  String,                 unique_index: :a
+	property :slot,     String,  default: ''
+	property :revision, Integer, default: 0
 
-  property :flavor,   Text, default: ''
-  property :features, Text, default: ''
+	property :flavor,   Text, default: ''
+	property :features, Text, default: ''
 end
 
 end; end; end

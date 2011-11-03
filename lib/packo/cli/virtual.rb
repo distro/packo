@@ -23,10 +23,10 @@ require 'packo/cli/thor'
 module Packo; module CLI
 
 class Virtual < Thor
-  include Thor::Actions
+	include Thor::Actions
 
-  class_option :help, type: :boolean,
-    desc: 'Show help usage'
+	class_option :help, type: :boolean,
+		desc: 'Show help usage'
 end
 
 end; end

@@ -22,70 +22,70 @@ require 'packo/os'
 module Packo; module OS
 
 class Process
-  include StructLike
+	include StructLike
 
-  if !Dir['/proc/[0-9]*'].empty?
-    def self.all
-      Dir['/proc/[0-9]*'].map {|ps|
-        Process.new(pid.to_i,
-          name:    File.read(File.join(ps, 'comm')).strip,
-          command: File.read(File.join(ps, 'cmdline')).strip
-        ) rescue nil
-      }.compact
-    end
+	if !Dir['/proc/[0-9]*'].empty?
+		def self.all
+			Dir['/proc/[0-9]*'].map {|ps|
+				Process.new(pid.to_i,
+					name:    File.read(File.join(ps, 'comm')).strip,
+					command: File.read(File.join(ps, 'cmdline')).strip
+				) rescue nil
+			}.compact
+		end
 
-    def self.from_id (id)
-      return unless id.numeric? && File.directory?("/proc/#{id}")
+		def self.from_id (id)
+			return unless id.numeric? && File.directory?("/proc/#{id}")
 
-      Process.new(id,
-        name:    File.read("/proc/#{id}/comm").strip,
-        command: File.read("/proc/#{id}/cmdline").strip
-      )
-    end
+			Process.new(id,
+				name:    File.read("/proc/#{id}/comm").strip,
+				command: File.read("/proc/#{id}/cmdline").strip
+			)
+		end
 
-    def self.from_name (name)
-      self.all.select {|process|
-        process.name.match(name)
-      }
-    end
-  else
-    fail 'Unsupported platform, contact the developers please.'
-  end
+		def self.from_name (name)
+			self.all.select {|process|
+				process.name.match(name)
+			}
+		end
+	else
+		fail 'Unsupported platform, contact the developers please.'
+	end
 
-  def self.kill (what, signal=:INT)
-    if what.is_a?(String) || what.is_a?(Regexp)
-      OS::Process.all.map {|p|
-        p.kill(signal) if p.command.match(what)
-      }.compact.all?
-    else
-      OS::Process.from_id(what).kill(signal)
-    end
-  end
+	def self.kill (what, signal=:INT)
+		if what.is_a?(String) || what.is_a?(Regexp)
+			OS::Process.all.map {|p|
+				p.kill(signal) if p.command.match(what)
+			}.compact.all?
+		else
+			OS::Process.from_id(what).kill(signal)
+		end
+	end
 
-  attr_reader :id
+	attr_reader :id
 
-  def initialize (id, data={})
-    @id   = id
-    @data = data
-  end
+	def initialize (id, data={})
+		@id   = id
+		@data = data
+	end
 
-  def kill (force=false)
-    result = if force
-      ::Process.kill(:KILL, @id)
-    else
-      ::Process.kill(:INT, @id)
-    end rescue 1 == 1
+	def kill (force=false)
+		result = if force
+			::Process.kill(:KILL, @id)
+		else
+			::Process.kill(:INT, @id)
+		end rescue 1 == 1
 
-    if result
-      ::Process.wait(@id) rescue nil
-    end
+		if result
+			::Process.wait(@id) rescue nil
+		end
 
-    result
-  end
+		result
+	end
 
-  def send (signal)
-    ::Process.kill(signal, @id)
-  end
+	def send (signal)
+		::Process.kill(signal, @id)
+	end
 end
 
 end; end

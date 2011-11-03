@@ -22,89 +22,89 @@ require 'packo/package/feature'
 module Packo; class Package
 
 class Flavor
-  def self.parse (text)
-    data = []
+	def self.parse (text)
+		data = []
 
-    text.split(/\s+/).each {|part|
-      data << Feature.parse(part)
-    }
+		text.split(/\s+/).each {|part|
+			data << Feature.parse(part)
+		}
 
-    Flavor.new(data)
-  end
+		Flavor.new(data)
+	end
 
-  def initialize (values={})
-    @values = {}
+	def initialize (values = {})
+		@values = {}
 
-    if values.is_a?(Array)
-      values.dup.each {|feature|
-        @values[feature.name] = feature
-      }
-    elsif values.is_a?(Hash)
-      values.dup.each {|name, value|
-        @values[name.to_sym] = Feature.new(name, value || false)
-      }
-    end
-  end
+		if values.is_a?(Array)
+			values.dup.each {|feature|
+				@values[feature.name] = feature
+			}
+		elsif values.is_a?(Hash)
+			values.dup.each {|name, value|
+				@values[name.to_sym] = Feature.new(name, value || false)
+			}
+		end
+	end
 
-  def each
-    @values.dup.each_value {|feature|
-      yield feature
-    }
-  end
+	def each
+		@values.dup.each_value {|feature|
+			yield feature
+		}
+	end
 
-  def empty?
-    @values.empty?
-  end
+	def empty?
+		@values.empty?
+	end
 
-  def method_missing (id, *args, &block)
-    case id.to_s
-      when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new($1, false)).enabled?
-      when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new($1, false)).disable!
-      when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new($1, false)).enable!
-      when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new($1, false))
-    end
-  end
+	def method_missing (id, *args, &block)
+		case id.to_s
+			when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new($1, false)).enabled?
+			when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new($1, false)).disable!
+			when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new($1, false)).enable!
+			when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new($1, false))
+		end
+	end
 
-  def set (name, value)
-    @values[name.to_sym] = Feature.new(name, value)
-  end
+	def set (name, value)
+		@values[name.to_sym] = Feature.new(name, value)
+	end
 
-  def get (name)
-    @values[name.to_sym] ||= Feature.new(name, false)
-  end
+	def get (name)
+		@values[name.to_sym] ||= Feature.new(name, false)
+	end
 
-  def delete (name)
-    @values.delete(name.to_sym)
-  end
+	def delete (name)
+		@values.delete(name.to_sym)
+	end
 
-  def has? (name)
-    @values.key? name.to_sym
-  end
+	def has? (name)
+		@values.key? name.to_sym
+	end
 
-  def to_hash
-    Hash[*@values.map {|(name, element)|
-      [name, element.value]
-    }]
-  end
+	def to_hash
+		Hash[*@values.map {|(name, element)|
+			[name, element.value]
+		}]
+	end
 
-  def to_a
-    @values.map {|(name, element)|
-      element
-    }
-  end
+	def to_a
+		@values.map {|(name, element)|
+			element
+		}
+	end
 
-  def to_s (type=:normal)
-    values = @values.map {|(name, value)|
-      next unless name != :binary && value.enabled?
+	def to_s (type = :normal)
+		values = @values.map {|(name, value)|
+			next unless name != :binary && value.enabled?
 
-      name.to_s
-    }.compact
+			name.to_s
+		}.compact
 
-    case type
-      when :normal;  values.join(' ')
-      when :package; values.join('.')
-    end
-  end
+		case type
+			when :normal;  values.join(' ')
+			when :package; values.join('.')
+		end
+	end
 end
 
 end; end

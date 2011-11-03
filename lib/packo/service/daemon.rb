@@ -23,90 +23,90 @@ require 'packo/os'
 module Packo; class Service
 
 class Daemon
-  def self.pid_file_for (name)
-    "/var/run/#{name}.pid"
-  end
+	def self.pid_file_for (name)
+		"/var/run/#{name}.pid"
+	end
 
-  def self.pid (id)
-    file = nil
+	def self.pid (id)
+		file = nil
 
-    if id.is_a?(String)
-      return unless File.readable?(id)
+		if id.is_a?(String)
+			return unless File.readable?(id)
 
-      file, id = id, File.read(id).to_i
-    end
-  
-    if !OS::Process.from_id(id)
-      return
-    end
+			file, id = id, File.read(id).to_i
+		end
 
-    Daemon.new(id) {|d|
-      d.pid = file
-    }
-  end
+		if !OS::Process.from_id(id)
+			return
+		end
 
-  attr_reader :process, :data
+		Daemon.new(id) {|d|
+			d.pid = file
+		}
+	end
 
-  def initialize (what)
-    @data = OpenStruct.new
+	attr_reader :process, :data
 
-    if what.is_a?(Integer)
-      @process = OS::Process.from_id(what)
-    else
-      @command = what.to_s
-    end
+	def initialize (what)
+		@data = OpenStruct.new
 
-    yield @data, self if block_given?
+		if what.is_a?(Integer)
+			@process = OS::Process.from_id(what)
+		else
+			@command = what.to_s
+		end
 
-    if !@data.pid
-      @data.pid = "/var/run/#{File.basename(@command || @process.command)}.pid"
-    end
-  end
-  
-  def send (name)
-    @process.send(name)
-  end
+		yield @data, self if block_given?
 
-  def start (*args)
-    options = args.last.is_a?(Hash) ? args.pop : {}
-    
-    r, w = IO.pipe
+		if !@data.pid
+			@data.pid = "/var/run/#{File.basename(@command || @process.command)}.pid"
+		end
+	end
+	
+	def send (name)
+		@process.send(name)
+	end
 
-    pid = Process.spawn(@command, *args, {
-      STDERR => w,
-      STDOUT => w
-    })
+	def start (*args)
+		options = args.last.is_a?(Hash) ? args.pop : {}
+		
+		r, w = IO.pipe
 
-    if options[:detach]
-      Process.detach(pid)
-    else
-      Process.wait(pid)
-    end
+		pid = Process.spawn(@command, *args, {
+			STDERR => w,
+			STDOUT => w
+		})
 
-    w.close
+		if options[:detach]
+			Process.detach(pid)
+		else
+			Process.wait(pid)
+		end
 
-    if !options[:detach] && $?.to_i != 0
-      raise RuntimeError.new r.read
-    end
+		w.close
 
-    if options[:detach]
-      File.write(@data.pid || Daemon.pid_file_for(@command || @process.command), pid)
-    else
-      Timeout.timeout(options[:wait] || 5) {
-        while !(pid = File.read(@data.pid).to_i rescue nil)
-          sleep 0.5
-        end
-      } rescue nil
-    end
+		if !options[:detach] && $?.to_i != 0
+			raise RuntimeError.new r.read
+		end
 
-    @process = OS::Process.from_id(pid) if pid
-  end
+		if options[:detach]
+			File.write(@data.pid || Daemon.pid_file_for(@command || @process.command), pid)
+		else
+			Timeout.timeout(options[:wait] || 5) {
+				while !(pid = File.read(@data.pid).to_i rescue nil)
+					sleep 0.5
+				end
+			} rescue nil
+		end
 
-  def stop (options={})
-    Timeout.timeout(options[:timeout] || 10) {
-      @process.kill(options[:force])
-    } rescue false
-  end
+		@process = OS::Process.from_id(pid) if pid
+	end
+
+	def stop (options = {})
+		Timeout.timeout(options[:timeout] || 10) {
+			@process.kill(options[:force])
+		} rescue false
+	end
 end
 
 end; end

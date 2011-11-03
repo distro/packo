@@ -20,9 +20,9 @@
 module Packo; module RBuild; module Behaviors
 
 Default = [
-  Modules::Building::Patch,
-  Modules::Building::Autotools,
-  Modules::Building::Strip
+	Modules::Building::Patch,
+	Modules::Building::Autotools,
+	Modules::Building::Strip
 ]
 
 end; end; end

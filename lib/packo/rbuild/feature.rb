@@ -23,41 +23,41 @@ require 'packo/package/feature'
 module Packo; module RBuild
 
 class Feature < Packo::Package::Feature
-  Callbackable.instance_methods.each {|meth|
-    define_method meth do |*args, &block|
-      package.__send__ meth, *args, &block
-    end
-  }
+	Callbackable.instance_methods.each {|meth|
+		define_method meth do |*args, &block|
+			package.__send__ meth, *args, &block
+		end
+	}
 
-  attr_reader :package, :name, :block, :dependencies
+	attr_reader :package, :name, :block, :dependencies
 
-  def initialize (package, name, enabled=false, &block)
-    super(name, enabled)
+	def initialize (package, name, enabled = false, &block)
+		super(name, enabled)
 
-    @package      = package
-    @dependencies = []
+		@package      = package
+		@dependencies = []
 
-    if Features::Default[self.name.to_sym]
-      Features::Default[self.name.to_sym].each {|feature|
-        self.instance_exec(self, &feature)
-      }
-    end
+		if Features::Default[self.name.to_sym]
+			Features::Default[self.name.to_sym].each {|feature|
+				self.instance_exec(self, &feature)
+			}
+		end
 
-    self.do(&block)
-  end
+		self.do(&block)
+	end
 
-  def do (&block)
-    self.instance_exec(self, &block) if block
-    self
-  end
+	def do (&block)
+		self.instance_exec(self, &block) if block
+		self
+	end
 
-  def needs (expression=nil)
-    expression ? @needs = expression : @needs
-  end
+	def needs (expression = nil)
+		expression ? @needs = expression : @needs
+	end
 
-  def method_missing (id, *args, &block)
-    @package.send id, *args, &block
-  end
+	def method_missing (id, *args, &block)
+		@package.send id, *args, &block
+	end
 end
 
 end; end

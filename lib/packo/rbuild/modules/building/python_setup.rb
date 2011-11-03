@@ -20,57 +20,57 @@
 module Packo; module RBuild; module Modules; module Building
 
 class PythonSetup < Module
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.avoid package.stages.owner_of(:compile)
+		package.use -package.stages.owner_of(:compile)
 
-    package.stages.add :configure, self.method(:configure), after: :fetch
-    package.stages.add :compile,   self.method(:compile),   after: :configure
-    package.stages.add :install,   self.method(:install),   after: :compile
+		package.stages.add :configure, method(:configure), after: :fetch
+		package.stages.add :compile,   method(:compile),   after: :configure
+		package.stages.add :install,   method(:install),   after: :compile
 
-    package.before :initialize do
-      package.dependencies << 'development/utility/python!'
-    end
+		package.before :initialize do
+			package.dependencies << 'development/utility/python!'
+		end
 
-    package.setup = Class.new(Module::Helper) {
-      def initialize (package)
-        super(package)
-      end
+		package.setup = Module::Helper.for(package) {
+			def initialize (package)
+				super(package)
+			end
 
-      def do (*args)
-        package.environment.sandbox {
-          Packo.sh "python#{@version}", 'setup.py', *args
-        }
-      end
+			def do (*args)
+				package.environment.sandbox {
+					Packo.sh "python#{@version}", 'setup.py', *args
+				}
+			end
 
-      def version (ver)
-        @version ||= ver
-      end
-    }.new(package)
-  end
+			def version (ver)
+				@version ||= ver
+			end
+		}
+	end
 
-  def finalize
-    package.stages.delete :configure, self.method(:configure)
-    package.stages.delete :compile,   self.method(:compile)
-    package.stages.delete :install,   self.method(:install)
-  end
+	def finalize
+		package.stages.delete :configure
+		package.stages.delete :compile
+		package.stages.delete :install
+	end
 
-  def configure
-    @configuration = []
+	def configure
+		@configuration = []
 
-    package.callbacks(:configure).do(@configuration)
-  end
+		package.callbacks(:configure).do(@configuration)
+	end
 
-  def compile
-    package.callbacks(:compile).do(@configuration) {
-      package.setup.do :build
-    }
-  end
+	def compile
+		package.callbacks(:compile).do(@configuration) {
+			package.setup.do :build
+		}
+	end
 
-  def install
-    package.callbacks(:install).do(@configuration)
-  end
+	def install
+		package.callbacks(:install).do(@configuration)
+	end
 end
 
 end; end; end; end

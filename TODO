@@ -1,0 +1,3 @@
+- change rbuild syntax to use instance_eval
+- support emerge binary packages
+- add chance to edit the rbuild files before building the package

@@ -25,9 +25,9 @@ class Custom < Module
 
     package.avoid package.stages.owner_of(:compile)
 
-    package.stages.add :configure, self.method(:configure), after: :fetch
-    package.stages.add :compile,   self.method(:compile),   after: :configure
-    package.stages.add :install,   self.method(:install),   after: :compile
+    package.stages.add :configure, method(:configure), after: :fetch
+    package.stages.add :compile,   method(:compile),   after: :configure
+    package.stages.add :install,   method(:install),   after: :compile
 
     package.custom = Class.new(Module::Helper) {
       attr_accessor :configuration
@@ -41,9 +41,9 @@ class Custom < Module
   end
 
   def finalize
-    package.stages.delete :configure, self.method(:configure)
-    package.stages.delete :compile,   self.method(:compile)
-    package.stages.delete :install,   self.method(:install)
+    package.stages.delete :configure
+    package.stages.delete :compile
+    package.stages.delete :install
   end
 
   def configure

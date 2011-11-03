@@ -19,12 +19,8 @@
 
 module Packo; module Models; class Repository
 
-class Virtual
-  include DataMapper::Resource
-
-  belongs_to :repo, 'Repository', key: true
-
-  property :address, Text, required: false
+class Virtual < Repository
+	property :address, Text, required: false
 end
 
 end; end; end

@@ -20,31 +20,31 @@
 module Packo; module Models; class Repository
 
 class Remote
-  class Piece
-    include DataMapper::Resource
-   
-    belongs_to :remote
+	class Piece
+		include DataMapper::Resource
 
-    property :id, Serial
+		belongs_to :remote
 
-    property :type, Text, unique_index: :a
-    property :name, Text, unique_index: :a
+		property :id, Serial
 
-    property :description, Text
-    property :location,    Location
-  end
+		property :type, Text, unique_index: :a
+		property :name, Text, unique_index: :a
 
-  include DataMapper::Resource
-  
-  property :id, Serial
+		property :description, Text
+		property :location,    Location
+	end
 
-  property :name,        String, required: true, unique: true
-  property :description, Text
+	include DataMapper::Resource
+	
+	property :id, Serial
 
-  property :uri,  URI
-  property :path, Text
+	property :name,        String, required: true, unique: true
+	property :description, Text
 
-  has n, :pieces, constraint: :destroy
+	property :uri,  URI
+	property :path, Text
+
+	has n, :pieces, constraint: :destroy
 end
 
 end; end; end

@@ -20,8 +20,8 @@
 module Packo; module RBuild; module Behaviors
 
 Python = [
-  Modules::Building::Patch,
-  Modules::Building::PythonSetup
+	Modules::Building::Patch,
+	Modules::Building::PythonSetup
 ]
 
 end; end; end

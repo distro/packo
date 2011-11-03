@@ -22,13 +22,13 @@ require 'packo/os'
 module Packo; module OS
 
 class CPU
-  if Sysctl.supported?
-    def self.cores
-      sysctl('hw.ncpu')
-    end
-  else
-    fail 'Unsupported platform, contact the developers please.'
-  end
+	if Sysctl.supported?
+		def self.cores
+			sysctl('hw.ncpu')
+		end
+	else
+		fail 'Unsupported platform, contact the developers please.'
+	end
 end
 
 end; end

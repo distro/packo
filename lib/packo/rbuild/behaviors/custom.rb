@@ -20,8 +20,8 @@
 module Packo; module RBuild; module Behaviors
 
 Custom = [
-  Modules::Building::Patch,
-  Modules::Building::Custom
+	Modules::Building::Patch,
+	Modules::Building::Custom
 ]
 
 end; end; end

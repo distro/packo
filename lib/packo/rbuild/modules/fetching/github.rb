@@ -20,12 +20,12 @@
 module Packo; module RBuild; module Modules; module Fetching
 
 Fetcher.register :github do |url, package|
-  whole, user, project, file = url.interpolate(package).match(%r{^(.*?)/(.*?)/(.*?)$}).to_a
+	whole, user, project, file = url.interpolate(package).match(%r{^(.*?)/(.*?)/(.*?)$}).to_a
 
-  CLI.warn 'Github has problems with certificates in the download page.'
-  CLI.warn 'If you are using wget you must add --no-check-certificate to the options.'
+	CLI.warn 'Github has problems with certificates in the download page.'
+	CLI.warn 'If you are using wget you must add --no-check-certificate to the options.'
 
-  ["https://github.com/#{user}/#{project}/tarball/#{file}", "#{project}-#{file}.tar.gz"]
+	["https://github.com/#{user}/#{project}/tarball/#{file}", "#{project}-#{file}.tar.gz"]
 end
 
 end; end; end; end

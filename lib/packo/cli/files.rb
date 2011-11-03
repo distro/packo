@@ -23,132 +23,132 @@ require 'packo/cli/thor'
 module Packo; module CLI
 
 class Files < Thor
-  include Thor::Actions
+	include Thor::Actions
 
-  class_option :help, type: :boolean,
-    desc: 'Show help usage'
+	class_option :help, type: :boolean,
+		desc: 'Show help usage'
 
-  desc 'package PACKAGE', 'Get a file list of a given package'
-  def package (name)
-    if name.end_with?('.pko')
-      require 'packo/rbuild'
+	desc 'package PACKAGE', 'Get a file list of a given package'
+	def package (name)
+		if name.end_with?('.pko')
+			require 'packo/rbuild'
 
-      path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
-      RBuild::Modules::Packager.unpack(File.realpath(name), path)
+			path = "#{System.env[:TMP]}/.__packo_unpacked/#{File.basename(name)}"
+			RBuild::Modules::Packager.unpack(File.realpath(name), path)
 
-      length = "#{path}/dist".length
+			length = "#{path}/dist".length
 
-      Find.find("#{path}/dist") {|file|
-        type = nil
-        path = "/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
-        meta = nil
+			Find.find("#{path}/dist") {|file|
+				type = nil
+				path = "/#{file[length, file.length]}".gsub(%r{/*/}, '/').sub(%r{/$}, '')
+				meta = nil
 
-        if File.directory? file
-          type = :dir
-        elsif File.symlink? file
-          type = :sym
-          meta = File.readlink file
-        elsif File.file? file
-          type = :obj
-        end
+				if File.directory? file
+					type = :dir
+				elsif File.symlink? file
+					type = :sym
+					meta = File.readlink file
+				elsif File.file? file
+					type = :obj
+				end
 
-        case type
-          when :dir; puts "--- #{path if path != '/'}/"
-          when :sym; puts ">>> #{path} -> #{meta}".cyan.bold
-          when :obj; puts ">>> #{path}".bold
-        end
-      }
-    else
-      require 'packo/models'
+				case type
+					when :dir; puts "--- #{path if path != '/'}/"
+					when :sym; puts ">>> #{path} -> #{meta}".cyan.bold
+					when :obj; puts ">>> #{path}".bold
+				end
+			}
+		else
+			require 'packo/models'
 
-      package = Models.search_installed(name).first
-      root    = Path.new(package.destination || '/')
+			package = Models.search_installed(name).first
+			root    = Path.new(package.destination || '/')
 
-      if !package
-        fatal "No package matches #{name}"
-        exit! 10
-      end
+			if !package
+				fatal "No package matches #{name}"
+				exit! 10
+			end
 
-      package.model.contents.each {|content| content.check!
-        case content.type
-          when :dir; puts "--- #{Path.clean(root + content.path)}"
-          when :sym; puts ">>> #{Path.clean(root + content.path)} -> #{content.meta}".cyan.bold
-          when :obj; puts ">>> #{Path.clean(root + content.path)}".bold
-        end
-      }
-    end
-  end
+			package.model.contents.each {|content| content.check!
+				case content.type
+					when :dir; puts "--- #{Path.clean(root + content.path)}"
+					when :sym; puts ">>> #{Path.clean(root + content.path)} -> #{content.meta}".cyan.bold
+					when :obj; puts ">>> #{Path.clean(root + content.path)}".bold
+				end
+			}
+		end
+	end
 
-  desc 'belongs FILE', 'Find out to what package a path belongs'
-  def belongs (file)
-    require 'packo/models'
+	desc 'belongs FILE', 'Find out to what package a path belongs'
+	def belongs (file)
+		require 'packo/models'
 
-    path    = Path.new(file).realpath.to_s
-    path[0] = ''
+		path    = Path.new(file).realpath.to_s
+		path[0] = ''
 
-    if content = Models::InstalledPackage::Content.first(path: path)
-      puts Package.wrap(content.installed_package).to_s
-    else
-      exit 1
-    end
-  end
+		if content = Models::InstalledPackage::Content.first(path: path)
+			puts Package.wrap(content.installed_package).to_s
+		else
+			exit 1
+		end
+	end
 
-  desc 'check [PACKAGE...]', 'Check contents for the given packages'
-  def check (*names)
-    require 'packo/models'
+	desc 'check [PACKAGE...]', 'Check contents for the given packages'
+	def check (*names)
+		require 'packo/models'
 
-    packages = []
+		packages = []
 
-    if names.empty?
-      packages << Models::InstalledPackage.all.map {|pkg|
-        Package.wrap(pkg)
-      }
-    else
-      names.each {|name|
-        packages << Models.search_installed(name)
-      }
-    end
+		if names.empty?
+			packages << Models::InstalledPackage.all.map {|pkg|
+				Package.wrap(pkg)
+			}
+		else
+			names.each {|name|
+				packages << Models.search_installed(name)
+			}
+		end
 
-    packages.flatten.compact.each {|package|
-      print "[#{package.repository.black.bold}] " if package.repository
-      print "#{package.tags}/" unless package.tags.empty?
-      print package.name.bold
-      print "-#{package.version.to_s.red}"
-      print " (#{package.slot.to_s.blue.bold})" if package.slot
-      print " [#{package.features}]" unless package.features.empty?
-      print " {#{package.flavor}}"   unless package.flavor.empty?
-      print "\n"
+		packages.flatten.compact.each {|package|
+			print "[#{package.repository.black.bold}] " if package.repository
+			print "#{package.tags}/" unless package.tags.empty?
+			print package.name.bold
+			print "-#{package.version.to_s.red}"
+			print " (#{package.slot.to_s.blue.bold})" if package.slot
+			print " [#{package.features}]" unless package.features.empty?
+			print " {#{package.flavor}}"   unless package.flavor.empty?
+			print "\n"
 
-      package.model.contents.each {|content|
-        path = Path.clean((package.model.destination || '/') + content.path[1, content.path.length])
+			package.model.contents.each {|content|
+				path = Path.clean((package.model.destination || '/') + content.path[1, content.path.length])
 
-        case content.type
-          when :dir
-            if !(File.directory?(path) rescue false)
-              puts "#{'FAIL ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}".red
-            else
-              puts "#{'OK   ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}".green
-            end
+				case content.type
+					when :dir
+						if !(File.directory?(path) rescue false)
+							puts "#{'FAIL ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}".red
+						else
+							puts "#{'OK   ' if System.env[:NO_COLORS]}--- #{path}#{'/' if path != '/'}".green
+						end
 
-          when :sym
-            if content.meta != (File.readlink(path) rescue nil)
-              puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}".red
-            else
-              puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}".green
-            end
+					when :sym
+						if content.meta != (File.readlink(path) rescue nil)
+							puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}".red
+						else
+							puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path} -> #{content.meta}".green
+						end
 
-          when :obj
-            if content.meta != (Packo.digest(path) rescue nil)
-              puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path}".red
-            else
-              puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path}".green
-            end
-        end
-      }
+					when :obj
+						if content.meta != (Packo.digest(path) rescue nil)
+							puts "#{'FAIL ' if System.env[:NO_COLORS]}>>> #{path}".red
+						else
+							puts "#{'OK   ' if System.env[:NO_COLORS]}>>> #{path}".green
+						end
+				end
+			}
 
-      puts ''
-    }
-  end
+			puts ''
+		}
+	end
 end
 
 end; end

@@ -21,31 +21,44 @@ require 'packo/utils'
 require 'packo/extensions'
 
 module Packo
-  def self.debug (argument, options={})
-    return if !Packo.const_defined?(:System) || (!System.env[:DEBUG] && !options[:force])
+	def self.debug (argument = nil, options = {})
+		if !argument && !block_given?
+			raise ArgumentError, 'wrong number of arguments (0 for 1)'
+		end
 
-    return if System.env[:DEBUG].to_i < (options[:level] || 1) && !options[:force]
+		if block_given?
+			begin
+				return yield
+			rescue Exception => e
+				Packo.debug e
+				return
+			end
+		end
 
-    output = "[#{Time.new}] From: #{caller[0, options[:deep] || 1].join("\n")}\n"
+		return if !Packo.const_defined?(:System) || (!System.env[:DEBUG] && !options[:force])
 
-    if argument.is_a?(Exception)
-      output << "#{argument.class}: #{argument.message}\n"
-      output << argument.backtrace.collect {|stack|
-        stack
-      }.join("\n")
-      output << "\n\n"
-    elsif argument.is_a?(String)
-      output << "#{argument}\n"
-    else
-      output << "#{argument.inspect}\n"
-    end
+		return if System.env[:DEBUG].to_i < (options[:level] || 1) && !options[:force]
 
-    if options[:separator]
-      output << options[:separator]
-    end
+		output = "[#{Time.new}] From: #{caller[0, options[:deep] || 1].join("\n")}\n"
 
-    $stderr.puts output
-  end
+		if argument.is_a?(Exception)
+			output << "#{argument.class}: #{argument.message}\n"
+			output << argument.backtrace.collect {|stack|
+				stack
+			}.join("\n")
+			output << "\n\n"
+		elsif argument.is_a? String
+			output << "#{argument}\n"
+		else
+			output << "#{argument.inspect}\n"
+		end
+
+		if options[:separator]
+			output << options[:separator]
+		end
+
+		$stderr.puts output
+	end
 end
 
 require 'packo/version'

@@ -21,27 +21,23 @@ require 'net/http'
 
 module Packo; module RBuild; module Modules; module Fetching
 
-Fetcher.register :sourceforge, do |url, package|
-  whole, project, path = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a
+Fetcher.register :sourceforge do |url, package|
+	whole, project, path = url.interpolate(package).match(%r{^(.*?)/(.*?)$}).to_a
 
-  body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{project}/files/#{File.dirname(path)}/"))
+	body = Net::HTTP.get(URI.parse("http://sourceforge.net/projects/#{project}/files/#{File.dirname(path)}/"))
 
-  urls = body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).select {|(url)|
-    url.match(%r{((tar\.(lzma|xz|bz2|gz))|tgz|zip|rar)/download$})
-  }.map {|(url)| url}
+	urls = body.scan(%r{href="(.*?#{project}/files/#{path}\..*?/download)"}).select {|(url)|
+		url.match(%r{((tar\.(lzma|xz|bz2|gz))|tgz|zip|rar)/download$})
+	}.map {|(url)| url}
 
-  url = nil
-  %w(xz lzma bz2 gz tgz zip rar).each {|compression|
-    url = urls.find {|url|
-      url.match(%r{\.#{compression}/download$})
-    }
+	url = nil
+	%w(xz lzma bz2 gz tgz zip rar).any? {|compression|
+		url = urls.find {|url|
+			url.match(%r{\.#{compression}/download$})
+		}
+	} or next
 
-    break if url
-  }
-
-  next unless url
-
-  CGI.unescapeHTML(Net::HTTP.get(URI.parse(url)).match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
+	CGI.unescapeHTML(Net::HTTP.get(URI.parse(url)).match(%r{href="(http://downloads.sourceforge.net.*?)"})[1])
 end
 
 end; end; end; end

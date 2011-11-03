@@ -20,55 +20,55 @@
 module Packo; module RBuild; module Modules
 
 class Unpacker < Module
-  @@formats = {}
+	@@formats = {}
 
-  def self.register (type, &block)
-    @@formats[type] = block
-  end
+	def self.register (type, &block)
+		@@formats[type] = block
+	end
 
-  def self.do (path, to=nil)
-    path = path.to_s.strip
+	def self.do (path, to = nil)
+		path = path.to_s.strip
 
-    block = @@formats.find {|regexp, block|
-      path.match(regexp)
-    }.last rescue nil
+		block = @@formats.find {|regexp, block|
+			path.match(regexp)
+		}.last rescue nil
 
-    if block
-      FileUtils.mkpath(to) rescue nil
+		if block
+			FileUtils.mkpath(to) rescue nil
 
-      block.call(path, to)
-    else
-      Packo.debug 'Archive format unsupported'
+			block.call(path, to)
+		else
+			Packo.debug 'Archive format unsupported'
 
-      path
-    end
-  end
+			path
+		end
+	end
 
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.stages.add :unpack, self.method(:unpack), after: :fetch, strict: true
+		package.stages.add :unpack, after: :fetch, strict: true, &method(:unpack)
 
-    before :initialize do |package|
-      package.define_singleton_method :unpack, &Unpacker.method(:do)
-    end
-  end
+		before :initialize do |package|
+			package.define_singleton_method :unpack, &Unpacker.method(:do)
+		end
+	end
 
-  def finalize
-    package.stages.delete :unpack, self.method(:unpack)
-  end
+	def finalize
+		package.stages.delete :unpack
+	end
 
-  def unpack
-    package.callbacks(:unpack).do {
-      Unpacker.do((package.distfiles.is_a?(Hash) ?
-        package.distfiles[:default] :
-        package.distfiles.first
-      ).path, "#{package.directory}/work")
+	def unpack
+		package.callbacks(:unpack).do {
+			Unpacker.do((package.distfiles.is_a?(Hash) ?
+				package.distfiles[:default] :
+				package.distfiles.first
+			).path, "#{package.directory}/work")
 
-      Dir.chdir package.workdir
-      Dir.chdir "#{package.name}-#{package.version}" rescue false
-    }
-  end
+			Dir.chdir package.workdir
+			Dir.chdir "#{package.name}-#{package.version}" rescue false
+		}
+	end
 end
 
 end; end; end

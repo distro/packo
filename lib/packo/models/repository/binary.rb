@@ -21,12 +21,8 @@ require 'packo/models/repository/binary/mirror'
 
 module Packo; module Models; class Repository
 
-class Binary
-  include DataMapper::Resource
-
-  belongs_to :repo, 'Repository', key: true
-
-  has n, :mirrors, constraint: :destroy
+class Binary < Repository
+	has n, :mirrors, constraint: :destroy
 end
 
 end; end; end

@@ -20,15 +20,15 @@
 module Packo; module RBuild; module Modules; module Unpacking
 
 Unpacker.register /\.lzma$/ do |path, to|
-  Packo.sh 'lzma', '-dfk', path
+	Packo.sh 'lzma', '-dfk', path
 
-  path.sub!(/\.lzma$/, '')
+	path.sub!(/\.lzma$/, '')
 
-  if to
-    Do.mv(path, (path = to))
-  end
+	if to
+		Do.mv(path, (path = to))
+	end
 
-  path
+	path
 end
 
 end; end; end; end

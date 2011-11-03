@@ -22,44 +22,44 @@ require 'packo/models'
 module Packo; module CLI; class Database < Thor; module Helpers
 
 class Definition
-  def self.parse (data)
-    Definition.new(*JSON.parse(data))
-  end
+	def self.parse (data)
+		Definition.new(*JSON.parse(data))
+	end
 
-  def self.import
+	def self.import
 
-  def self.open (path)
-    data = File.read(path)
+	def self.open (path)
+		data = File.read(path)
 
-    Definition.parse(LZMA.decompress(data) rescue data)
-  end
+		Definition.parse(LZMA.decompress(data) rescue data)
+	end
 
-  attr_reader :type, :data
+	attr_reader :type, :data
 
-  def initialize (type, *data)
-    @type = type
-    @data = data
-  end
+	def initialize (type, *data)
+		@type = type
+		@data = data
+	end
 
-  def export
+	def export
 
-  end
+	end
 
-  def import
-    query = ''
+	def import
+		query = ''
 
-    query << 'BEGIN;'
+		query << 'BEGIN;'
 
-    query << 'COMMIT;'
+		query << 'COMMIT;'
 
-    DataMapper.repository.adapter.execute(query)
-  end
+		DataMapper.repository.adapter.execute(query)
+	end
 
-  private
+	private
 
-  def export
+	def export
 
-  end
+	end
 end
 
 end; end; end; end
