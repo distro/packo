@@ -284,11 +284,11 @@ class Do
 	end
 
 	def man (*mans)
-		into("/usr/share/man/man#{man[-1]}") {
+		into("/usr/share/man/#{mans.shift if mans.first.is_a?(Symbol)}") {
 			mans.map {|man|
 				man.is_a?(Array) ? [man] : Dir.glob(man)
 			}.flatten(1).each {|(file, name)|
-				path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
+				path = Path.clean("#{root}/#{@relative}/man#{(name || file)[/.(\d+)$/, 1]}/#{File.basename(name || file)}")
 
 				FileUtils.mkpath File.dirname(path)
 				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
@@ -298,7 +298,7 @@ class Do
 	end
 
 	def info (*infos)
-		into("/usr/share/info/#{info[-1]}") {
+		into('/usr/share/info') {
 			infos.map {|info|
 				info.is_a?(Array) ? [info] : Dir.glob(info)
 			}.flatten(1).each {|(file, name)|

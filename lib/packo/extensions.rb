@@ -253,7 +253,7 @@ module FileUtils
 		options = options.dup
 		options[:dereference_root] = true unless options.key?(:dereference_root)
 
-		mkdir_p(dest)
+		mkdir_p(File.dirname(dest))
 		fu_each_src_dest0(src, dest) do |s, d|
 			copy_entry! s, d, options[:preserve], options[:dereference_root], options[:remove_destination]
 		end
