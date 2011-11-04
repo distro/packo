@@ -27,6 +27,13 @@ require 'packo/rbuild/behaviors'
 module Packo; module RBuild
 
 class Package < Packo::Package
+	def self.const_missing (name)
+		RBuild.const_get(name) rescue
+		RBuild::Modules.const_get(name) rescue
+		RBuild::Behaviors.const_get(name) rescue
+		super
+	end
+
 	def self.load (path)
 		directory = File.dirname(path)
 		name      = File.basename(path).sub(/.rbuild$/, '')
@@ -87,7 +94,7 @@ class Package < Packo::Package
 
 	include Callbackable
 
-	attr_reader :parent, :do, :modules, :dependencies, :stages, :filesystem
+	attr_reader :do, :modules, :dependencies, :stages, :filesystem
 
 	def initialize (name = nil, version = nil, slot = nil, revision = nil, &block)
 		super(
@@ -179,12 +186,12 @@ class Package < Packo::Package
 	end
 
 	def parent (path)
-		instance_eval File.read(@parent = path)
+		instance_eval File.read(@parent = path), path, 0
 	end
 
 	def main (path)
 		callbacks(:initialize).do(self) {
-			instance_eval File.read(@main = path)
+			instance_eval File.read(@main = path), path, 0
 
 			self.directory = Path.clean("#{env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}")
 			self.workdir   = "#{directory}/work"
@@ -283,15 +290,11 @@ class Package < Packo::Package
 	end
 
 	def features (&block)
-		block.nil? ? @features : @features.instance_eval(&block)
+		block ? @features.dsl(&block) : @features
 	end
 
 	def flavor (&block)
-		if !block
-			@flavor
-		else
-			@flavor.instance_eval &block
-		end
+		block ? @flavor.dsl(&block) : @flavor
 	end
 
 	def selectors
@@ -316,7 +319,7 @@ class Package < Packo::Package
 
 	def package; self end
 
-	def to_s (type=nil)
+	def to_s (type = nil)
 		return super(type) if super(type)
 
 		case type

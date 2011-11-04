@@ -31,7 +31,7 @@ class Mercurial < Module
 	end
 
 	def self.fetch (location, path)
-		if Mercurial.valid?
+		if Mercurial.valid?(path)
 			Mercurial.update(path)
 
 			return

@@ -40,29 +40,56 @@ class Features < Packo::Package::Features
 		yield self if block_given?
 	end
 
-	def method_missing (id, *args, &block)
-		case id.to_s
-			when /^(.+?)\?$/    then (@values[$1.to_sym] ||  Feature.new(@package, $1, false)).enabled?
-			when /^not_(.+?)!$/ then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).disable!
-			when /^(.+?)!$/     then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).enable!
-			when /^(.+?)$/      then (@values[$1.to_sym] ||= Feature.new(@package, $1, false)).do(&block)
-		end
-	end
-
 	def set (name, &block)
+		define name
 		@values[name.to_sym] = Feature.new(@package, name, &block)
 	end
 
 	def get (name)
+		define name
 		@values[name.to_sym] ||= Feature.new(@package, name, false)
 	end
 
 	def delete (name)
+		undefine name
 		@values.delete(name.to_sym)
 	end
 
-	def needs (expression=nil)
+	def define (name)
+		return if respond_to?(name)
+
+		define_singleton_method name           do get(name) end
+		define_singleton_method "#{name}?"     do get(name).enabled? end
+		define_singleton_method "not_#{name}!" do get(name).disable! end
+		define_singleton_method "#{name}!"     do get(name).enable! end
+	end
+
+	def undefine (name)
+		[name, "#{name}?", "not_#{name}!", "#{name}!"].each {|name|
+			class << self; self; end.undef_method name
+		}
+	end
+
+	def needs (expression = nil)
 		expression ? @needs = expression : @needs
+	end
+
+	def dsl (&block)
+		Class.new(BasicObject) {
+			def initialize (features, &block)
+				@features = features
+
+				instance_eval &block
+			end
+
+			def method_missing (id, *args, &block)
+				return @features.__send__ id, *args, &block if @features.respond_to?(id)
+
+				super unless block
+
+				@features.get(id).do(&block)
+			end
+		}.new(self, &block)
 	end
 end
 
