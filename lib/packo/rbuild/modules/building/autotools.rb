@@ -165,9 +165,9 @@ class Autotools < Module
 		end
 
 		if package.env[:TARGET]
-			package.target = Host.parse(package.env[:TARGET]) 
+			package.target = Host.parse(package.env[:TARGET])
 		else
-			package.target = Host.new(package.environment) 
+			package.target = Host.new(package.environment)
 		end
 
 		package.environment[:CHOST]   = package.host.to_s

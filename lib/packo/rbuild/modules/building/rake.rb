@@ -23,7 +23,7 @@ class Rake < Module
 	def initialize (package)
 		super(package)
 
-		package.avoid package.stages.owner_of(:compile)
+		package.use -package.stages.owner_of(:compile) rescue nil
 
 		package.stages.add :configure, method(:configure), after: :fetch
 		package.stages.add :compile,   method(:compile),   after: :configure

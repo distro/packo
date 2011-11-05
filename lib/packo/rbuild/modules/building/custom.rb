@@ -20,45 +20,45 @@
 module Packo; module RBuild; module Modules; module Building
 
 class Custom < Module
-  def initialize (package)
-    super(package)
+	def initialize (package)
+		super(package)
 
-    package.avoid package.stages.owner_of(:compile)
+		package.use -package.stages.owner_of(:compile) rescue nil
 
-    package.stages.add :configure, method(:configure), after: :fetch
-    package.stages.add :compile,   method(:compile),   after: :configure
-    package.stages.add :install,   method(:install),   after: :compile
+		package.stages.add :configure, method(:configure), after: :fetch
+		package.stages.add :compile,   method(:compile),   after: :configure
+		package.stages.add :install,   method(:install),   after: :compile
 
-    package.custom = Class.new(Module::Helper) {
-      attr_accessor :configuration
+		package.custom = Class.new(Module::Helper) {
+			attr_accessor :configuration
 
-      def initialize (package)
-        super(package)
+			def initialize (package)
+				super(package)
 
-        @configuration = []
-      end
-    }.new(package)
-  end
+				@configuration = []
+			end
+		}.new(package)
+	end
 
-  def finalize
-    package.stages.delete :configure
-    package.stages.delete :compile
-    package.stages.delete :install
-  end
+	def finalize
+		package.stages.delete :configure
+		package.stages.delete :compile
+		package.stages.delete :install
+	end
 
-  def configure
-    @configuration = package.custom.configuration
+	def configure
+		@configuration = package.custom.configuration
 
-    package.callbacks(:configure).do(@configuration)
-  end
+		package.callbacks(:configure).do(@configuration)
+	end
 
-  def compile
-    package.callbacks(:compile).do(@configuration)
-  end
+	def compile
+		package.callbacks(:compile).do(@configuration)
+	end
 
-  def install
-    package.callbacks(:install).do(@configuration)
-  end
+	def install
+		package.callbacks(:install).do(@configuration)
+	end
 end
 
 end; end; end; end

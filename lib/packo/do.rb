@@ -24,6 +24,12 @@ module Packo
 class Do
 	# when called without a path it means it will preserve the actual pwd on exit
 	def self.cd (path = nil)
+		if path
+			path = Dir.glob(path).first if !File.directory?(path)
+
+			raise ArgumentError, "#{path} is not a directory" if !File.directory?(path)
+		end
+
 		if block_given?
 			tmp       = Dir.pwd
 			exception = nil

@@ -23,7 +23,7 @@ class PythonSetup < Module
 	def initialize (package)
 		super(package)
 
-		package.use -package.stages.owner_of(:compile)
+		package.use -package.stages.owner_of(:compile) rescue nil
 
 		package.stages.add :configure, method(:configure), after: :fetch
 		package.stages.add :compile,   method(:compile),   after: :configure
@@ -45,7 +45,7 @@ class PythonSetup < Module
 			end
 
 			def version (ver)
-				@version ||= ver
+				@version = ver
 			end
 		}
 	end

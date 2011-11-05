@@ -64,9 +64,9 @@ class Scons < Module
 
 			@options.each {|name, value|
 				case value
-					when true;  result += "#{name.shellescape}=on "
-					when false; result += "#{name.shellescape}=off "
-					else;       result += "#{name.shellescape}=#{value.shellescape} "
+					when true  then result << "#{name.shellescape}=on "
+					when false then result << "#{name.shellescape}=off "
+					else            result << "#{name.shellescape}=#{value.shellescape} "
 				end
 			}
 
@@ -77,7 +77,7 @@ class Scons < Module
 	def initialize (package)
 		super(package)
 
-		package.avoid package.stages.owner_of(:compile)
+		package.use -package.stages.owner_of(:compile) rescue nil
 
 		package.stages.add :configure, method(:configure), after: :fetch
 		package.stages.add :compile,   method(:compile),   after: :configure

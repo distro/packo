@@ -276,7 +276,7 @@ class Package < Packo::Package
 					mod.class == klass.module
 				}).finalize rescue nil
 			else
-				@modules << klass.new(self)
+				@modules << klass.new(self) if klass.ancestors.member?(Module)
 			end
 		}
 	end
@@ -290,12 +290,12 @@ class Package < Packo::Package
 	def behavior (behavior)
 		if @behavior
 			@behavior.each {|mod|
-				use -mod
+				use -mod if mod.ancestors.member?(Module)
 			}
 		end
 
 		(@behavior = behavior).each {|mod|
-			use mod
+			use mod if mod.ancestors.member?(Module)
 		}
 	end
 
