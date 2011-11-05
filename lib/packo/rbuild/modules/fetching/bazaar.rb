@@ -57,7 +57,7 @@ class Bazaar < Module
 	def initialize (package)
 		super(package)
 
-		package.avoid [Fetcher, Unpacker]
+		package.use -Fetcher, -Unpacker
 
 		package.stages.add :fetch, method(:fetch), after: :beginning
 
