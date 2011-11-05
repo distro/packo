@@ -22,6 +22,18 @@ require 'packo/utils'
 module Packo
 
 class Do
+	def self.mode_to_octet (mode)
+		return mode if mode.is_a?(Integer)
+
+		"0#{ 0.upto(2).map {|n|
+			break 0 unless mode[n].is_a?(String)
+
+			(mode[n].include?(?r) ? 4 : 0) |
+			(mode[n].include?(?w) ? 2 : 0) |
+			(mode[n].include?(?x) ? 1 : 0)
+		}.join }".oct
+	end
+
 	# when called without a path it means it will preserve the actual pwd on exit
 	def self.cd (path = nil)
 		if path
@@ -118,6 +130,18 @@ class Do
 		}
 	end
 
+	def self.chmod (path, value)
+		value = mode_to_octet(value)
+
+		if File.directory?(path)
+			Find.find(path).each {|path|
+				FileUtils.chmod File.directory?(path) ? value | 0111 : value, path
+			}
+		else
+			FileUtils.chmod value, path
+		end
+	end
+
 	def self.clean (*path)
 		path.each {|dir|
 			begin
@@ -182,10 +206,14 @@ class Do
 		@relative = tmp
 	end
 
-	def opts (value)
+	def opts (value, path = nil)
 		tmp, @opts = @opts, value
 
-		yield
+		if path
+			Do.chmod(path, value)
+		else
+			yield value
+		end
 
 		@opts = tmp
 	end
@@ -195,7 +223,7 @@ class Do
 
 	def dir (path)
 		FileUtils.mkpath "#{root}/#{path}", verbose: @verbose
-		FileUtils.chmod @opts || 0755, "#{root}/#{path}", verbose: @verbose
+		FileUtils.chmod Do.mode_to_octet(@opts || %w(rwx rx rx)), "#{root}/#{path}", verbose: @verbose
 	end
 
 	def rm (*files)
@@ -221,7 +249,8 @@ class Do
 			path = Path.clean("#{root}/#{@relative || 'usr'}/#{File.basename(name || file)}")
 
 			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-			FileUtils.chmod @opts || 0644, path, verbose: @verbose
+
+			chmod @opts || %w(rw r r), path
 		}
 	end
 
@@ -233,7 +262,8 @@ class Do
 
 			FileUtils.mkpath File.dirname(path)
 			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-			FileUtils.chmod @opts || 0755, path, verbose: @verbose
+
+			chmod @opts || %w(rwx rx rx), path
 		}
 	end
 
@@ -245,7 +275,8 @@ class Do
 
 			FileUtils.mkpath File.dirname(path)
 			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-			FileUtils.chmod @opts || 0755, path, verbose: @verbose
+
+			chmod @opts || %w(rwx rx rx), path
 		}
 	end
 
@@ -257,7 +288,8 @@ class Do
 
 			FileUtils.mkpath File.dirname(path)
 			FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-			FileUtils.chmod @opts || (file.match(/\.a(\.|$)/) ? 0644 : 0755), path, verbose: @verbose
+
+			chmod @opts || (file.match(/\.a(\.|$)/) ? %w(rw r r) : %w(rwx rx rx)), path
 		}
 	end
 
@@ -270,7 +302,8 @@ class Do
 
 				FileUtils.mkpath File.dirname(path)
 				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+
+				chmod @opts || %w(rw r r), path
 			}
 		}
 	end
@@ -284,7 +317,8 @@ class Do
 
 				FileUtils.mkpath File.dirname(path)
 				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+
+				chmod @opts || %w(rw r r), path
 			}
 		}
 	end
@@ -297,8 +331,9 @@ class Do
 				path = Path.clean("#{root}/#{@relative}/man#{(name || file)[/.(\d+)$/, 1]}/#{File.basename(name || file)}")
 
 				FileUtils.mkpath File.dirname(path)
-				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
-				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+				FileUtils.cp file, path, preserve: true, verbose: @verbose
+
+				chmod @opts || %w(rw r r), path
 			}
 		}
 	end
@@ -311,9 +346,10 @@ class Do
 				path = Path.clean("#{root}/#{@relative}/#{File.basename(name || file)}")
 
 				FileUtils.mkpath File.dirname(path)
-				FileUtils.cp_rf file, path, preserve: true, verbose: @verbose
+				FileUtils.cp file, path, preserve: true, verbose: @verbose
 				Packo.sh 'gzip', '-9', path, silent: !@verbose rescue nil
-				FileUtils.chmod @opts || 0644, path, verbose: @verbose
+
+				chmod @opts || %w(rw r r), path
 			}
 		}
 	end
