@@ -186,7 +186,7 @@ module Models
 		else
 			Packo::Repository::Types.each {|t|
 				if options[:type].nil? || options[:type] == 'all' || options[:type] == t
-					Models::Repository.all(type: t).each {|repository|
+					Models::Repository.from_sym(t).all.each {|repository|
 						packages << repository.search(expression, options)
 					}
 				end

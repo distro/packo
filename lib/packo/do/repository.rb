@@ -84,7 +84,7 @@ class Repository
 
 		path = "#{System.env[:MAIN_PATH]}/repositories/#{type}/#{name}"
 
-		if Models::Repository.first(type: type, name: name)
+		if Models::Repository.from_sym(type).first(name: name)
 			raise Exceptions::AlreadyExists, "#{type}/#{name} already exists, delete it first"
 		end
 

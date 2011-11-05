@@ -38,8 +38,8 @@ class Repository
 	end
 
 	def self.wrap (model)
-		Repository.const_get(model.type.capitalize).new(
-			type: model.type,
+		Repository.const_get(model.type.to_sym.capitalize).new(
+			type: model.type.to_sym,
 			name: model.name,
 
 			location: model.location,

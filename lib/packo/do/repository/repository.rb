@@ -30,10 +30,11 @@ module Repository
 
 		model.save
 
-		case model.type
+		case model.type.to_sym
 			when :binary  then Helpers::Binary.new(model)
 			when :source  then Helpers::Source.new(model)
 			when :virtual then Helpers::Virtual.new(model)
+			else raise ArgumentError, "#{type} unknown"
 		end
 	end
 end

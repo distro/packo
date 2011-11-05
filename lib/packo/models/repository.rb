@@ -31,6 +31,10 @@ class Repository
 		name.split('::').last.downcase.to_sym
 	end
 
+	def self.from_sym (sym)
+		const_get sym.capitalize
+	end
+
 	property :id, Serial
 
 	property :type, Discriminator, required: true

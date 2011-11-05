@@ -20,11 +20,10 @@
 module Packo; class Do; class Repository
 
 class Model
-	def self.add (type, name, location, path, populate=true)
+	def self.add (type, name, location, path, populate = true)
 		require 'packo/models'
 
-		repo = Helpers::Repository.wrap(Models::Repository.create(
-			type: type,
+		repo = Helpers::Repository.wrap(Models::Repository.from_sym(type).create(
 			name: name,
 
 			location: location,
@@ -39,7 +38,7 @@ class Model
 	def self.delete (type, name)
 		require 'packo/models'
 
-		Models::Repository.first(name: name, type: type).destroy
+		Models::Repository.from_sym(type).first(name: name).destroy
 	end
 end
 
