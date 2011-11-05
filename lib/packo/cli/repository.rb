@@ -300,7 +300,8 @@ class Repository < Thor
 
 	desc 'path REPOSITORY', 'Output the path of a given repository'
 	def path (name)
-		repository = Models::Repository.first(Packo::Repository.parse(name).to_hash)
+		repository = Packo::Repository.parse(name)
+		repository = Models::Repository.from_sym(repository.type).first(name: repository.name)
 
 		exit if !repository
 
@@ -309,7 +310,8 @@ class Repository < Thor
 
 	desc 'location REPOSITORY', 'Output the URI of a given package'
 	def location (name)
-		repository = Models::Repository.first(Packo::Repository.parse(name).to_hash)
+		repository = Packo::Repository.parse(name)
+		repository = Models::Repository.from_sym(repository.type).first(name: repository.name)
 
 		exit if !repository
 
