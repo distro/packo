@@ -31,7 +31,7 @@ class Subversion < Module
 	end
 
 	def self.fetch (location, path)
-		if Subversion.valid?
+		if Subversion.valid?(path)
 			Subversion.update(path)
 
 			return true if begin

@@ -188,6 +188,13 @@ class Build
 
 			package.digests = {}
 
+			package.before :fetch do
+				unless using? RBuild::Modules::Fetcher
+					stages.stop!
+					skip
+				end
+			end
+
 			package.after :fetch do |result|
 				stages.stop!
 				skip

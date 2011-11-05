@@ -277,6 +277,12 @@ class Package < Packo::Package
 		}
 	end
 
+	def using? (what)
+		@modules.any? {|mod|
+			mod.class == what
+		}
+	end
+
 	def behavior (behavior)
 		if @behavior
 			@behavior.each {|mod|
