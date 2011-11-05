@@ -56,6 +56,8 @@ class Package < Packo::Package
 				end
 			end
 
+			ver = package.version
+
 			Package.new {
 				self.path = path
 
@@ -77,6 +79,7 @@ class Package < Packo::Package
 
 				self.digests = files
 
+				version ver
 				main path
 			}
 		else
@@ -191,6 +194,7 @@ class Package < Packo::Package
 
 	def main (path)
 		callbacks(:initialize).do(self) {
+
 			instance_eval File.read(@main = path), path, 0
 
 			self.directory = Path.clean("#{env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}")
