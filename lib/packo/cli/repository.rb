@@ -283,11 +283,11 @@ class Repository < Thor
 		if Packo::Repository::Types.member?(type.to_sym)
 			CLI.info "Installed #{type} repositories:"
 
-			repositories = Models::Repository.all(type: type)
+			repositories = Models::Repository.from_sym(type).all
 			length       = repositories.map {|repository| "#{repository.type}/#{repository.name}".length}.max
 
 			repositories.each {|repository|
-				puts "  #{repository.type}/#{repository.name}#{' ' * (4 + length - "#{repository.type}/#{repository.name}".length)}#{repository.location} (#{repository.path})"
+				puts "  #{repository.type.to_sym}/#{repository.name}#{' ' * (4 + length - "#{repository.type}/#{repository.name}".length)}#{repository.location} (#{repository.path})"
 			}
 
 			puts ''
