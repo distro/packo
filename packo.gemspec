@@ -18,7 +18,7 @@ Gem::Specification.new {|s|
 
 	s.add_dependency 'versionub', '>= 0.0.6'
 	s.add_dependency 'fffs', '>= 0.0.12'
-	s.add_dependency 'memoized'
+	s.add_dependency 'call-me'
 	s.add_dependency 'boolean-expression'
 	s.add_dependency 'refining'
 

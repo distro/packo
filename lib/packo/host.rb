@@ -185,15 +185,11 @@ end
 end
 
 class String
-	alias __packo_eql ==
-
-	def == (value)
-		(value.is_a?(Packo::Host) || value.is_a?(Packo::Host::Part)) ? value == self : __packo_eql(value)
+	refine_method :==, prefix: '__packo' do |value|
+		(value.is_a?(Packo::Host) || value.is_a?(Packo::Host::Part)) ? value == self : __send__('__packo_==', value)
 	end
 
-	alias __packo_equal ===
-
-	def === (value)
-		(value.is_a?(Packo::Host) || value.is_a?(Packo::Host::Part)) ? value === self : __packo_equal(value)
+	refine_method :===, prefix: '__packo' do |value|
+		(value.is_a?(Packo::Host) || value.is_a?(Packo::Host::Part)) ? value === self : __send__('__packo_===', value)
 	end
 end
