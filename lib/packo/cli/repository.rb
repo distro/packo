@@ -248,7 +248,7 @@ class Repository < Thor
 
 								print "#{' ' * (4 + length - element.name.length + (System.env[:NO_COLORS] && !element.enabled ? 1 : 0))}#{element.description || '...'}"
 
-								print "\n                   "
+								print "\n                 "
 							}
 
 							print "\r" if package.model.features.length > 0

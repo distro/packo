@@ -117,20 +117,24 @@ class InstalledPackage
 	end
 
 	def self.find_by_expression (expression)
-		if DataMapper.repository.adapter.respond_to? :select
-			joins, names, expression = _expression_to_sql(expression)
+		if repository.adapter.respond_to? :select
+			joins, where, names = _expression_to_sql(expression)
 
-			(repository.adapter.select(%{
+			return if names.empty?
+
+			ids = repository.adapter.select(%{
 				SELECT DISTINCT packo_models_installed_packages.id
 
 				FROM packo_models_installed_packages
 
 				#{joins}
 
-				WHERE #{expression}
-			}, *names)).map {|id|
-				InstalledPackage.get(id)
-			}
+				WHERE #{where}
+			}, *names)
+
+			return if ids.empty?
+
+			InstallledPackage.all(id: ids)
 		else
 			expression = Packo::Boolean::Expression.parse(expression)
 
@@ -140,52 +144,31 @@ class InstalledPackage
 		end
 	end
 
-	private
+private
+	def self._expression_to_sql (expression)
+		expression = Boolean::Expression.parse(expression.downcase)
 
-	def self._expression_to_sql (value)
-		value.downcase!
-		value.gsub!(/(\s+and\s+|\s*&&\s*)/i, ' && ')
-		value.gsub!(/(\s+or\s+|\s*\|\|\s*)/i, ' || ')
-		value.gsub!(/(\s+not\s+|\s*!\s*)/i, ' !')
-		value.gsub!(/\(\s*!/, '(!')
+		joins = String.new
+		where = expression.to_s
+		names = expression.names
 
-		joins      = String.new
-		names      = []
-		expression = value.clone
-
-		expression.scan(/(("(([^\\"]|\\.)*)")|([^\s&!|()]+))/) {|match|
-			names.push((match[2] || match[4]).downcase)
-		}
-
-		names.compact!
-		names.uniq!
-
-		names.each_index {|index|
+		names.each_with_index {|name, index|
 			joins << %{
 				LEFT JOIN (
-						SELECT _used_tag_#{index}.installed_package_id AS package_id
+					SELECT _used_tag_#{index}.installed_package_id AS package_id
 
-						FROM packo_models_installed_package_tags AS _used_tag_#{index}
+					FROM packo_models_package_tags AS _used_tag_#{index}
 
-						INNER JOIN packo_models_tags AS _tag_#{index}
-								ON _used_tag_#{index}.tag_id = _tag_#{index}.id AND _tag_#{index}.name = ?
+					INNER JOIN packo_models_tags AS _tag_#{index}
+						ON _used_tag_#{index}.tag_id = _tag_#{index}.id AND _tag_#{index}.name = ?
 				) AS _tag_check_#{index}
-						ON packo_models_installed_packages.id = _tag_check_#{index}.package_id
+					ON packo_models_installed_packages.id = _tag_check_#{index}.package_id
 			}
 
-			if (replace = names[index]).match(/[\s&!|]/)
-				replace = %{"#{replace}"}
-			end
-
-			expression.gsub!(/([\s()]|\G)!\s*#{Regexp.escape(replace)}([\s()]|$)/, "\\1 (_tag_check_#{index}.package_id IS NULL) \\2")
-			expression.gsub!(/([\s()]|\G)#{Regexp.escape(replace)}([\s()]|$)/,     "\\1 (_tag_check_#{index}.package_id IS NOT NULL) \\2")
+			where.gsub!(name, "(_tag_check_#{index}.package_id IS NOT NULL)")
 		}
 
-		expression.gsub!(/([\G\s()])&&([\s()\A])/,   '\1 AND \2')
-		expression.gsub!(/([\G\s()])\|\|([\s()\A])/, '\1 OR  \2')
-		expression.gsub!(/([\G\s()])!([\s()\A])/,    '\1 NOT \2')
-
-		return joins, names, expression
+		return joins, where, names
 	end
 end
 
