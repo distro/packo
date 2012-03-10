@@ -63,8 +63,6 @@ commands.keys.sort {|a, b|
 	exit Kernel.system(*(through + ARGV))
 }
 
-require 'rubygems' unless defined?(Gem)
-
 require 'packo/cli/repository'
 
 commands.each {|command, description|
