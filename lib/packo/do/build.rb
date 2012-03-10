@@ -263,7 +263,7 @@ class Build
 			}.last
 		end
 
-		RBuild::Package.load(package.is_a?(String) ? package : "#{package.repository.path}/#{package.model.path}")
+		RBuild::Package.load(package.is_a?(String) ? package : "#{package.repository.path}/#{package.model.path}/#{package.name}-#{package.version}.rbuild")
 	end
 end
 

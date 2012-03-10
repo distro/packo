@@ -19,6 +19,7 @@
 #++
 
 require 'packo/cli/thor'
+
 require 'packo/models'
 require 'packo/do/repository'
 

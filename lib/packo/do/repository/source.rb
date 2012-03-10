@@ -58,7 +58,7 @@ class Source < Packo::Repository::Source
 			}
 
 			pkg.update(
-				path: File.dirname(package.path)
+				path: File.dirname(package.path)[(path.length + 1) .. -1]
 			)
 
 			package.features.each {|f|

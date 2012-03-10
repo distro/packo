@@ -194,7 +194,6 @@ class Package < Packo::Package
 
 	def main (path)
 		callbacks(:initialize).do(self) {
-
 			instance_eval File.read(@main = path), path, 0
 
 			self.directory = Path.clean("#{env[:TMP]}/#{tags.to_s(true)}/#{name}/#{slot}/#{version}")

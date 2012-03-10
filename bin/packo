@@ -38,6 +38,7 @@ commands = {
 }
 
 trusted = [:base, :select, :db, :profile, :virtual]
+fake    = [:build]
 
 commands.keys.sort {|a, b|
 	b.length <=> a.length
@@ -67,9 +68,11 @@ commands.keys.sort {|a, b|
 		ARGV.map! {|arg|
 			arg.shellescape
 		}
-	end 
+	end
 	
-	through << 'fakeroot' if fakeroot
+	if fake.include?(command.length > 1 ? cmmand : command.first) && fakeroot
+		through << 'fakeroot'
+	end
 	
 	through << "packo-#{command.join('-')}"
 

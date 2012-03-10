@@ -59,7 +59,7 @@ class Build < Thor
 				CLI.fatal e.message
 
 				exit 2
-			rescue Boolean::Expression::EvaluationError => e
+			rescue SyntaxError => e
 				CLI.fatal e.message
 
 				exit 3

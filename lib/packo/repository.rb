@@ -94,7 +94,7 @@ class Repository
 	end
 
 	def to_s
-		"#{self.type}/#{self.name}"
+		"#{self.type[/(::)?([^:]+)$/, 2].downcase}/#{self.name}"
 	end
 end
 
