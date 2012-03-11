@@ -96,7 +96,7 @@ class Features
 				else                            ;  1
 				end
 			}.map {|feature|
-				(feature.enabled? ? '' : '-') + feature.name.to_s
+				(feature.enabled? ? '' : '-') + feature.name.to_s + (feature.value ? "=#{feature.value}" : '')
 			}.join(' ')
 		end
 	end

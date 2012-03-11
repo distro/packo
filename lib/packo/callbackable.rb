@@ -43,15 +43,15 @@ module Callbackable
 	end
 
 	def before (name, data = {}, &block)
-		register(:before, name, block, { binding: self }.merge(data))
+		register(:before, name, block, data)
 	end
 
 	def after (name, data = {}, &block)
-		register(:after, name, block, { binding: self }.merge(data))
+		register(:after, name, block, data)
 	end
 	
 	def on (name, data = {}, &block)
-		register(:on, name, block, { binding: self }.merge(data))
+		register(:on, name, block, data)
 	end; alias during on
 
 	def skip (*args)
@@ -69,14 +69,13 @@ class Callbacks
 	Chains = [:before, :after]
 
 	class Callback
+		attr_reader   :name, :priority, :position
 		attr_accessor :binding
-
-		attr_reader :name, :priority, :position
 
 		def initialize (callback, data)
 			@callback = callback
 			@priority = data[:priority] || 0
-			@binding  = data[:binding]  || binding
+			@binding  = data[:binding]
 			@position = data[:position] || 0
 			@name     = data[:name]
 		end
