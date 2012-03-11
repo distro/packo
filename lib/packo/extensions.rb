@@ -187,7 +187,7 @@ class IO
 	def read_all_nonblock
 		result = ''
 
-		while (tmp = self.read_nonblock(4096) rescue nil)
+		while (tmp = read_nonblock(4096) rescue nil)
 			result << tmp
 		end
 

@@ -31,14 +31,14 @@ class Source < Repository
 	end
 
 	def location
-		Location[YAML.parse_file("#{self.path}/repository.yml").transform['location']]
+		Location[YAML.parse_file("#{path}/repository.yml").transform['location']]
 	end
 
-	def each_package (what = [self.path], &block)
+	def each_package (what = [path], &block)
 		what.select {|what| File.directory? what}.each {|what|
 			if File.file? "#{what}/#{File.basename(what)}.rbuild"
 				Dir.glob("#{what}/#{File.basename(what)}-*.rbuild").each {|version|
-					CLI.info "Parsing #{version.sub("#{self.path}/", '')}" if System.env[:VERBOSE]
+					CLI.info "Parsing #{version.sub("#{path}/", '')}" if System.env[:VERBOSE]
 
 					begin
 						package = RBuild::Package.load(version)

@@ -21,7 +21,7 @@ module Packo
 
 class Transform
 	def self.open (path)
-		transform = self.new
+		transform = new
 
 		if (tmp = File.read(path, encoding: 'utf-8').split(/^__END__$/, 2)).length > 1
 			transform.filesystem.parse(tmp.last.lstrip)

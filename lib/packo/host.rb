@@ -138,11 +138,11 @@ class Host
 		@kernel = Kernel.new(data[:KERNEL]) rescue Host.parse(RUBY_PLATFORM).kernel
 		@misc   = Misc.new(data[:MISC])
 
-		if !self.misc && data[:LIBC] == 'glibc' && (self.kernel == 'linux')
+		if !misc && data[:LIBC] == 'glibc' && (kernel == 'linux')
 			self.misc = 'gnu'
 		end
 
-		if self.vendor == 'unknown' && ['x86_64', 'i386', 'i486', 'i586', 'i686'].member?(self.arch)
+		if vendor == 'unknown' && ['x86_64', 'i386', 'i486', 'i586', 'i686'].member?(arch)
 			self.vendor = 'pc'
 		end
 	end

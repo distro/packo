@@ -48,11 +48,11 @@ class Virtual < Repository
 				data = tmp.first
 			end
 
-			self.instance_eval(data) if data
+			instance_eval(data) if data
 		end
 
 		if block
-			self.instance_eval(&block)
+			instance_eval(&block)
 		end
 
 		self

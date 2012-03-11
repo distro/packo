@@ -22,7 +22,7 @@ module Packo; module RBuild; module Modules
 class Packager < Module
 	class Manifest
 		def self.open (path)
-			self.parse(File.read(path))
+			parse(File.read(path))
 		end
 
 		attr_reader :package
@@ -42,7 +42,7 @@ class Packager < Module
 		def initialize (type, &block)
 			@type = type
 
-			self.instance_eval(&block)
+			instance_eval(&block)
 		end
 
 		def pack (*args, &block)

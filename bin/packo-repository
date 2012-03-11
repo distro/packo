@@ -25,6 +25,7 @@ commands = {
 }
 
 trusted = []
+fake    = []
 
 commands.keys.sort {|a, b|
 	a.length <=> b.length
@@ -33,18 +34,25 @@ commands.keys.sort {|a, b|
 
 	ARGV.shift(command.length)
 
-	sandbox  = false
-	fakeroot = false
+	sandbox    = false
+	fakeroot   = false
+	executable = false
+
 
 	ENV['PATH'].split(':').each {|folder|
 		sandbox  ||= File.executable?("#{folder}/sandbox")
 		fakeroot ||= File.executable?("#{folder}/fakeroot")
 
-		break if sandbox && fakeroot
+		if !executable && File.executable?("#{folder}/packo-repository-#{command.join '-'}")
+			executable = "#{folder}/packo-repository-#{command.join '-'}"
+		end
+
+		break if sandbox && fakeroot && executable
 	}
 
-	warn "sandbox isn't installed"  if !sandbox
-	warn "fakeroot isn't installed" if !fakeroot
+	warn 'sandbox is not installed'  unless sandbox
+	warn 'fakeroot is not installed' unless fakeroot
+	fail 'no executable found'       unless executable
 
 	through = []
 
@@ -56,9 +64,11 @@ commands.keys.sort {|a, b|
 		}
 	end
 
-	through << 'fakeroot' if fakeroot
+	if fake.include?(command.length > 1 ? cmmand : command.first) && fakeroot
+		through << 'fakeroot'
+	end
 
-	through << "packo-repository-#{command.join('-')}"
+	through << executable
 
 	exit Kernel.system(*(through + ARGV))
 }

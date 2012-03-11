@@ -47,18 +47,24 @@ commands.keys.sort {|a, b|
 
 	ARGV.shift(command.length)
 
-	sandbox  = false
-	fakeroot = false
+	sandbox    = false
+	fakeroot   = false
+	executable = false
 
 	ENV['PATH'].split(':').each {|folder|
 		sandbox  ||= File.executable?("#{folder}/sandbox")
 		fakeroot ||= File.executable?("#{folder}/fakeroot")
 
-		break if sandbox && fakeroot
+		if !executable && File.executable?("#{folder}/packo-#{command.join '-'}")
+			executable = "#{folder}/packo-#{command.join '-'}"
+		end
+
+		break if sandbox && fakeroot && executable
 	}
 	
-	warn "sandbox isn't installed"  if !sandbox
-	warn "fakeroot isn't installed" if !fakeroot
+	warn 'sandbox is not installed'  unless sandbox
+	warn 'fakeroot is not installed' unless fakeroot
+	fail 'no executable found'       unless executable
 
 	through = []
 
@@ -74,7 +80,7 @@ commands.keys.sort {|a, b|
 		through << 'fakeroot'
 	end
 	
-	through << "packo-#{command.join('-')}"
+	through << executable
 
 	exit Kernel.system(*(through + ARGV))
 }

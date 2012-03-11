@@ -50,7 +50,7 @@ class Dependency < Package
 
 		parsed = Packo::Package.parse(text, only_parse: true)
 
-		self.new(parsed.to_hash, validity, type)
+		new(parsed.to_hash, validity, type)
 	end
 
 	attr_reader :type, :validity
@@ -88,7 +88,7 @@ class Dependency < Package
 	def to_s (type=:normal)
 		case type
 			when :short
-				"#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"%#{slot}" if slot}##{self.type}"
+				"#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"%#{slot}" if slot}##{type}"
 
 			else
 				features = features.to_a.sort {|a, b|
@@ -104,7 +104,7 @@ class Dependency < Package
 					f.name.to_s
 				}.sort
 
-				"#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"%#{slot}" if slot}##{self.type}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
+				"#{validity}#{tags}/#{name}#{"-#{version}" if version}#{"%#{slot}" if slot}##{type}#{"[#{features}]" if !features.empty?}#{"{#{flavor}}" if !flavor.empty?}"
 		end
 	end
 end

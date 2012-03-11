@@ -209,7 +209,7 @@ class Environment < Hash
 	end
 
 	def apply! (noenv = false)
-		self.clear
+		clear
 
 		@profiles.each {|profile|
 			profile.apply!(self, @package)
@@ -232,7 +232,7 @@ class Environment < Hash
 			}
 		end
 
-		self.each {|key, value|
+		each {|key, value|
 			if key.to_s.end_with?('FLAGS')
 				self[key] = Flags.parse(value.to_s)
 			elsif key.to_s.end_with?('PATH')
@@ -246,7 +246,7 @@ class Environment < Hash
 	end
 
 	def []= (name, value)
-		self.instance_exec(value, &Callbacks[name.to_sym]) if Callbacks[name.to_sym]
+		instance_exec value, &Callbacks[name.to_sym] if Callbacks[name.to_sym]
 
 		if name.to_s.end_with?('FLAGS')
 			value = Flags.parse(value.to_s)
@@ -258,7 +258,7 @@ class Environment < Hash
 	end
 
 	def sandbox (changes = {}, &block)
-		Environment.sandbox(self.merge({
+		Environment.sandbox(merge({
 			ARCH: Host.new(self).arch
 		}.merge(changes)), &block)
 	end

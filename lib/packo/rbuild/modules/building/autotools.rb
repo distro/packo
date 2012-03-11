@@ -100,7 +100,7 @@ class Autotools < Module
 
 		def execute
 			@package.env.sandbox {
-				Packo.sh "#{self.path} #{self}"
+				Packo.sh "#{path} #{self}"
 			}
 		end
 
@@ -197,9 +197,9 @@ class Autotools < Module
 			end
 
 			def autogen
-				self.autoreconf '-i'
-				self.autoheader
-				self.automake
+				autoreconf '-i'
+				autoheader
+				automake
 			end
 
 			def autoreconf (*args)
@@ -262,7 +262,7 @@ class Autotools < Module
 				package.environment.sandbox(DESTDIR: path || package.distdir) {
 					puts ENV['DESTDIR']
 
-					self.make "DESTDIR=#{path || package.distdir}", 'install', *args
+					make "DESTDIR=#{path || package.distdir}", 'install', *args
 				}
 			end
 

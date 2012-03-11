@@ -39,15 +39,15 @@ class Dependencies < Array
 	def push (dependency)
 		super(Dependency.parse(dependency))
 
-		self.compact!
-		self.uniq!
+		compact!
+		uniq!
 		self
 	end
 
 	alias << push
 
 	def set (&block)
-		self.instance_eval &block
+		instance_eval &block
 	end
 
 	def depends (text)

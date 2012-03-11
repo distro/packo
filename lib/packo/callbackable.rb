@@ -121,7 +121,7 @@ class Callbacks
 	end
 
 	def do (*args)
-		self.sort!
+		sort!
 
 		catch(:halt) do
 			@callbacks[:before].each {|c|

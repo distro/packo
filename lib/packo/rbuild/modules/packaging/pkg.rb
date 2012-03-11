@@ -64,7 +64,7 @@ Packager.register('pkg') {
 
 			}
 
-			self.new(Package.new(data))
+			new Package.new(data)
 		end
 
 		def to_s (options={})

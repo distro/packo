@@ -59,11 +59,11 @@ class Binary < Repository
 	end
 
 	def mirrors (data = nil)
-		YAML.parse(data || File.read(self.path))['mirrors'].transform
+		YAML.parse(data || File.read(path))['mirrors'].transform
 	end
 
 	def each_package (data = nil)
-		YAML.parse(data || File.read(self.path)).transform['packages'].each {|name, data|
+		YAML.parse(data || File.read(path)).transform['packages'].each {|name, data|
 			package = Packo::Package.parse(name)
 
 			CLI.info "Parsing #{package}" if System.env[:VERBOSE]

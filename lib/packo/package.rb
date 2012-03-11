@@ -118,7 +118,7 @@ class Package
 		@export = []
 
 		data.each {|name, value|
-			self.send "#{name}=", value
+			__send__ "#{name}=", value
 		}
 
 		self.tags = [] unless self.tags
@@ -142,20 +142,20 @@ class Package
 			matches = element.match(/^([+-])?(.+)$/)
 
 			(matches[1] == '-') ?
-				self.flavor.send("not_#{matches[2]}!") :
-				self.flavor.send("#{matches[2]}!")
+				flavor.send("not_#{matches[2]}!") :
+				flavor.send("#{matches[2]}!")
 		}
 
 		"#{env[:FEATURES]} #{env[:USE]}".split(/\s+/).each {|feature|
 			feature = Feature.parse(feature)
 
-			self.features {
-				next if !self.has?(feature.name)
+			features {
+				next if !has?(feature.name)
 
 				if feature.enabled?
-					self.get(feature.name).enable!
+					get(feature.name).enable!
 				else
-					self.get(feature.name).disable!
+					get(feature.name).disable!
 				end
 			}
 		}
@@ -227,14 +227,14 @@ class Package
 	alias eql? ===
 
 	def hash
-		"#{self.tags.hashed if self.tags}/#{self.name}-#{self.version}%#{self.slot}".hash
+		"#{tags.hashed if tags}/#{name}-#{version}%#{slot}".hash
 	end
 
 	def to_hash
 		result = {}
 
 		[:tags, :name, :version, :slot, :revision, :repository, :flavor, :features].each {|name|
-			if tmp = self.send(name)
+			if tmp = __send__(name)
 				result[name] = tmp
 			end
 		}
@@ -244,7 +244,7 @@ class Package
 
 	def to_s (type=:whole)
 		case type
-			when :whole; "#{self.to_s(:name)}#{"-#{version}" if version}#{"%#{slot}" if slot}"
+			when :whole; "#{to_s(:name)}#{"-#{version}" if version}#{"%#{slot}" if slot}"
 			when :name;  "#{"#{tags}/" unless tags.empty?}#{name}"
 		end
 	end

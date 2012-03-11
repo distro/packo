@@ -30,7 +30,7 @@ class Build
 	end
 
 	def self.build (package, options={}, &block)
-		package           = self.package(package, options)
+		package           = package(package, options)
 		package.extension = options[:extension] || '.pko'
 
 		output = nil
@@ -177,14 +177,14 @@ class Build
 	end
 
 	def self.clean (package, options={})
-		package = self.package(package, options)
+		package = package(package, options)
 
 		package.clean!
 	end
 
 	def self.digest (file, options={})
 		Do.cd(File.dirname(file)) {
-			package = self.package(file, options)
+			package = package(file, options)
 
 			package.digests = {}
 
@@ -231,7 +231,7 @@ class Build
 	end
 
 	def self.manifest (package, options={})
-		package = self.package(package, options)
+		package = package(package, options)
 
 		RBuild::Package::Manifest.new(package).to_s
 	end

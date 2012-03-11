@@ -82,11 +82,11 @@ class Location < OpenStruct
 	end
 
 	def [] (name)
-		self.__send__(name)
+		__send__(name)
 	end
 
 	def []= (name, value)
-		self.__send__ "#{name}=", value
+		__send__ "#{name}=", value
 	end
 
 	def to_s
@@ -94,7 +94,7 @@ class Location < OpenStruct
 
 		result << "#{@type}; " if @type
 
-		result << self.to_hash.map {|(name, value)|
+		result << to_hash.map {|(name, value)|
 			"#{name} = #{value.to_s.gsub(';', '\;')}"
 		}.join('; ')
 

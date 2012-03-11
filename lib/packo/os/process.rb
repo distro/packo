@@ -44,7 +44,7 @@ class Process
 		end
 
 		def self.from_name (name)
-			self.all.select {|process|
+			all.select {|process|
 				process.name.match(name)
 			}
 		end

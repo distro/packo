@@ -37,7 +37,7 @@ class Tags < Array
 	end
 
 	def == (tags)
-		self.to_a.sort == Tags.parse(tags).to_a.sort
+		to_a.sort == Tags.parse(tags).to_a.sort
 	end
 
 	def hashed

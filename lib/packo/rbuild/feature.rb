@@ -29,17 +29,17 @@ class Feature < Packo::Package::Feature
 		end
 	}
 
-	attr_reader :package, :name, :block, :dependencies
+	attr_reader :package, :block, :dependencies
 
-	def initialize (package, name, enabled = false, &block)
-		super(name, enabled)
+	def initialize (package, name, value = false, &block)
+		super(name, value)
 
 		@package      = package
 		@dependencies = []
 
-		if Features::Default[self.name.to_sym]
-			Features::Default[self.name.to_sym].each {|feature|
-				self.instance_exec(self, &feature)
+		if Features::Default[to_sym]
+			Features::Default[to_sym].each {|feature|
+				instance_exec self, &feature
 			}
 		end
 
@@ -47,7 +47,8 @@ class Feature < Packo::Package::Feature
 	end
 
 	def do (&block)
-		self.instance_exec(self, &block) if block
+		instance_exec(value, &block) if block
+
 		self
 	end
 

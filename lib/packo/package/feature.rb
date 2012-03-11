@@ -21,14 +21,18 @@ module Packo; class Package
 
 class Feature
 	def self.parse (text)
-		Feature.new(text.match(/^[\+\-]?(.*)$/)[1], !text.start_with?('-'))
+		whole, name, value = text.match(/^[\+\-]?(.*)(?:=(.*?))?$/).to_a
+
+		Feature.new(name, value ? value : !text.start_with?('-'))
 	end
 
 	attr_reader :name
+	attr_accessor :value
 
-	def initialize (name, enabled = false, description = nil)
+	def initialize (name, value = false, description = nil)
 		@name        = name.to_sym
-		@enabled     = !!enabled
+		@value       = value if value.is_a? String
+		@enabled     = !!value
 		@description = description
 	end
 
@@ -47,8 +51,12 @@ class Feature
 		value ? @description = value : @description
 	end
 
+	def to_sym
+		@name
+	end
+
 	def to_s
-		name.to_s
+		to_sym.to_s
 	end
 end
 

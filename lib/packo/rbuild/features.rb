@@ -42,11 +42,13 @@ class Features < Packo::Package::Features
 
 	def set (name, &block)
 		define name
+
 		@values[name.to_sym] = Feature.new(@package, name, &block)
 	end
 
 	def get (name)
 		define name
+
 		@values[name.to_sym] ||= Feature.new(@package, name, false)
 	end
 
@@ -66,7 +68,7 @@ class Features < Packo::Package::Features
 
 	def undefine (name)
 		[name, "#{name}?", "not_#{name}!", "#{name}!"].each {|name|
-			class << self; self; end.undef_method name
+			singleton_class.undef_method name
 		}
 	end
 

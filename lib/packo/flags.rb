@@ -47,7 +47,7 @@ class Flags < Array
 	end
 
 	def replace (from, to)
-		tmp, _ = self.dup, self.clear
+		tmp, _ = dup, clear
 
 		push(*tmp.map {|value|
 			value.match(from) ? to : value

@@ -74,7 +74,7 @@ class Administration < Module
 			end
 
 			def do (&block)
-				self.instance_exec(self, &block)
+				instance_exec(self, &block)
 			end
 
 			def groupadd (name, options={})

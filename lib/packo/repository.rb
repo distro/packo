@@ -87,14 +87,16 @@ class Repository
 		result = {}
 
 		[:type, :name, :location, :path].each {|name|
-			result[name] = self.send(name) unless self.send(name).nil?
+			if value = __send__(name)
+				result[name] = value
+			end
 		}
 
-		return result
+		result
 	end
 
 	def to_s
-		"#{self.type[/(::)?([^:]+)$/, 2].downcase}/#{self.name}"
+		"#{type[/(::)?([^:]+)$/, 2].downcase}/#{name}"
 	end
 end
 
