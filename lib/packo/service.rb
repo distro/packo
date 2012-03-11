@@ -110,7 +110,7 @@ class Service
 
 		@configuration ||= options[:configuration] || {}
 
-		instance_exec(self, &block) if block
+		instance_eval &block if block
 
 		self
 	end

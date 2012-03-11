@@ -39,7 +39,7 @@ class Feature < Packo::Package::Feature
 
 		if Features::Default[to_sym]
 			Features::Default[to_sym].each {|feature|
-				instance_exec self, &feature
+				instance_eval &feature
 			}
 		end
 
@@ -47,7 +47,7 @@ class Feature < Packo::Package::Feature
 	end
 
 	def do (&block)
-		instance_exec(value, &block) if block
+		instance_eval &block if block
 
 		self
 	end

@@ -84,20 +84,20 @@ class Features
 		}
 	end
 
-	def to_s (type=:normal)
+	def to_s (type = :normal)
 		case type
-			when :package
-				@values.select {|name, feature| feature.enabled?}.map {|item| item[0]}.join('-')
+		when :package
+			@values.select { |_, f| f.enabled? }.map { |i, _| "#{i}#{"=#{i.value}" if i.value}" }.join('-')
 
-			when :normal
-				to_a.sort {|a, b|
-					if a.enabled? && b.enabled?     ;  0
-					elsif a.enabled? && !b.enabled? ; -1
-					else                            ;  1
-					end
-				}.map {|feature|
-					(feature.enabled? ? '' : '-') + feature.name.to_s
-				}.join(' ')
+		when :normal
+			to_a.sort {|a, b|
+				if a.enabled? && b.enabled?     ;  0
+				elsif a.enabled? && !b.enabled? ; -1
+				else                            ;  1
+				end
+			}.map {|feature|
+				(feature.enabled? ? '' : '-') + feature.name.to_s
+			}.join(' ')
 		end
 	end
 end

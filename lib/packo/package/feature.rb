@@ -27,13 +27,26 @@ class Feature
 	end
 
 	attr_reader :name
-	attr_accessor :value
 
 	def initialize (name, value = false, description = nil)
 		@name        = name.to_sym
 		@value       = value if value.is_a? String
 		@enabled     = !!value
 		@description = description
+	end
+
+	def value (value = nil)
+		if value
+			@value = value
+		elsif enabled?
+			@value || @default_value
+		else
+			@value
+		end
+	end
+
+	def default_value (value = nil)
+		value ? @default_value = value : @default_value
 	end
 
 	def enabled?;   @enabled                        end
