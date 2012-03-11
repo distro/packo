@@ -27,11 +27,10 @@ module Packo
 		end
 
 		if block_given?
-			begin
-				return yield
+			return begin
+				yield
 			rescue Exception => e
 				Packo.debug e
-				return
 			end
 		end
 
@@ -58,6 +57,8 @@ module Packo
 		end
 
 		$stderr.puts output
+
+		nil
 	end
 end
 
