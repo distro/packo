@@ -87,7 +87,7 @@ class Features
 	def to_s (type = :normal)
 		case type
 		when :package
-			@values.select { |_, f| f.enabled? }.map { |i, _| "#{i}#{"=#{i.value}" if i.value}" }.join('-')
+			@values.select { |_, f| f.enabled? }.map { |n, f| "#{n}#{"=#{f.value}" if f.value}" }.join('-')
 
 		when :normal
 			to_a.sort {|a, b|
